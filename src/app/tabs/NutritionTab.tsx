@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { addDays, ALCOHOL_UNITS_PER_WEEK, alcoholUnits, coverage, FIVE_A_DAY, fiveADayOn, foodsOn, formatDay, lastNDays, limitsFor, sumNutrients, todayKey, uid } from "../calc";
-import { AddFoodSheet, MEALS, NutrientGrid } from "../components/AddFoodSheet";
-import { Field, NumField } from "../components/Field";
+import { AddFoodSheet, entryFromPending, MEALS, NutrientGrid, PortionPicker, type Pending } from "../components/AddFoodSheet";
+import { Choice, Field, NumField } from "../components/Field";
 import { Bar, Ring } from "../components/Ring";
 import { Card, CardHeading, Estimate } from "../components/Section";
 import type { Intent } from "../nav";
@@ -224,45 +224,64 @@ function MacroSplit({ n }: { n: Nutrients }) {
 function EditFoodDialog({ entry, onClose }: { entry: FoodEntry | null; onClose: () => void }) {
   const { update } = useDaily15();
   const [e, setE] = useState<FoodEntry | null>(entry);
+  const [pending, setPending] = useState<Pending | null>(null);
   useEffect(() => {
     setE(entry);
+    setPending(entry?.source ? { ...entry.source } : null);
   }, [entry]);
   if (!e || !entry) return null;
   const set = (k: keyof Nutrients, v: number | "") => setE({ ...e, [k]: typeof v === "number" ? v : k === "satFat" || k === "sugars" || k === "salt" ? undefined : 0 });
+  const recalculated = pending ? { ...e, ...entryFromPending(pending) } : null;
+
+  const save = () => {
+    if (recalculated) {
+      update((s) => ({ ...s, foods: s.foods.map((f) => (f.id === e.id ? recalculated : f)) }));
+    } else {
+      const changed = (["kcal", "protein", "carbs", "fat", "fibre", "satFat", "sugars", "salt"] as const).some((k) => e[k] !== entry[k]);
+      update((s) => ({ ...s, foods: s.foods.map((f) => (f.id === e.id ? { ...e, estimated: changed ? false : e.estimated } : f)) }));
+    }
+    onClose();
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-h-[90dvh] max-w-sm overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit entry</DialogTitle>
-          <DialogDescription>Correct any value from the label. Edited values are no longer marked as estimates.</DialogDescription>
+          <DialogTitle>{e.name}</DialogTitle>
+          <DialogDescription>{pending ? "Change the amount or move it to another meal." : "Change the meal, or correct the values from the label."}</DialogDescription>
         </DialogHeader>
-        <Field label="Name"><Input value={e.name} onChange={(x) => setE({ ...e, name: x.target.value })} /></Field>
-        <Field label="Portion"><Input value={e.portion} onChange={(x) => setE({ ...e, portion: x.target.value })} /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <NumField label="Calories" value={e.kcal} onChange={(v) => set("kcal", v)} suffix="kcal" />
-          <NumField label="Protein" value={e.protein} onChange={(v) => set("protein", v)} suffix="g" step={0.1} />
-          <NumField label="Carbohydrate" value={e.carbs} onChange={(v) => set("carbs", v)} suffix="g" step={0.1} />
-          <NumField label="Fat" value={e.fat} onChange={(v) => set("fat", v)} suffix="g" step={0.1} />
-          <NumField label="Fibre" value={e.fibre} onChange={(v) => set("fibre", v)} suffix="g" step={0.1} />
-          <NumField label="Saturates" value={e.satFat ?? ""} onChange={(v) => set("satFat", v)} suffix="g" step={0.1} />
-          <NumField label="Sugars" value={e.sugars ?? ""} onChange={(v) => set("sugars", v)} suffix="g" step={0.1} />
-          <NumField label="Salt" value={e.salt ?? ""} onChange={(v) => set("salt", v)} suffix="g" step={0.01} />
-        </div>
-        <NutrientGrid n={e} />
+        <Field label="Meal">
+          <Choice columns={4} value={e.meal} onChange={(m) => setE({ ...e, meal: m })} options={MEALS} />
+        </Field>
+        {pending && recalculated ? (
+          <>
+            <PortionPicker pending={pending} setPending={setPending} />
+            <NutrientGrid n={recalculated} />
+          </>
+        ) : (
+          <>
+            <Field label="Name"><Input value={e.name} onChange={(x) => setE({ ...e, name: x.target.value })} /></Field>
+            <Field label="Portion" hint="Changing this text doesn't change the values below. To log a different amount, delete this entry and add it again.">
+              <Input value={e.portion} onChange={(x) => setE({ ...e, portion: x.target.value })} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <NumField label="Calories" value={e.kcal} onChange={(v) => set("kcal", v)} suffix="kcal" />
+              <NumField label="Protein" value={e.protein} onChange={(v) => set("protein", v)} suffix="g" step={0.1} />
+              <NumField label="Carbohydrate" value={e.carbs} onChange={(v) => set("carbs", v)} suffix="g" step={0.1} />
+              <NumField label="Fat" value={e.fat} onChange={(v) => set("fat", v)} suffix="g" step={0.1} />
+              <NumField label="Fibre" value={e.fibre} onChange={(v) => set("fibre", v)} suffix="g" step={0.1} />
+              <NumField label="Saturates" value={e.satFat ?? ""} onChange={(v) => set("satFat", v)} suffix="g" step={0.1} />
+              <NumField label="Sugars" value={e.sugars ?? ""} onChange={(v) => set("sugars", v)} suffix="g" step={0.1} />
+              <NumField label="Salt" value={e.salt ?? ""} onChange={(v) => set("salt", v)} suffix="g" step={0.01} />
+            </div>
+            <NutrientGrid n={e} />
+          </>
+        )}
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { update((s) => ({ ...s, foods: s.foods.filter((f) => f.id !== e.id) })); onClose(); }}>
             <Trash2 className="mr-1 h-4 w-4" />Delete
           </Button>
-          <Button
-            className="flex-1"
-            onClick={() => {
-              const changed = (["kcal", "protein", "carbs", "fat", "fibre", "satFat", "sugars", "salt"] as const).some((k) => e[k] !== entry[k]);
-              update((s) => ({ ...s, foods: s.foods.map((f) => (f.id === e.id ? { ...e, estimated: changed ? false : e.estimated } : f)) }));
-              onClose();
-            }}
-          >
-            Save
-          </Button>
+          <Button className="flex-1" onClick={save}>Save</Button>
         </div>
       </DialogContent>
     </Dialog>

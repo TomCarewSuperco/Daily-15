@@ -128,6 +128,20 @@ export interface FoodEntry extends Nutrients {
   fiveADayKind?: FiveADayKind;
   alcoholUnits?: number;
   caffeineMg?: number;
+  /** How the portion was chosen, so the amount can be changed later. Absent on older entries. */
+  source?: {
+    name: string;
+    base: Nutrients;
+    per: number;
+    baseUnit: "g" | "ml" | "serving";
+    units: { name: string; plural: string; g: number }[];
+    unitIdx: number;
+    qty: number;
+    estimated: boolean;
+    fiveADay?: FiveADayKind;
+    abv?: number;
+    caffeine?: number;
+  };
 }
 
 /** A food the user entered by hand and saved, with its everyday serving. */

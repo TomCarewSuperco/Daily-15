@@ -51,6 +51,20 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   ok("saved to My foods", (await p.getByText("My foods").count()) === 1 && (await p.getByText(/143 kcal per sausage \(57 g\)/).count()) === 1);
   await p.keyboard.press("Escape");
 
+  // Edit: change two eggs to three and move them to lunch.
+  await p.getByText("2 large eggs (120 g)", { exact: false }).first().click();
+  await p.getByRole("button", { name: "Lunch", exact: true }).click();
+  await p.getByRole("button", { name: "More" }).click();
+  ok("edit recalculates", (await p.getByRole("dialog").getByText("3 large eggs (180 g)").count()) === 1);
+  await p.getByRole("button", { name: "Save" }).click();
+  const egg = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === "Egg"));
+  ok("edit saved with new meal and calories", egg.meal === "lunch" && egg.kcal === 257 && egg.portion === "3 large eggs (180 g)");
+  // Put it back so the diary check below still holds.
+  await p.getByText("3 large eggs (180 g)", { exact: false }).first().click();
+  await p.getByRole("button", { name: "Breakfast", exact: true }).click();
+  await p.getByRole("button", { name: "Less" }).click();
+  await p.getByRole("button", { name: "Save" }).click();
+
   const foods = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.map((f) => `${f.name} | ${f.portion} | ${f.kcal}`));
   ok("diary entries", JSON.stringify(foods) === JSON.stringify(["Egg | 2 large eggs (120 g) | 172", "Pork sausage, grilled | 2 sausages (90 g) | 261", "Pork and apple sausages | 2 sausages (114 g) | 285"]));
   console.log(foods);

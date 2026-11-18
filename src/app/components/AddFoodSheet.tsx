@@ -23,7 +23,7 @@ export const MEALS: { value: Meal; label: string }[] = [
 
 type Mode = "search" | "barcode" | "manual" | "recipe";
 
-interface Pending {
+export interface Pending {
   name: string;
   /** Nutrients per `per` of `baseUnit`. */
   base: Nutrients;
@@ -203,7 +203,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                           key={f.id}
                           name={f.name}
                           detail={`${f.kcal} kcal · ${f.portion}`}
-                          onClick={() => add({ name: f.name, portion: f.portion, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, fibre: f.fibre, estimated: f.estimated })}
+                          onClick={() => (f.source ? setPending({ ...f.source }) : add((({ id: _i, date: _d, meal: _m, ...rest }) => rest)(f)))}
                         />
                       ))}
                     </ResultGroup>
@@ -278,12 +278,18 @@ function ResultRow({ name, detail, onClick, onDelete }: { name: string; detail: 
   );
 }
 
-function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void; onBack: () => void }) {
-  const { state } = useDaily15();
-  const flags = flagsForFood(lifeStageOf(state.profile), { name: pending.name, abv: pending.abv });
-  const unit = pending.unitIdx >= 0 ? pending.units[pending.unitIdx] : null;
+/** Builds a diary entry from a chosen portion, keeping the source so the amount can be changed later. */
+export function entryFromPending(pending: Pending): Omit<FoodEntry, "id" | "date" | "meal"> {
   const { amount, label } = portionOf(pending);
   const n = scaleNutrients(pending.base, amount / pending.per);
+  const extras = pending.baseUnit !== "serving" ? extrasFor(pending, amount) : {};
+  return { name: pending.name, portion: label, ...n, estimated: pending.estimated, ...extras, source: pending };
+}
+
+/** Measure chips, a stepper and quick picks. Shared by adding and editing food. */
+export function PortionPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
+  const unit = pending.unitIdx >= 0 ? pending.units[pending.unitIdx] : null;
+  const { amount, label } = portionOf(pending);
   const countable = !!unit;
   const step = countable ? 1 : pending.baseUnit === "ml" ? 25 : 10;
   const quick = countable ? [0.5, 1, 2, 3] : [50, 100, 150, 200];
@@ -298,13 +304,6 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="font-medium">{pending.name}{pending.estimated && <Estimate />}</p>
-        <p className="text-xs text-muted-foreground">
-          {pending.baseUnit === "serving" ? `${Math.round(pending.base.kcal)} kcal per serving` : `${Math.round(pending.base.kcal)} kcal per ${pending.per} ${pending.baseUnit}`}
-        </p>
-      </div>
-
       {(pending.units.length > 1 || pending.baseUnit !== "serving") && (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Measure">
           {pending.units.map((u, i) => (
@@ -359,8 +358,25 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
           </Button>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <NutrientGrid n={n} />
+function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void; onBack: () => void }) {
+  const { state } = useDaily15();
+  const flags = flagsForFood(lifeStageOf(state.profile), { name: pending.name, abv: pending.abv });
+  const entry = entryFromPending(pending);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="font-medium">{pending.name}{pending.estimated && <Estimate />}</p>
+        <p className="text-xs text-muted-foreground">
+          {pending.baseUnit === "serving" ? `${Math.round(pending.base.kcal)} kcal per serving` : `${Math.round(pending.base.kcal)} kcal per ${pending.per} ${pending.baseUnit}`}
+        </p>
+      </div>
+      <PortionPicker pending={pending} setPending={setPending} />
+      <NutrientGrid n={entry} />
       {flags.map((f) => (
         <p key={f.text} role="note" className={`rounded-xl p-3 text-sm ${f.level === "avoid" ? "bg-destructive/10 text-destructive" : "bg-copper/10"}`}>
           {f.text}
@@ -368,7 +384,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       ))}
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button className="flex-1" disabled={amount <= 0} onClick={() => onAdd({ name: pending.name, portion: label, ...n, estimated: pending.estimated, ...(pending.baseUnit !== "serving" ? extrasFor(pending, amount) : {}) })}>
+        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => onAdd(entry)}>
           <Plus className="mr-1.5 h-4 w-4" />Add
         </Button>
       </div>
