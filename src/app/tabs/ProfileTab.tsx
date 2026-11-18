@@ -101,7 +101,7 @@ export function ProfileTab() {
     try {
       const data = JSON.parse(await f.text()) as Partial<AppState>;
       if (data.version !== 1 || !data.profile) throw new Error("bad file");
-      replace({ ...emptyState(), ...data } as AppState);
+      replace({ ...emptyState(), ...Object.fromEntries(Object.entries(data).filter(([, v]) => v != null)), profile: data.profile } as AppState);
       toast.success("Data restored");
     } catch {
       toast.error("That file isn't a DAILY 15 export");

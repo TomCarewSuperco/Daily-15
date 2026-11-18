@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MODE_INFO, MOBILITY_ROUTINE } from "../data";
 import { todayKey } from "../calc";
 import { useDaily15 } from "../store";
+import { ExerciseDemo } from "../demos/ExerciseDemo";
 import type { RoutineExercise, RoutineMode } from "../types";
 
 export function routineFor(base: RoutineExercise[], mode: RoutineMode): RoutineExercise[] {
@@ -101,12 +102,13 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         ))}
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-6">
+      <div className="flex flex-1 flex-col justify-center overflow-y-auto py-4">
+        <ExerciseDemo key={ex.id} name={ex.name} className="mx-auto mb-2 h-36 w-auto max-w-full" />
         <p className="text-sm text-muted-foreground">{fmtAmount(ex)}</p>
         <h2 className="mt-1 text-4xl leading-tight">{ex.name}</h2>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{ex.instructions}</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{ex.instructions}</p>
 
-        <div className="mt-8 flex flex-col items-center">
+        <div className="mt-6 flex flex-col items-center">
           {ex.kind === "time" ? (
             <>
               <div className="text-7xl font-semibold tabular-nums" aria-live="polite">{mm}:{ss}</div>

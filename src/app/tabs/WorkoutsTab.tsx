@@ -11,6 +11,7 @@ import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
+import { ExerciseDemo } from "../demos/ExerciseDemo";
 import type { RoutineExercise, RoutineMode } from "../types";
 
 const INTENSITY_STYLE = {
@@ -105,6 +106,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
               </div>
               {expanded === e.id && (
                 <div className="ml-8 mt-2 space-y-2">
+                  <ExerciseDemo name={e.name} className="h-24 w-auto rounded-lg bg-muted/50" />
                   <p className="text-sm text-muted-foreground">{e.instructions}</p>
                   {mode !== "recovery" && (
                     <div className="flex gap-2">
@@ -133,11 +135,11 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </Card>
 
       <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" className="h-auto flex-col gap-1 py-4" onClick={() => { setSeed(undefined); setFormOpen(true); }}>
+        <Button variant="outline" className="h-auto flex-col gap-1 rounded-2xl py-4" onClick={() => { setSeed(undefined); setFormOpen(true); }}>
           <Plus className="h-5 w-5" />
           Log workout
         </Button>
-        <Button variant="outline" className="h-auto flex-col gap-1 py-4" onClick={() => setMode("recovery")}>
+        <Button variant="outline" className="h-auto flex-col gap-1 rounded-2xl py-4" onClick={() => setMode("recovery")}>
           <span className="text-lg leading-5">~</span>
           Mobility routine
         </Button>
@@ -289,6 +291,7 @@ function SwapDialog({ exercise, onClose, onPick }: { exercise: RoutineExercise |
                   onClose();
                 }}
               >
+                <ExerciseDemo name={o.name} animate={false} className="float-right ml-3 h-14 w-auto" />
                 <div className="flex justify-between text-sm font-medium">
                   {o.name}
                   <span className="font-normal text-muted-foreground">{fmtAmount(o)}</span>

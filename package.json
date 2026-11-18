@@ -11,7 +11,8 @@
     "ios:open": "cap open ios",
     "test:e2e": "bash tests/run.sh",
     "test:unit": "tsx --test tests/unit/*.test.ts",
-    "test": "npm run test:unit && npm run test:e2e"
+    "test": "npm run test:unit && npm run test:e2e",
+    "screenshots": "VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= vite build --outDir tests/.out/shots >/dev/null && (python3 -m http.server 8096 --bind 127.0.0.1 --directory tests/.out/shots >/dev/null 2>&1 & S=$!; sleep 1; node tests/screenshots.cjs; kill $S)"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
