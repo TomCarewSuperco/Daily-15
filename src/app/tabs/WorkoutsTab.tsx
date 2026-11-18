@@ -12,6 +12,7 @@ import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
+import { exerciseWarning, lifeStageOf } from "../pregnancy";
 import type { RoutineExercise, RoutineMode } from "../types";
 
 const INTENSITY_STYLE = {
@@ -43,6 +44,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   }, [intent, clearIntent]);
 
   const list = routineFor(state.routine, mode);
+  const stage = lifeStageOf(state.profile);
   const done = new Set(log?.mode === mode ? log.completedIds : []);
   const advice = restAdvice(state);
   const pbs = useMemo(() => personalBests(state.workouts), [state.workouts]);
@@ -97,7 +99,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
               <div className="flex items-center gap-3">
                 <Checkbox checked={done.has(e.id)} onCheckedChange={() => toggle(e.id)} aria-label={`Mark ${e.name} done`} className="h-5 w-5" />
                 <button className="flex flex-1 items-center justify-between text-left" onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
-                  <span className={done.has(e.id) ? "text-muted-foreground line-through" : ""}>{e.name}</span>
+                  <span className={done.has(e.id) ? "text-muted-foreground line-through" : ""}>
+                    {e.name}
+                    {exerciseWarning(stage, e.name) && <span className="ml-1.5 text-xs text-destructive">Check</span>}
+                  </span>
                   <span className="flex items-center gap-1 text-sm tabular-nums text-muted-foreground">
                     {fmtAmount(e)}
                     <ChevronDown className={`h-4 w-4 transition-transform ${expanded === e.id ? "rotate-180" : ""}`} />
@@ -107,6 +112,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
               {expanded === e.id && (
                 <div className="ml-8 mt-2 space-y-2">
                   <ExerciseDemo name={e.name} className="h-24 w-auto rounded-lg bg-muted/50" />
+                  {exerciseWarning(stage, e.name) && <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{exerciseWarning(stage, e.name)}</p>}
                   <p className="text-sm text-muted-foreground">{e.instructions}</p>
                   {mode !== "recovery" && (
                     <div className="flex gap-2">

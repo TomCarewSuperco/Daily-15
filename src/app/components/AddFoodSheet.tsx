@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
+import { flagsForFood, lifeStageOf } from "../pregnancy";
 import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
@@ -35,6 +36,7 @@ interface Pending {
   estimated: boolean;
   fiveADay?: FiveADayKind;
   abv?: number;
+  caffeine?: number;
 }
 
 const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
@@ -42,7 +44,7 @@ const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
 function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
   if (f.unit === "serving") return { name: f.name, base: f, per: f.per, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated };
   const hasUnits = f.units.length > 0;
-  const extra = "typical" in f ? { fiveADay: f.fiveADay, abv: f.abv } : {};
+  const extra = "typical" in f ? { fiveADay: f.fiveADay, abv: f.abv, caffeine: f.caffeine } : {};
   return { name: f.name, base: f, per: f.per, baseUnit: f.unit, units: f.units, unitIdx: hasUnits ? 0 : -1, qty: hasUnits ? 1 : "typical" in f ? f.typical : 100, estimated, ...extra };
 }
 
@@ -277,6 +279,8 @@ function ResultRow({ name, detail, onClick, onDelete }: { name: string; detail: 
 }
 
 function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void; onBack: () => void }) {
+  const { state } = useDaily15();
+  const flags = flagsForFood(lifeStageOf(state.profile), { name: pending.name, abv: pending.abv });
   const unit = pending.unitIdx >= 0 ? pending.units[pending.unitIdx] : null;
   const { amount, label } = portionOf(pending);
   const n = scaleNutrients(pending.base, amount / pending.per);
@@ -357,6 +361,11 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       </div>
 
       <NutrientGrid n={n} />
+      {flags.map((f) => (
+        <p key={f.text} role="note" className={`rounded-xl p-3 text-sm ${f.level === "avoid" ? "bg-destructive/10 text-destructive" : "bg-copper/10"}`}>
+          {f.text}
+        </p>
+      ))}
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
         <Button className="flex-1" disabled={amount <= 0} onClick={() => onAdd({ name: pending.name, portion: label, ...n, estimated: pending.estimated, ...(pending.baseUnit !== "serving" ? extrasFor(pending, amount) : {}) })}>

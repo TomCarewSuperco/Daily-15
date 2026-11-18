@@ -44,6 +44,8 @@ export interface Profile {
   targetsCustomised: boolean;
   /** When the user last accepted a calorie change from the weekly review. */
   adjustedAt?: string;
+  /** Pregnancy or breastfeeding. Switches off calorie targets and weight-loss advice. */
+  lifeStage?: { kind: "pregnant" | "breastfeeding"; dueDate?: string };
 }
 
 export type RoutineMode = "standard" | "light" | "recovery";
@@ -125,6 +127,7 @@ export interface FoodEntry extends Nutrients {
   fiveADay?: number;
   fiveADayKind?: FiveADayKind;
   alcoholUnits?: number;
+  caffeineMg?: number;
 }
 
 /** A food the user entered by hand and saved, with its everyday serving. */
@@ -194,6 +197,8 @@ export interface AppState {
   foods: FoodEntry[];
   savedMeals: SavedMeal[];
   customFoods: CustomFood[];
+  /** Supplements ticked off per day, keyed by date. */
+  supplements?: Record<string, string[]>;
   water: Record<string, number>;
   activity: Record<string, ActivityDay>;
   weights: WeightEntry[];

@@ -21,6 +21,8 @@ export interface FoodItem extends Nutrients {
   fiveADay?: FiveADayKind;
   /** Alcohol by volume, per cent. */
   abv?: number;
+  /** Caffeine, mg per 100 g or 100 ml. */
+  caffeine?: number;
 }
 
 const u = (name: string, g: number, plural = `${name}s`): FoodUnit => ({ name, plural, g });
@@ -147,10 +149,13 @@ const BASE: FoodItem[] = [
   // Drinks
   food("Tea with semi-skimmed milk", "ml", 7, 0.5, 0.7, 0.2, 0, [u("mug", 250)]),
   food("Coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
+  food("Filter coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
+  food("Decaf coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
   food("Latte, semi-skimmed", "ml", 46, 3.2, 4.7, 1.7, 0, [u("regular", 350), u("small", 250)]),
   food("Orange juice", "ml", 45, 0.7, 10, 0.2, 0.2, [u("glass", 150)]),
   food("Cola", "ml", 42, 0, 10.6, 0, 0, [u("can", 330)]),
   food("Diet cola", "ml", 0.4, 0, 0, 0, 0, [u("can", 330)]),
+  food("Energy drink", "ml", 45, 0, 11, 0, 0, [u("can", 250), u("large can", 500)]),
   food("Beer, 4%", "ml", 43, 0.5, 3.6, 0, 0, [u("pint", 568), u("bottle", 330)]),
   food("Red wine", "ml", 85, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("White wine", "ml", 82, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
@@ -255,7 +260,10 @@ const EXTRA: Record<string, Extra> = {
   "Tomato soup, cream of": [0.3, 5, 0.7],
   "Tea with semi-skimmed milk": [0.1, 0.7, 0],
   "Coffee with semi-skimmed milk": [0.4, 1.9, 0.03],
+  "Filter coffee with semi-skimmed milk": [0.4, 1.9, 0.03],
+  "Decaf coffee with semi-skimmed milk": [0.4, 1.9, 0.03],
   "Latte, semi-skimmed": [1.1, 4.7, 0.1],
+  "Energy drink": [0, 11, 0.1],
   "Orange juice": [0, 9, 0, "juice"],
   Cola: [0, 10.6, 0],
   "Diet cola": [0, 0, 0.02],
@@ -265,16 +273,38 @@ const EXTRA: Record<string, Extra> = {
   "Spirits, 40%": [0, 0, 0, null, 40],
 };
 
+/*
+ * Caffeine, mg per 100 g or 100 ml. Approximate figures that match the NHS
+ * rule of thumb (mug of instant coffee about 100 mg, filter coffee 140 mg,
+ * tea 75 mg, can of cola 40 mg, energy drink 80 mg per 250 ml, 50 g plain
+ * chocolate under 25 mg, milk chocolate under 10 mg). Not verified.
+ */
+const CAFFEINE: Record<string, number> = {
+  "Coffee with semi-skimmed milk": 40,
+  "Filter coffee with semi-skimmed milk": 56,
+  "Decaf coffee with semi-skimmed milk": 1,
+  "Latte, semi-skimmed": 25,
+  "Tea with semi-skimmed milk": 30,
+  Cola: 12,
+  "Diet cola": 13,
+  "Energy drink": 32,
+  "Dark chocolate 70%": 50,
+  "Milk chocolate": 20,
+};
+
 export const FOOD_DB: FoodItem[] = BASE.map((f) => {
   const x = EXTRA[f.name];
-  if (!x) return f;
+  const caffeine = CAFFEINE[f.name];
+  const withCaffeine = caffeine ? { ...f, caffeine } : f;
+  if (!x) return withCaffeine;
   const [satFat, sugars, salt, fiveADay, abv] = x;
-  return { ...f, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
+  return { ...withCaffeine, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
 });
 
-/** 5 a day portions and alcohol units for an amount in grams or millilitres. */
-export function extrasFor(food: { fiveADay?: FiveADayKind; abv?: number }, amount: number) {
-  const out: { fiveADay?: number; fiveADayKind?: FiveADayKind; alcoholUnits?: number } = {};
+/** 5 a day portions, alcohol units and caffeine for an amount in grams or millilitres. */
+export function extrasFor(food: { fiveADay?: FiveADayKind; abv?: number; caffeine?: number }, amount: number) {
+  const out: { fiveADay?: number; fiveADayKind?: FiveADayKind; alcoholUnits?: number; caffeineMg?: number } = {};
+  if (food.caffeine) out.caffeineMg = Math.round((amount * food.caffeine) / 100);
   if (food.fiveADay) {
     out.fiveADayKind = food.fiveADay;
     out.fiveADay = Math.round((amount / (food.fiveADay === "juice" ? 150 : 80)) * 10) / 10;

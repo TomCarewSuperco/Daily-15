@@ -6,6 +6,7 @@ import { MODE_INFO, MOBILITY_ROUTINE } from "../data";
 import { todayKey } from "../calc";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
+import { exerciseWarning, lifeStageOf } from "../pregnancy";
 import type { RoutineExercise, RoutineMode } from "../types";
 
 export function routineFor(base: RoutineExercise[], mode: RoutineMode): RoutineExercise[] {
@@ -107,6 +108,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         <p className="text-sm text-muted-foreground">{fmtAmount(ex)}</p>
         <h2 className="mt-1 text-4xl leading-tight">{ex.name}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{ex.instructions}</p>
+        {exerciseWarning(lifeStageOf(state.profile), ex.name) && <p className="mt-3 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">{exerciseWarning(lifeStageOf(state.profile), ex.name)}</p>}
 
         <div className="mt-6 flex flex-col items-center">
           {ex.kind === "time" ? (

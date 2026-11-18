@@ -5,6 +5,7 @@ import { ACTIVITY_LABELS, GOAL_LABELS, suggestTargets, todayKey, uid } from "../
 import { Choice, Field, NumField } from "../components/Field";
 import { useDaily15 } from "../store";
 import type { ActivityLevel, Experience, Goal, Profile, Sex } from "../types";
+import { PREGNANCY_MODE_ENABLED } from "../pregnancy";
 
 type Draft = {
   name: string;
@@ -16,6 +17,7 @@ type Draft = {
   experience: Experience;
   activityLevel: ActivityLevel;
   goal: Goal;
+  lifeStage: "none" | "pregnant" | "breastfeeding";
 };
 
 export function Onboarding() {
@@ -31,6 +33,7 @@ export function Onboarding() {
     experience: "beginner",
     activityLevel: "light",
     goal: "lose-fat",
+    lifeStage: "none",
   });
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
@@ -51,7 +54,9 @@ export function Onboarding() {
       activityLevel: d.activityLevel,
       goal: d.goal,
     };
-    const profile: Profile = { ...base, name: d.name.trim(), experience: d.experience, targets: suggestTargets(base), targetsCustomised: false };
+    const lifeStage = d.lifeStage === "none" ? undefined : { kind: d.lifeStage };
+    const finalBase = lifeStage ? { ...base, goal: "health" as Goal } : base;
+    const profile: Profile = { ...finalBase, name: d.name.trim(), experience: d.experience, targets: suggestTargets(finalBase), targetsCustomised: false, lifeStage };
     update((s) => ({
       ...s,
       profile,
@@ -86,6 +91,11 @@ export function Onboarding() {
       <Field label="Sex used for energy calculations">
         <Choice value={d.sex} onChange={(v) => set("sex", v)} options={[{ value: "female", label: "Female" }, { value: "male", label: "Male" }]} />
       </Field>
+      {PREGNANCY_MODE_ENABLED && (
+        <Field label="Are you pregnant or breastfeeding?" hint="If so, DAILY 15 won't set calorie targets or give weight-loss advice.">
+          <Choice columns={3} value={d.lifeStage} onChange={(v) => set("lifeStage", v)} options={[{ value: "none", label: "No" }, { value: "pregnant", label: "Pregnant" }, { value: "breastfeeding", label: "Breastfeeding" }]} />
+        </Field>
+      )}
       <div className="flex gap-2 pt-2">
         <Button variant="outline" onClick={() => setStep(0)}>Back</Button>
         <Button className="flex-1" disabled={!bodyValid} onClick={() => setStep(2)}>Continue</Button>
@@ -113,9 +123,17 @@ export function Onboarding() {
     </div>,
 
     <div key="goal" className="space-y-5">
-      <h2 className="text-3xl">Primary goal</h2>
-      <Choice columns={1} value={d.goal} onChange={(v) => set("goal", v)} options={(Object.keys(GOAL_LABELS) as Goal[]).map((k) => ({ value: k, label: GOAL_LABELS[k] }))} />
-      {bodyValid && <TargetPreview d={d} />}
+      <h2 className="text-3xl">{d.lifeStage === "none" ? "Primary goal" : "Your focus"}</h2>
+      {d.lifeStage === "none" ? (
+        <>
+          <Choice columns={1} value={d.goal} onChange={(v) => set("goal", v)} options={(Object.keys(GOAL_LABELS) as Goal[]).map((k) => ({ value: k, label: GOAL_LABELS[k] }))} />
+          {bodyValid && <TargetPreview d={d} />}
+        </>
+      ) : (
+        <p className="text-muted-foreground">
+          While you're {d.lifeStage === "pregnant" ? "pregnant" : "breastfeeding"}, DAILY 15 focuses on staying active and eating well, with NHS guidance, supplement reminders and caffeine tracking. There are no calorie targets or weight-loss goals. You can change this in Profile at any time.
+        </p>
+      )}
       <div className="flex gap-2 pt-2">
         <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
         <Button className="flex-1" onClick={finish}>Start DAILY 15</Button>

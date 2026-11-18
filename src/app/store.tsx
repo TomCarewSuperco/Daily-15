@@ -21,6 +21,7 @@ export function emptyState(): AppState {
     foods: [],
     savedMeals: [],
     customFoods: [],
+    supplements: {},
     water: {},
     activity: {},
     weights: [],

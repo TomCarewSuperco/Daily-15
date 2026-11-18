@@ -28,6 +28,8 @@ import { healthName } from "../native/health";
 import { notificationPermission, requestNotificationPermission, scheduleReminders } from "../native/notifications";
 import { isNative } from "../native/platform";
 import { useHealthSync } from "../native/useHealthSync";
+import { PREGNANCY_MODE_ENABLED } from "../pregnancy";
+import { PreviewBadge } from "../components/PregnancyCard";
 import { clearStorage, emptyState, useDaily15 } from "../store";
 import type { ActivityLevel, AppState, Experience, FocusGoal, Goal, Profile, Targets } from "../types";
 
@@ -157,6 +159,31 @@ export function ProfileTab() {
         </Card>
       )}
 
+      {PREGNANCY_MODE_ENABLED && (
+        <Card>
+          <CardHeading>Pregnancy and breastfeeding<PreviewBadge /></CardHeading>
+          <Choice
+            columns={3}
+            value={p.lifeStage?.kind ?? "none"}
+            onChange={(v) => setProfile({ lifeStage: v === "none" ? undefined : { kind: v as "pregnant" | "breastfeeding", dueDate: v === "pregnant" ? p.lifeStage?.dueDate : undefined } })}
+            options={[{ value: "none", label: "Neither" }, { value: "pregnant", label: "Pregnant" }, { value: "breastfeeding", label: "Breastfeeding" }]}
+          />
+          {p.lifeStage?.kind === "pregnant" && (
+            <div className="mt-3">
+              <Field label="Due date (optional)" hint="Used to show your week of pregnancy and the right supplement reminders.">
+                <Input type="date" value={p.lifeStage.dueDate ?? ""} min={todayKey()} onChange={(e) => setProfile({ lifeStage: { kind: "pregnant", dueDate: e.target.value || undefined } })} />
+              </Field>
+            </div>
+          )}
+          <p className="mt-3 text-xs text-muted-foreground">
+            {p.lifeStage
+              ? "Calorie targets, weight-loss advice and the usual weekly review are switched off. You'll see supplement reminders, caffeine tracking, warnings on foods usually avoided and NHS guidance instead."
+              : "Switches off calorie targets and weight-loss advice, and shows NHS guidance, supplement reminders and caffeine tracking instead."}{" "}
+            This mode is a preview and hasn't yet been reviewed by a midwife or dietitian.
+          </p>
+        </Card>
+      )}
+
       <Card>
         <CardHeading>Personal details</CardHeading>
         <div className="space-y-3">
@@ -179,8 +206,8 @@ export function ProfileTab() {
               <SelectContent>{(Object.keys(ACTIVITY_LABELS) as ActivityLevel[]).map((k) => <SelectItem key={k} value={k}>{ACTIVITY_LABELS[k]}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
-          <Field label="Primary goal">
-            <Select value={p.goal} onValueChange={(v) => setProfile({ goal: v as Goal })}>
+          <Field label="Primary goal" hint={p.lifeStage ? "Weight goals are off while you're pregnant or breastfeeding." : undefined}>
+            <Select disabled={!!p.lifeStage} value={p.goal} onValueChange={(v) => setProfile({ goal: v as Goal })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{(Object.keys(GOAL_LABELS) as Goal[]).map((k) => <SelectItem key={k} value={k}>{GOAL_LABELS[k]}</SelectItem>)}</SelectContent>
             </Select>

@@ -19,6 +19,8 @@ import { Bar, Ring } from "../components/Ring";
 import { Card, CardHeading, Estimate } from "../components/Section";
 import type { Navigate } from "../nav";
 import { useDaily15 } from "../store";
+import { PregnancyCard } from "../components/PregnancyCard";
+import { lifeStageOf } from "../pregnancy";
 
 export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const { state, update } = useDaily15();
@@ -37,6 +39,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const streak = currentStreak(state);
   const weight = latestWeight(state);
   const change = weight !== null ? Math.round((weight - p.startWeightKg) * 10) / 10 : null;
+  const stage = lifeStageOf(p);
   const toGo = weight !== null ? Math.round(Math.abs(weight - p.targetWeightKg) * 10) / 10 : null;
   const water = state.water[today] ?? 0;
   const advice = restAdvice(state);
@@ -119,6 +122,8 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
         </div>
       </Card>
 
+      <PregnancyCard />
+
       {advice && !routine?.finished && (
         <Card className="border-copper/40 text-sm">
           <p>{advice}</p>
@@ -136,10 +141,10 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => setStepsOpen(true)}>Update steps</Button>
         </Card>
         <Card className="flex flex-col items-center">
-          <Ring value={food.kcal} max={t.calories} label="Calories progress">
+          <Ring value={stage ? 0 : food.kcal} max={t.calories} label={stage ? "Calories eaten" : "Calories progress"}>
             <Utensils className="h-4 w-4 text-muted-foreground" />
             <div className="text-lg font-semibold tabular-nums">{food.kcal.toLocaleString("en-GB")}</div>
-            <div className="text-[10px] text-muted-foreground">{remaining >= 0 ? `${remaining.toLocaleString("en-GB")} left` : `${Math.abs(remaining).toLocaleString("en-GB")} over`}</div>
+            <div className="text-[10px] text-muted-foreground">{stage ? "kcal eaten" : remaining >= 0 ? `${remaining.toLocaleString("en-GB")} left` : `${Math.abs(remaining).toLocaleString("en-GB")} over`}</div>
           </Ring>
           <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => onNavigate("nutrition", "add-food")}>Log food</Button>
         </Card>
@@ -147,10 +152,12 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
 
       <Card>
         <div className="space-y-3 text-sm">
-          <div>
-            <div className="mb-1 flex justify-between"><span>Protein</span><span className="tabular-nums text-muted-foreground">{Math.round(food.protein)} / {t.proteinG} g</span></div>
-            <Bar value={food.protein} max={t.proteinG} />
-          </div>
+          {!stage && (
+            <div>
+              <div className="mb-1 flex justify-between"><span>Protein</span><span className="tabular-nums text-muted-foreground">{Math.round(food.protein)} / {t.proteinG} g</span></div>
+              <Bar value={food.protein} max={t.proteinG} />
+            </div>
+          )}
           <div>
             <div className="mb-1 flex justify-between"><span>Active minutes</span><span className="tabular-nums text-muted-foreground">{activeMin} / {t.activeMinutes} min</span></div>
             <Bar value={activeMin} max={t.activeMinutes} />
@@ -178,7 +185,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           <div className="mt-0.5 text-xs text-muted-foreground">
             {change !== null && change !== 0 ? `${change > 0 ? "+" : "−"}${Math.abs(change).toFixed(1)} kg since start` : "Tap to weigh in"}
           </div>
-          {toGo !== null && toGo > 0 && <div className="text-xs text-muted-foreground">{toGo.toFixed(1)} kg to target</div>}
+          {!stage && toGo !== null && toGo > 0 && <div className="text-xs text-muted-foreground">{toGo.toFixed(1)} kg to target</div>}
         </button>
         <button className="rounded-2xl border bg-card p-3 text-left" onClick={() => onNavigate("workouts", "log-workout")}>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Dumbbell className="h-3.5 w-3.5" />Workouts today</div>
@@ -200,7 +207,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           ].map(([label, v, max]) => (
             <div key={label as string}>
               <div className="font-semibold">{Math.round(v as number)} g</div>
-              <div className="text-[10px] text-muted-foreground">of {max as number} g</div>
+              <div className="text-[10px] text-muted-foreground">{!stage || label === "Fibre" ? `of ${max as number} g` : "eaten"}</div>
               <div className="mt-1 text-xs">{label}</div>
             </div>
           ))}

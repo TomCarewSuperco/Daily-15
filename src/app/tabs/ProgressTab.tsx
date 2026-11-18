@@ -27,6 +27,8 @@ import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import type { MeasurementEntry } from "../types";
 import { weeklyReview, type ReviewPoint } from "../review";
+import { lifeStageOf, pregnancyReview } from "../pregnancy";
+import { PreviewBadge } from "../components/PregnancyCard";
 
 const AXIS = { fontSize: 11, fill: "hsl(var(--muted-foreground))" };
 const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 };
@@ -34,6 +36,7 @@ const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(va
 export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearIntent: () => void }) {
   const { state, update } = useDaily15();
   const p = state.profile!;
+  const stage = lifeStageOf(p);
   const [range, setRange] = useState<30 | 90 | 0>(90);
   const [weightOpen, setWeightOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
@@ -61,8 +64,8 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
     const from = addDays(today, -range);
     return all.filter((d) => d.date >= from);
   }, [state.weights, range, today]);
-  const yMin = Math.floor(Math.min(p.targetWeightKg, ...series.map((s) => s.kg)) - 1);
-  const yMax = Math.ceil(Math.max(...series.map((s) => s.kg), p.targetWeightKg) + 1);
+  const yMin = Math.floor(Math.min(...(stage ? [] : [p.targetWeightKg]), ...series.map((s) => s.kg)) - 1);
+  const yMax = Math.ceil(Math.max(...series.map((s) => s.kg), ...(stage ? [] : [p.targetWeightKg])) + 1);
 
   const week = lastNDays(7);
   const stepsData = week.map((d) => ({ date: d, label: formatDay(d, { weekday: "short" }), steps: state.activity[d]?.steps ?? 0 }));
@@ -73,9 +76,10 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const stepGoalDays = stepsData.filter((d) => d.steps >= p.targets.steps).length;
 
   const report = useMemo(() => weeklyReport(state, addDays(todayKey(), -1)), [state]);
-  const review = useMemo(() => weeklyReview(state), [state]);
+  const review = useMemo(() => (stage ? null : weeklyReview(state)), [state, stage]);
+  const pReview = useMemo(() => (stage ? pregnancyReview(state) : null), [state, stage]);
   const applyAdjustment = () => {
-    if (!review.adjustment) return;
+    if (!review?.adjustment) return;
     const change = review.adjustment.change;
     update((s) => ({ ...s, profile: { ...s.profile!, targetsCustomised: true, adjustedAt: todayKey(), targets: { ...s.profile!.targets, ...change } } }));
     toast.success(`Daily target updated to ${change.calories?.toLocaleString("en-GB")} kcal`);
@@ -95,6 +99,14 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
       {/* Weight */}
       <Card>
         <CardHeading action={<Button size="sm" variant="outline" className="h-8" onClick={() => setWeightOpen(true)}><Scale className="mr-1 h-3.5 w-3.5" />Weigh in</Button>}>Weight</CardHeading>
+        {stage ? (
+          <div className="grid grid-cols-3 gap-2 text-center tabular-nums">
+            <div><div className="text-[11px] text-muted-foreground">Start</div><div className="font-semibold">{p.startWeightKg.toFixed(1)}</div></div>
+            <div><div className="text-[11px] text-muted-foreground">Current</div><div className="font-semibold">{current.toFixed(1)}</div></div>
+            <div><div className="text-[11px] text-muted-foreground">Change</div><div className="font-semibold">{change > 0 ? "+" : change < 0 ? "−" : ""}{Math.abs(change).toFixed(1)}</div></div>
+          </div>
+        ) : (
+        <>
         <div className="grid grid-cols-4 gap-2 text-center tabular-nums">
           <div><div className="text-[11px] text-muted-foreground">Start</div><div className="font-semibold">{p.startWeightKg.toFixed(1)}</div></div>
           <div><div className="text-[11px] text-muted-foreground">Current</div><div className="font-semibold">{current.toFixed(1)}</div></div>
@@ -102,7 +114,8 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
           <div><div className="text-[11px] text-muted-foreground">To target</div><div className="font-semibold">{Math.abs(remaining).toFixed(1)}</div></div>
         </div>
         <p className="mt-1 text-center text-[11px] text-muted-foreground">kg · target {p.targetWeightKg.toFixed(1)} kg</p>
-
+        </>
+        )}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/50" />Weigh-ins</span>
@@ -123,7 +136,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                 <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} minTickGap={24} />
                 <YAxis domain={[yMin, yMax]} tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
-                <ReferenceLine y={p.targetWeightKg} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: "Target", position: "insideTopRight", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                {!stage && <ReferenceLine y={p.targetWeightKg} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: "Target", position: "insideTopRight", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />}
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [`${v.toFixed(1)} kg`, n === "trend" ? "7-day trend" : "Weigh-in"]} />
                 <Line dataKey="kg" stroke="none" isAnimationActive={false} dot={{ r: 4, fill: "hsl(var(--muted-foreground) / 0.5)", stroke: "hsl(var(--card))", strokeWidth: 2 }} activeDot={{ r: 5 }} />
                 <Line dataKey="trend" type="monotone" stroke="hsl(var(--copper))" strokeWidth={2} dot={false} />
@@ -138,7 +151,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
           <div className="rounded-xl bg-muted p-2.5"><div className="text-[11px] text-muted-foreground">Monthly trend</div><div className="font-semibold tabular-nums">{fmtChange(monthly)}</div></div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Daily weight moves by a kilo or more with water, salt and food. Judge progress on the trend line over two to four weeks.
+          {stage
+            ? "Weight gain in pregnancy and changes while breastfeeding vary a lot. Your midwife will advise on what's right for you."
+            : "Daily weight moves by a kilo or more with water, salt and food. Judge progress on the trend line over two to four weeks."}
         </p>
         {state.weights.length > 0 && (
           <details className="mt-2 text-sm">
@@ -192,6 +207,19 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
 
       {/* Weekly review */}
       <div ref={reportRef} className="space-y-4">
+        {pReview && (
+          <Card>
+            <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(pReview.start, { day: "numeric", month: "short" })} to {formatDay(pReview.end, { day: "numeric", month: "short" })}</span>}>
+              Weekly review<PreviewBadge />
+            </CardHeading>
+            <p className="text-lg leading-snug">{pReview.headline}</p>
+            {pReview.wins.length > 0 && <ReviewList title="Going well" items={pReview.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
+            {pReview.watch.length > 0 && <ReviewList title="Worth a look" items={pReview.watch.map((w, i) => ({ id: `x${i}`, text: w, priority: 0 }))} />}
+            {pReview.ideas.length > 0 && <ReviewList title="Ideas for next week" items={pReview.ideas.map((w, i) => ({ id: `i${i}`, text: w, priority: 0 }))} />}
+            <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">General guidance only, not yet reviewed by a midwife or dietitian. Your midwife or GP knows your circumstances and should guide your diet, supplements and activity.</p>
+          </Card>
+        )}
+        {review && (
         <Card>
           <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(review.start, { day: "numeric", month: "short" })} to {formatDay(review.end, { day: "numeric", month: "short" })}</span>}>Weekly review</CardHeading>
           <p className="text-lg leading-snug">{review.headline}</p>
@@ -214,6 +242,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             General guidance from your logged data, which may be incomplete. Not medical or dietetic advice. If you're pregnant, breastfeeding, under 18, managing a medical condition or have had an eating disorder, speak to your GP or a registered dietitian before changing your diet.
           </p>
         </Card>
+        )}
 
         <Card>
           <CardHeading>Week in numbers</CardHeading>

@@ -12,12 +12,15 @@ import { Card, CardHeading, Estimate } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import type { FoodEntry, Meal, Nutrients } from "../types";
+import { CAFFEINE_LIMIT_MG, caffeineOn, flagsForFood, lifeStageOf } from "../pregnancy";
+import { TriangleAlert } from "lucide-react";
 
 export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearIntent: () => void }) {
   const { state, update } = useDaily15();
   const t = state.profile!.targets;
   const limits = limitsFor(state.profile!);
   const focus = new Set(state.profile!.focus ?? []);
+  const stage = lifeStageOf(state.profile);
   const [date, setDate] = useState(todayKey());
   const [sheet, setSheet] = useState<{ open: boolean; meal?: Meal }>({ open: false });
   const [editing, setEditing] = useState<FoodEntry | null>(null);
@@ -55,15 +58,19 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
 
       <Card>
         <div className="flex items-center gap-4">
-          <Ring value={total.kcal} max={t.calories} size={128} label="Calories eaten against target">
-            <div className="text-2xl font-semibold tabular-nums">{Math.abs(remaining).toLocaleString("en-GB")}</div>
-            <div className="text-[11px] text-muted-foreground">{remaining >= 0 ? "kcal left" : "kcal over"}</div>
+          <Ring value={stage ? 0 : total.kcal} max={t.calories} size={128} label={stage ? "Calories eaten" : "Calories eaten against target"}>
+            <div className="text-2xl font-semibold tabular-nums">{(stage ? total.kcal : Math.abs(remaining)).toLocaleString("en-GB")}</div>
+            <div className="text-[11px] text-muted-foreground">{stage ? "kcal eaten" : remaining >= 0 ? "kcal left" : "kcal over"}</div>
           </Ring>
+          {stage ? (
+            <p className="flex-1 text-sm text-muted-foreground">Calorie targets are off while you're {stage.kind === "pregnant" ? "pregnant" : "breastfeeding"}. Eat to appetite and follow your midwife's advice.</p>
+          ) : (
           <div className="flex-1 space-y-1 text-sm tabular-nums">
             <div className="flex justify-between"><span className="text-muted-foreground">Target</span><span>{t.calories.toLocaleString("en-GB")}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Eaten</span><span>{total.kcal.toLocaleString("en-GB")}</span></div>
             <div className="flex justify-between font-medium"><span>Remaining</span><span>{remaining.toLocaleString("en-GB")}</span></div>
           </div>
+          )}
         </div>
         <div className="mt-4 space-y-2.5 text-sm">
           {([
@@ -71,12 +78,16 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
             ["Carbohydrate", total.carbs, t.carbsG],
             ["Fat", total.fat, t.fatG],
             ["Fibre", total.fibre, t.fibreG],
-          ] as const).map(([label, v, max]) => (
-            <div key={label}>
-              <div className="mb-1 flex justify-between"><span>{label}</span><span className="tabular-nums text-muted-foreground">{Math.round(v)} / {max} g</span></div>
-              <Bar value={v} max={max} />
-            </div>
-          ))}
+          ] as const).map(([label, v, max]) =>
+            stage && label !== "Fibre" ? (
+              <div key={label} className="flex justify-between"><span>{label}</span><span className="tabular-nums text-muted-foreground">{Math.round(v)} g</span></div>
+            ) : (
+              <div key={label}>
+                <div className="mb-1 flex justify-between"><span>{label}</span><span className="tabular-nums text-muted-foreground">{Math.round(v)} / {max} g</span></div>
+                <Bar value={v} max={max} />
+              </div>
+            ),
+          )}
           <div className="space-y-2.5 border-t pt-3">
             {([
               ["Saturated fat", total.satFat, limits.satFatG, "satFat", "cholesterol"],
@@ -102,6 +113,15 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               </div>
               <Bar value={fiveADay} max={FIVE_A_DAY} />
             </div>
+            {stage && (
+              <div>
+                <div className="mb-1 flex justify-between">
+                  <span className="font-medium">Caffeine</span>
+                  <span className={`tabular-nums ${caffeineOn(state, date) > CAFFEINE_LIMIT_MG ? "text-destructive" : "text-muted-foreground"}`}>{caffeineOn(state, date)} / {CAFFEINE_LIMIT_MG} mg limit</span>
+                </div>
+                <Bar value={caffeineOn(state, date)} max={CAFFEINE_LIMIT_MG} limit />
+              </div>
+            )}
             {(weekUnits > 0 || focus.has("alcohol")) && (
               <div className="flex justify-between">
                 <span className={focus.has("alcohol") ? "font-medium" : ""}>Alcohol, last seven days</span>
@@ -148,7 +168,10 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
                   <li key={f.id}>
                     <button className="flex w-full items-center justify-between py-2 text-left" onClick={() => setEditing(f)}>
                       <div>
-                        <div className="text-sm">{f.name}{f.estimated && <Estimate />}</div>
+                        <div className="text-sm">
+                          {flagsForFood(stage, f).length > 0 && <TriangleAlert className="mr-1 inline h-3.5 w-3.5 text-destructive" aria-label="Not usually advised" />}
+                          {f.name}{f.estimated && <Estimate />}
+                        </div>
                         <div className="text-xs text-muted-foreground">{f.portion} · P {Math.round(f.protein)} g</div>
                       </div>
                       <span className="text-sm tabular-nums">{f.kcal}</span>

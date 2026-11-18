@@ -35,6 +35,10 @@ Listing copy, App Privacy answers, review notes and screenshots are in `docs/app
 - Age rating questionnaire, support URL, category Health & Fitness.
 - Apple Health data must not be used for advertising or stored in iCloud (guideline 5.1.3). DAILY 15 stores daily totals and imported workouts in the user's Supabase account, which the privacy policy must disclose.
 
+## Pregnancy and breastfeeding mode
+
+Preview. All rules and wording are in `src/app/pregnancy.ts`, written from general knowledge of NHS guidance and not yet checked against the NHS pages or by a midwife or dietitian. Before App Store release: verify against the NHS pages listed in that file, get a midwife or registered dietitian to review it, and get a regulatory view on medical device status. To hide the mode, set `PREGNANCY_MODE_ENABLED` to `false`.
+
 ## Not yet verified
 
 Nothing native has been compiled or run yet. The project was generated and configured on Linux without Xcode. Expect to fix small build issues on the first Xcode or Codemagic build, then test Apple Health, reminders and email links on a real iPhone.
