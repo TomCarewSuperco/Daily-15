@@ -31,5 +31,6 @@ All data is stored in the browser on the user's device. There are no accounts, n
 - Reminders fire only while the app is open.
 - Photo meal recognition isn't built.
 - The food database is a 40-item starter set and needs a licensed database before public release.
-- Barcode data comes from Open Food Facts under the Open Database Licence, which requires the attribution shown in the app.
+- Branded product search and barcode lookups use Open Food Facts under the Open Database Licence, which requires the attribution shown in the app. Its search allows about ten requests a minute per user, so the app searches only when asked.
+- Camera scanning uses the browser's barcode detector where available and ZXing elsewhere, including Safari on iPhone.
 - Calorie and protein targets are estimates from the Mifflin-St Jeor equation and should be checked by a registered dietitian before launch.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChefHat, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import { Barcode, Camera, ChefHat, Globe, PenLine, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +9,7 @@ import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { FOOD_DB, type FoodItem } from "../data";
 import { useDaily15 } from "../store";
 import type { FoodEntry, Meal, Nutrients } from "../types";
-import { barcodeDetectorAvailable, lookupBarcode, scanWithCamera } from "./barcode";
+import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 
@@ -31,6 +31,10 @@ interface Pending {
   estimated: boolean;
 }
 
+function fromOff(p: OffProduct): Pending {
+  return { name: p.name, base: p, per: 100, unit: "g", amount: p.servingG ?? 100, estimated: true };
+}
+
 function defaultMeal(): Meal {
   const h = new Date().getHours();
   if (h < 11) return "breakfast";
@@ -45,12 +49,15 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   const [meal, setMeal] = useState<Meal>(defaultMeal());
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<Pending | null>(null);
+  const [online, setOnline] = useState<{ query: string; status: "idle" | "loading" | "done" | "error"; results: OffProduct[] }>({ query: "", status: "idle", results: [] });
+  const onlineAbort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (open) {
       setMode("search");
       setQuery("");
       setPending(null);
+      setOnline({ query: "", status: "idle", results: [] });
       setMeal(initialMeal ?? defaultMeal());
     }
   }, [open, initialMeal]);
@@ -72,6 +79,21 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
     update((s) => ({ ...s, foods: [...s.foods, { ...entry, id: uid(), date, meal }] }));
     toast.success(`Added to ${meal}`);
     onOpenChange(false);
+  };
+
+  const searchOnline = async () => {
+    const term = query.trim();
+    if (term.length < 2) return;
+    onlineAbort.current?.abort();
+    const ctrl = new AbortController();
+    onlineAbort.current = ctrl;
+    setOnline({ query: term, status: "loading", results: [] });
+    try {
+      const results = await searchProducts(term, ctrl.signal);
+      if (!ctrl.signal.aborted) setOnline({ query: term, status: "done", results });
+    } catch {
+      if (!ctrl.signal.aborted) setOnline({ query: term, status: "error", results: [] });
+    }
   };
 
   const pickDb = (f: FoodItem) => setPending({ name: f.name, base: f, per: f.per, unit: f.unit, amount: f.typical, estimated: true });
@@ -105,7 +127,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
 
               {mode === "search" && (
                 <div className="space-y-4">
-                  <Input autoFocus placeholder="Search foods, saved meals and recent" value={query} onChange={(e) => setQuery(e.target.value)} />
+                  <Input autoFocus enterKeyHint="search" placeholder="Search foods, brands, saved meals" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchOnline()} />
                   {savedResults.length > 0 && (
                     <ResultGroup title="Saved meals and recipes">
                       {savedResults.map((m) => (
@@ -131,16 +153,35 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                       ))}
                     </ResultGroup>
                   )}
-                  {q && (
-                    <ResultGroup title="Food database">
-                      {dbResults.length ? (
-                        dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={`${f.kcal} kcal per ${f.per} ${f.unit}`} onClick={() => pickDb(f)} />)
-                      ) : (
-                        <p className="py-2 text-sm text-muted-foreground">
-                          No match. <button className="underline" onClick={() => setMode("manual")}>Enter it manually</button> or scan the barcode.
-                        </p>
-                      )}
+                  {q && dbResults.length > 0 && (
+                    <ResultGroup title="Common foods">
+                      {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={`${f.kcal} kcal per ${f.per} ${f.unit}`} onClick={() => pickDb(f)} />)}
                     </ResultGroup>
+                  )}
+                  {q.length >= 2 && (
+                    online.query === query.trim() && online.status !== "idle" ? (
+                      <ResultGroup title="Branded products (UK)">
+                        {online.status === "loading" && <p className="px-3 py-2.5 text-sm text-muted-foreground">Searching Open Food Facts</p>}
+                        {online.status === "error" && <p className="px-3 py-2.5 text-sm text-destructive">Couldn't reach Open Food Facts. Check your connection and try again.</p>}
+                        {online.status === "done" && online.results.length === 0 && (
+                          <p className="px-3 py-2.5 text-sm text-muted-foreground">
+                            No products found. <button className="underline" onClick={() => setMode("manual")}>Enter it manually</button>.
+                          </p>
+                        )}
+                        {online.results.map((p) => (
+                          <ResultRow key={p.code || p.name} name={p.name} detail={`${p.kcal} kcal per 100 g${p.quantity ? ` · pack ${p.quantity}` : ""}`} onClick={() => setPending(fromOff(p))} />
+                        ))}
+                      </ResultGroup>
+                    ) : (
+                      <Button variant="outline" className="w-full" onClick={searchOnline}>
+                        <Globe className="mr-1.5 h-4 w-4" />Search branded products for '{query.trim()}'
+                      </Button>
+                    )
+                  )}
+                  {online.status === "done" && online.results.length > 0 && online.query === query.trim() && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Product data from <a className="underline" href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">Open Food Facts</a> under the Open Database Licence. Check values against the label.
+                    </p>
                   )}
                   {!q && !savedResults.length && !recentResults.length && <p className="text-sm text-muted-foreground">Start typing, e.g. 'oats', 'chicken' or 'banana'.</p>}
                 </div>
@@ -253,7 +294,7 @@ function BarcodeStep({ onFound }: { onFound: (p: Pending) => void }) {
   const [error, setError] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const abort = useRef<AbortController | null>(null);
-  const canScan = barcodeDetectorAvailable();
+  const canScan = cameraAvailable();
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -263,7 +304,7 @@ function BarcodeStep({ onFound }: { onFound: (p: Pending) => void }) {
     try {
       const p = await lookupBarcode(c);
       if (!p) setError("Product not found. Enter it manually instead.");
-      else onFound({ name: p.name, base: p, per: 100, unit: "g", amount: p.servingG ?? 100, estimated: true });
+      else onFound(fromOff(p));
     } catch {
       setError("Couldn't reach the product database. Check your connection.");
     } finally {
@@ -283,7 +324,7 @@ function BarcodeStep({ onFound }: { onFound: (p: Pending) => void }) {
         await lookup(c);
       }
     } catch {
-      setError("Camera unavailable. Type the barcode number instead.");
+      setError("Couldn't open the camera. Allow camera access for this site, or type the barcode number.");
     } finally {
       setScanning(false);
     }
@@ -300,7 +341,7 @@ function BarcodeStep({ onFound }: { onFound: (p: Pending) => void }) {
           <Camera className="mr-1.5 h-4 w-4" />Scan with camera
         </Button>
       )}
-      {!canScan && <p className="text-xs text-muted-foreground">Camera scanning isn't supported in this browser. Type the number under the barcode.</p>}
+      {!canScan && <p className="text-xs text-muted-foreground">No camera available. Type the number under the barcode.</p>}
       <div className="flex gap-2">
         <Input inputMode="numeric" placeholder="Barcode number" value={code} onChange={(e) => setCode(e.target.value)} />
         <Button disabled={busy || code.replace(/\D/g, "").length < 8} onClick={() => lookup(code)}>{busy ? "Looking up" : "Look up"}</Button>

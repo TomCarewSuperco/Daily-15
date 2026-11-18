@@ -129,7 +129,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
       })}
 
       <p className="px-1 text-[11px] text-muted-foreground">
-        Values marked Est. come from the built-in database or barcode lookups and may differ from your product. Tap any item to correct it.
+        Values marked Est. come from the built-in list or Open Food Facts and may differ from your product. Tap any item to correct it.
       </p>
 
       <AddFoodSheet open={sheet.open} onOpenChange={(o) => setSheet((s) => ({ ...s, open: o }))} date={date} meal={sheet.meal} />
