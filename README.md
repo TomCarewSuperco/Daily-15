@@ -21,6 +21,12 @@ The app is hosted on Vercel, which redeploys on every push to `main`. `vercel.js
 
 Config for Netlify (`netlify.toml`) and Cloudflare Pages (`wrangler.toml` and `public/_headers`) is included in case it moves.
 
+## Weekly review
+
+Rule-based coaching in `src/app/review.ts`: weight trend against the goal, one calorie adjustment at most (150 kcal, never below the floor, two weeks apart), and up to three 'do more of' and 'do less of' points, weighted towards the user's focus areas. Every threshold and line of wording is in that file so a registered dietitian can review it. Tests: `tests/unit/review.test.ts`.
+
+Saturated fat, sugars and salt are optional on each food entry. Totals say when they're incomplete, and the review ignores a limit unless most of a day's food has the figure.
+
 ## iPhone app
 
 See `docs/ios.md`. The Capacitor project is in `ios/`. Run `npm run ios:sync` after web changes.

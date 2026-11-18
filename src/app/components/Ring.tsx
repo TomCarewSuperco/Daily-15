@@ -37,11 +37,13 @@ export function Ring({ value, max, size = 120, stroke = 10, children, className 
   );
 }
 
-export function Bar({ value, max, className = "" }: { value: number; max: number; className?: string }) {
+/** Progress bar. A target turns green when met. A limit stays grey and turns red when exceeded. */
+export function Bar({ value, max, className = "", limit = false }: { value: number; max: number; className?: string; limit?: boolean }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const colour = limit ? (value > max ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground) / 0.55)") : pct >= 100 ? "hsl(var(--d15-done))" : "hsl(var(--copper))";
   return (
     <div className={`h-2 w-full overflow-hidden rounded-full bg-muted ${className}`}>
-      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? "hsl(var(--d15-done))" : "hsl(var(--copper))" }} />
+      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: colour }} />
     </div>
   );
 }

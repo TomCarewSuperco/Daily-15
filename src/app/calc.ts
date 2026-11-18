@@ -128,22 +128,36 @@ export function suggestTargets(p: TargetInput, weightKg = p.startWeightKg): Targ
     waterMl,
     steps: STEP_TARGET[p.activityLevel],
     activeMinutes: 30,
+    satFatG: p.sex === "male" ? 30 : 20,
+    sugarsG: 90,
+    saltG: 6,
   };
 }
 
 /* ---------- Nutrition ---------- */
 
+const EXTRAS = ["satFat", "sugars", "salt"] as const;
+export type Extra = (typeof EXTRAS)[number];
+
+/** Sums nutrients. Optional extras are summed over the entries that have them. */
 export function sumNutrients(entries: Nutrients[]): Nutrients {
-  return entries.reduce(
-    (acc, e) => ({
-      kcal: acc.kcal + e.kcal,
-      protein: acc.protein + e.protein,
-      carbs: acc.carbs + e.carbs,
-      fat: acc.fat + e.fat,
-      fibre: acc.fibre + e.fibre,
-    }),
-    { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 },
-  );
+  const out: Nutrients = { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 };
+  for (const e of entries) {
+    out.kcal += e.kcal;
+    out.protein += e.protein;
+    out.carbs += e.carbs;
+    out.fat += e.fat;
+    out.fibre += e.fibre;
+    for (const k of EXTRAS) if (typeof e[k] === "number") out[k] = (out[k] ?? 0) + (e[k] as number);
+  }
+  return out;
+}
+
+/** Share of calories (0 to 1) from entries where `field` is known. Low coverage means the total undercounts. */
+export function coverage(entries: Nutrients[], field: Extra): number {
+  const total = entries.reduce((s, e) => s + e.kcal, 0);
+  if (!total) return entries.length ? (entries.every((e) => typeof e[field] === "number") ? 1 : 0) : 1;
+  return entries.filter((e) => typeof e[field] === "number").reduce((s, e) => s + e.kcal, 0) / total;
 }
 
 export function foodsOn(state: AppState, date: string): FoodEntry[] {
@@ -152,8 +166,45 @@ export function foodsOn(state: AppState, date: string): FoodEntry[] {
 
 export function scaleNutrients(n: Nutrients, factor: number): Nutrients {
   const r = (v: number) => Math.round(v * factor * 10) / 10;
-  return { kcal: Math.round(n.kcal * factor), protein: r(n.protein), carbs: r(n.carbs), fat: r(n.fat), fibre: r(n.fibre) };
+  const out: Nutrients = { kcal: Math.round(n.kcal * factor), protein: r(n.protein), carbs: r(n.carbs), fat: r(n.fat), fibre: r(n.fibre) };
+  for (const k of EXTRAS) if (typeof n[k] === "number") out[k] = Math.round((n[k] as number) * factor * 100) / 100;
+  return out;
 }
+
+/** Fruit and vegetable portions for a day. Juice and pulses count once a day at most. */
+export function fiveADayOn(state: AppState, date: string): number {
+  let fv = 0;
+  let juice = 0;
+  let pulses = 0;
+  for (const f of foodsOn(state, date)) {
+    if (!f.fiveADay) continue;
+    if (f.fiveADayKind === "juice") juice += f.fiveADay;
+    else if (f.fiveADayKind === "pulses") pulses += f.fiveADay;
+    else fv += f.fiveADay;
+  }
+  return Math.round((fv + Math.min(1, juice) + Math.min(1, pulses)) * 10) / 10;
+}
+
+export function alcoholUnits(state: AppState, dates: string[]): number {
+  const set = new Set(dates);
+  return Math.round(state.foods.filter((f) => set.has(f.date)).reduce((s, f) => s + (f.alcoholUnits ?? 0), 0) * 10) / 10;
+}
+
+/**
+ * Daily limits. Saturated fat follows the NHS guide of 30 g for men and 20 g
+ * for women, salt 6 g, and total sugars the 90 g reference intake on UK labels.
+ */
+export function limitsFor(p: Pick<Profile, "sex" | "targets">) {
+  return {
+    satFatG: p.targets.satFatG ?? (p.sex === "male" ? 30 : 20),
+    sugarsG: p.targets.sugarsG ?? 90,
+    saltG: p.targets.saltG ?? 6,
+  };
+}
+
+/** UK Chief Medical Officers' low-risk guideline. */
+export const ALCOHOL_UNITS_PER_WEEK = 14;
+export const FIVE_A_DAY = 5;
 
 /* ---------- Weight ---------- */
 

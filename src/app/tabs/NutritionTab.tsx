@@ -4,7 +4,7 @@ import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { addDays, foodsOn, formatDay, sumNutrients, todayKey, uid } from "../calc";
+import { addDays, ALCOHOL_UNITS_PER_WEEK, alcoholUnits, coverage, FIVE_A_DAY, fiveADayOn, foodsOn, formatDay, lastNDays, limitsFor, sumNutrients, todayKey, uid } from "../calc";
 import { AddFoodSheet, MEALS, NutrientGrid } from "../components/AddFoodSheet";
 import { Field, NumField } from "../components/Field";
 import { Bar, Ring } from "../components/Ring";
@@ -16,6 +16,8 @@ import type { FoodEntry, Meal, Nutrients } from "../types";
 export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearIntent: () => void }) {
   const { state, update } = useDaily15();
   const t = state.profile!.targets;
+  const limits = limitsFor(state.profile!);
+  const focus = new Set(state.profile!.focus ?? []);
   const [date, setDate] = useState(todayKey());
   const [sheet, setSheet] = useState<{ open: boolean; meal?: Meal }>({ open: false });
   const [editing, setEditing] = useState<FoodEntry | null>(null);
@@ -30,6 +32,8 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
   const remaining = t.calories - total.kcal;
   const water = state.water[date] ?? 0;
   const isToday = date === todayKey();
+  const fiveADay = fiveADayOn(state, date);
+  const weekUnits = alcoholUnits(state, lastNDays(7, date));
 
   const saveMealGroup = (meal: Meal, items: FoodEntry[]) => {
     const n = sumNutrients(items);
@@ -73,6 +77,38 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <Bar value={v} max={max} />
             </div>
           ))}
+          <div className="space-y-2.5 border-t pt-3">
+            {([
+              ["Saturated fat", total.satFat, limits.satFatG, "satFat", "cholesterol"],
+              ["Sugars", total.sugars, limits.sugarsG, "sugars", "sugar"],
+              ["Salt", total.salt, limits.saltG, "salt", "salt"],
+            ] as const).map(([label, v, max, field, goal]) => {
+              const known = coverage(foods, field);
+              return (
+                <div key={label}>
+                  <div className="mb-1 flex justify-between">
+                    <span className={focus.has(goal) ? "font-medium" : ""}>{label}{focus.has(goal) && <span className="ml-1.5 rounded bg-copper/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-copper">Focus</span>}</span>
+                    <span className="tabular-nums text-muted-foreground">{(v ?? 0).toFixed(field === "salt" ? 1 : 0)} / {max} g limit</span>
+                  </div>
+                  <Bar value={v ?? 0} max={max} limit />
+                  {foods.length > 0 && known < 0.9 && <p className="mt-0.5 text-[11px] text-muted-foreground">Not known for some of today's food, so the real figure may be higher.</p>}
+                </div>
+              );
+            })}
+            <div>
+              <div className="mb-1 flex justify-between">
+                <span className={focus.has("fruit-veg") ? "font-medium" : ""}>Fruit and veg</span>
+                <span className="tabular-nums text-muted-foreground">{fiveADay} / {FIVE_A_DAY} portions</span>
+              </div>
+              <Bar value={fiveADay} max={FIVE_A_DAY} />
+            </div>
+            {(weekUnits > 0 || focus.has("alcohol")) && (
+              <div className="flex justify-between">
+                <span className={focus.has("alcohol") ? "font-medium" : ""}>Alcohol, last seven days</span>
+                <span className={`tabular-nums ${weekUnits > ALCOHOL_UNITS_PER_WEEK ? "text-destructive" : "text-muted-foreground"}`}>{weekUnits} / {ALCOHOL_UNITS_PER_WEEK} units</span>
+              </div>
+            )}
+          </div>
           <div>
             <div className="mb-1 flex justify-between"><span>Water</span><span className="tabular-nums text-muted-foreground">{(water / 1000).toFixed(2)} / {(t.waterMl / 1000).toFixed(1)} L</span></div>
             <Bar value={water} max={t.waterMl} />
@@ -169,7 +205,7 @@ function EditFoodDialog({ entry, onClose }: { entry: FoodEntry | null; onClose: 
     setE(entry);
   }, [entry]);
   if (!e || !entry) return null;
-  const set = (k: keyof Nutrients, v: number | "") => setE({ ...e, [k]: typeof v === "number" ? v : 0 });
+  const set = (k: keyof Nutrients, v: number | "") => setE({ ...e, [k]: typeof v === "number" ? v : k === "satFat" || k === "sugars" || k === "salt" ? undefined : 0 });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
@@ -185,6 +221,9 @@ function EditFoodDialog({ entry, onClose }: { entry: FoodEntry | null; onClose: 
           <NumField label="Carbohydrate" value={e.carbs} onChange={(v) => set("carbs", v)} suffix="g" step={0.1} />
           <NumField label="Fat" value={e.fat} onChange={(v) => set("fat", v)} suffix="g" step={0.1} />
           <NumField label="Fibre" value={e.fibre} onChange={(v) => set("fibre", v)} suffix="g" step={0.1} />
+          <NumField label="Saturates" value={e.satFat ?? ""} onChange={(v) => set("satFat", v)} suffix="g" step={0.1} />
+          <NumField label="Sugars" value={e.sugars ?? ""} onChange={(v) => set("sugars", v)} suffix="g" step={0.1} />
+          <NumField label="Salt" value={e.salt ?? ""} onChange={(v) => set("salt", v)} suffix="g" step={0.01} />
         </div>
         <NutrientGrid n={e} />
         <div className="flex gap-2">
@@ -194,7 +233,7 @@ function EditFoodDialog({ entry, onClose }: { entry: FoodEntry | null; onClose: 
           <Button
             className="flex-1"
             onClick={() => {
-              const changed = (["kcal", "protein", "carbs", "fat", "fibre"] as const).some((k) => e[k] !== entry[k]);
+              const changed = (["kcal", "protein", "carbs", "fat", "fibre", "satFat", "sugars", "salt"] as const).some((k) => e[k] !== entry[k]);
               update((s) => ({ ...s, foods: s.foods.map((f) => (f.id === e.id ? { ...e, estimated: changed ? false : e.estimated } : f)) }));
               onClose();
             }}

@@ -31,7 +31,7 @@ Support URL: `https://[your Vercel domain]/support`
 Marketing URL: optional
 Privacy policy URL: `https://[your Vercel domain]/privacy`
 
-Description (1953 of 4,000):
+Description (2164 of 4,000):
 
 ```
 DAILY 15 is a simple daily fitness, nutrition and accountability app. It brings exercise, food, steps and weight together in one place, so you can see what you're doing, whether it's working and what to do next.
@@ -49,7 +49,7 @@ STEPS AND APPLE HEALTH
 Connect Apple Health to bring in steps, distance, active energy, exercise minutes, workouts and weigh-ins from your iPhone and Apple Watch. Set your own daily step target.
 
 SEE WHAT'S WORKING
-A weight trend line that smooths out daily ups and downs. Body measurements, optional progress photos, streaks and a weekly report with realistic suggestions for next week.
+A weight trend line that smooths out daily ups and downs. Body measurements, optional progress photos and streaks. Each week, a review tells you what to do more of and less of, and suggests a small calorie change if progress stalls or runs too fast. Choose focus areas such as lower cholesterol, more fibre, less sugar, less salt or less alcohol, and the review concentrates on them.
 
 BUILT FOR CONSISTENCY
 Streaks reward showing up, and planned rest days pause your streak rather than break it. Missing a day never brings a guilt message. Reminders arrive when you choose.
@@ -70,7 +70,7 @@ In `docs/app-store/screenshots`, generated with `npm run screenshots` from demo 
 | 2 | Guided workout | 6.9in-2-guided-workout.png | 6.5in-2-guided-workout.png |
 | 3 | Food diary | 6.9in-3-nutrition.png | 6.5in-3-nutrition.png |
 | 4 | Weight trend and steps | 6.9in-4-progress.png | 6.5in-4-progress.png |
-| 5 | Weekly report | 6.9in-5-weekly-report.png | 6.5in-5-weekly-report.png |
+| 5 | Weekly review | 6.9in-5-weekly-review.png | 6.5in-5-weekly-review.png |
 | 6 | Daily routine with demonstration | 6.9in-6-workouts.png | 6.5in-6-workouts.png |
 
 The 6.9-inch set is 1,320 x 2,868 and the 6.5-inch set is 1,242 x 2,688, both portrait. They're plain app screens. Captioned marketing versions can follow.

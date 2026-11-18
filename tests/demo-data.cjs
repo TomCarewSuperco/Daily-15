@@ -14,7 +14,7 @@ function build({ includeToday = true } = {}) {
     version: 1,
     profile: {
       name: "Alex", age: 41, sex: "male", heightCm: 180, startWeightKg: 94.2, targetWeightKg: 86, experience: "intermediate",
-      activityLevel: "light", goal: "lose-fat", targetsCustomised: false,
+      activityLevel: "light", goal: "lose-fat", focus: ["cholesterol"], targetsCustomised: false,
       targets: { calories: 2050, proteinG: 155, carbsG: 206, fatG: 68, fibreG: 30, waterMl: 2750, steps: 8000, activeMinutes: 30 },
     },
     routine: undefined, routineLogs: {}, restDays: [], workouts: [], templates: [], foods: [], savedMeals: [], water: {}, activity: {},
@@ -36,7 +36,9 @@ function build({ includeToday = true } = {}) {
     if (!isToday && rand() > 0.15) {
       const kcal = 1850 + Math.round(rand() * 400);
       const protein = 120 + Math.round(rand() * 45);
-      s.foods.push({ id: uid(), date: d, meal: "dinner", name: "Logged meals", portion: "Day total", kcal, protein, carbs: Math.round((kcal * 0.42) / 4), fat: Math.round((kcal * 0.3) / 9), fibre: 24, estimated: false });
+      s.foods.push({ id: uid(), date: d, meal: "dinner", name: "Logged meals", portion: "Day total", kcal, protein, carbs: Math.round((kcal * 0.42) / 4), fat: Math.round((kcal * 0.3) / 9), fibre: 21 + Math.round(rand() * 6), satFat: 22 + Math.round(rand() * 14), sugars: 55 + Math.round(rand() * 40), salt: Math.round((4.5 + rand() * 2.5) * 10) / 10, fiveADay: 3 + Math.round(rand() * 2), fiveADayKind: "fv", estimated: false });
+      const dow = new Date(`${d}T12:00:00`).getDay();
+      if (dow === 5 || dow === 6) s.foods.push({ id: uid(), date: d, meal: "dinner", name: "Red wine", portion: "2 medium glasses (350 ml)", kcal: 298, protein: 0.4, carbs: 9.1, fat: 0, fibre: 0, satFat: 0, sugars: 2.1, salt: 0, alcoholUnits: 4.6, estimated: true });
     }
   }
   // Two strength sessions and a run each week.
@@ -54,14 +56,14 @@ function build({ includeToday = true } = {}) {
   }
   s.templates.push({ id: uid(), name: "Upper body", category: "Weight training", intensity: "moderate", exercises: [{ name: "Bench press", sets: [{ reps: 8, weightKg: 72.5 }] }, { name: "Bent-over row", sets: [{ reps: 10, weightKg: 62.5 }] }] });
   // Today's food diary.
-  const t = (meal, name, portion, kcal, protein, carbs, fat, fibre, estimated = true) => s.foods.push({ id: uid(), date: today, meal, name, portion, kcal, protein, carbs, fat, fibre, estimated });
-  t("breakfast", "Porridge oats, dry", "50 g", 188, 5.5, 30, 4, 4.5);
-  t("breakfast", "Semi-skimmed milk", "200 ml", 94, 7, 9.6, 3.4, 0);
-  t("breakfast", "Blueberries", "80 g", 46, 0.6, 11.2, 0.2, 1.9);
-  t("lunch", "Chicken breast, cooked", "150 g", 248, 46.5, 0, 5.4, 0);
-  t("lunch", "Brown rice, cooked", "180 g", 221, 4.9, 46.8, 1.8, 2.9);
-  t("lunch", "Broccoli", "80 g", 27, 2.2, 5.6, 0.3, 2.1);
-  t("snacks", "Greek yoghurt, 0% fat", "150 g", 86, 15, 5.4, 0.3, 0, false);
+  const t = (meal, name, portion, kcal, protein, carbs, fat, fibre, satFat, sugars, salt, fv, estimated = true) => s.foods.push({ id: uid(), date: today, meal, name, portion, kcal, protein, carbs, fat, fibre, satFat, sugars, salt, ...(fv ? { fiveADay: fv, fiveADayKind: "fv" } : {}), estimated });
+  t("breakfast", "Porridge oats, dry", "1 bowl (50 g)", 188, 5.5, 30, 4, 4.5, 0.8, 0.5, 0, 0);
+  t("breakfast", "Semi-skimmed milk", "1 glass (200 ml)", 94, 7, 9.6, 3.4, 0, 2.2, 9.6, 0.2, 0);
+  t("breakfast", "Blueberries", "1 handful (80 g)", 46, 0.6, 11.2, 0.2, 1.9, 0, 8, 0, 1);
+  t("lunch", "Chicken breast, cooked", "1 breast (150 g)", 248, 46.5, 0, 5.4, 0, 1.5, 0, 0.3, 0);
+  t("lunch", "Brown rice, cooked", "1 portion (180 g)", 221, 4.9, 46.8, 1.8, 2.9, 0.4, 0.5, 0, 0);
+  t("lunch", "Broccoli", "1 portion (80 g)", 27, 2.2, 5.6, 0.3, 2.1, 0.1, 1.4, 0, 1);
+  t("snacks", "Greek yoghurt, 0% fat", "1 pot (150 g)", 86, 15, 5.4, 0.3, 0, 0.2, 5.4, 0.2, 0, false);
   s.savedMeals.push({ id: uid(), name: "Chicken, rice and broccoli", portion: "1 meal", kcal: 496, protein: 53.6, carbs: 52.4, fat: 7.5, fibre: 5 });
   s.measurements.push({ id: uid(), date: daysAgo(42), waistCm: 102, chestCm: 108, hipsCm: 106 });
   s.measurements.push({ id: uid(), date: daysAgo(14), waistCm: 99, chestCm: 107, hipsCm: 104.5 });

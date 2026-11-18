@@ -1,4 +1,4 @@
-import type { Nutrients } from "./types";
+import type { FiveADayKind, Nutrients } from "./types";
 
 /** A household measure for a food, such as one large egg = 60 g. */
 export interface FoodUnit {
@@ -17,6 +17,10 @@ export interface FoodItem extends Nutrients {
   units: FoodUnit[];
   /** Default amount in grams or millilitres when there are no units. */
   typical: number;
+  /** Counts towards 5 a day: 80 g a portion, juice 150 ml. */
+  fiveADay?: FiveADayKind;
+  /** Alcohol by volume, per cent. */
+  abv?: number;
 }
 
 const u = (name: string, g: number, plural = `${name}s`): FoodUnit => ({ name, plural, g });
@@ -31,7 +35,7 @@ function food(name: string, unit: "g" | "ml", kcal: number, protein: number, car
  * every entry is shown as an estimate. Unit weights are typical edible weights.
  * Replace with McCance and Widdowson's CoFID data before public release.
  */
-export const FOOD_DB: FoodItem[] = [
+const BASE: FoodItem[] = [
   // Breakfast and bakery
   food("Porridge oats, dry", "g", 375, 11, 60, 8, 9, [u("bowl", 50), u("sachet", 27)]),
   food("Granola", "g", 450, 10, 60, 18, 7, [u("bowl", 45)]),
@@ -152,6 +156,132 @@ export const FOOD_DB: FoodItem[] = [
   food("White wine", "ml", 82, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("Spirits, 40%", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
 ];
+
+/*
+ * Saturated fat, total sugars and salt per 100 g or 100 ml, 5 a day category
+ * and alcohol strength. Same caveat as above: typical figures, shown as estimates.
+ */
+type Extra = [satFat: number, sugars: number, salt: number, fiveADay?: FiveADayKind | null, abv?: number];
+const EXTRA: Record<string, Extra> = {
+  "Porridge oats, dry": [1.5, 1, 0.01],
+  Granola: [3, 20, 0.3],
+  Muesli: [1.2, 16, 0.1],
+  Cornflakes: [0.2, 8, 1.1],
+  "Wholewheat biscuit cereal": [0.6, 4.4, 0.28],
+  "Wholemeal bread": [0.5, 3, 1],
+  "White bread": [0.4, 3.5, 1],
+  "Bagel, plain": [0.4, 6, 1],
+  Crumpet: [0.2, 2, 1.2],
+  "Tortilla wrap": [2.5, 2.5, 1.2],
+  "Burger bun": [1, 6, 1.1],
+  Egg: [2.6, 0.2, 0.35],
+  "Egg, fried": [3.5, 0.2, 0.4],
+  "Scrambled eggs": [5, 1.5, 0.6],
+  Butter: [52, 0.6, 1.5],
+  Jam: [0, 60, 0.03],
+  Honey: [0, 82, 0.01],
+  "Peanut butter": [9, 6, 1],
+  "Semi-skimmed milk": [1.1, 4.8, 0.1],
+  "Skimmed milk": [0.1, 5, 0.1],
+  "Whole milk": [2.3, 4.7, 0.1],
+  "Greek yoghurt, 0% fat": [0.1, 3.6, 0.1],
+  "Greek-style yoghurt, full fat": [6.5, 5, 0.1],
+  "Cheddar cheese": [22, 0.1, 1.8],
+  "Cottage cheese": [2.7, 3.4, 0.7],
+  "Single cream": [12, 3.9, 0.1],
+  "Vanilla ice cream": [6.5, 22, 0.15],
+  "Pork sausage, grilled": [8.5, 2, 1.8],
+  "Bacon, back rasher, grilled": [8, 0, 3.5],
+  "Ham, sliced": [1.1, 1, 2],
+  "Chicken breast, cooked": [1, 0, 0.18],
+  "Chicken thigh, roast, no skin": [4, 0, 0.25],
+  "Beef mince 5% fat, cooked": [3.2, 0, 0.2],
+  "Turkey mince, cooked": [1.8, 0, 0.2],
+  "Beef burger, grilled": [7.5, 1, 1],
+  "Sirloin steak, grilled": [3.8, 0, 0.15],
+  "Pork chop, grilled": [4.3, 0, 0.18],
+  "Salmon fillet, cooked": [2.5, 0, 0.15],
+  "Cod fillet, baked": [0.2, 0, 0.3],
+  "Tuna, tinned in water": [0.3, 0, 0.6],
+  "Prawns, cooked": [0.1, 0, 1],
+  "Fish fingers, grilled": [1, 1.5, 0.8],
+  "Tofu, firm": [1.3, 0.5, 0.02],
+  "Baked beans": [0.1, 4.7, 0.6, "pulses"],
+  "Chickpeas, tinned, drained": [0.3, 0.5, 0.3, "pulses"],
+  "Kidney beans, tinned, drained": [0.1, 1, 0.3, "pulses"],
+  "Lentils, cooked": [0.1, 0.8, 0.01, "pulses"],
+  Hummus: [2, 0.8, 0.9],
+  "White rice, cooked": [0.1, 0, 0],
+  "Brown rice, cooked": [0.2, 0.3, 0],
+  "Pasta, cooked": [0.2, 0.6, 0],
+  "Egg noodles, cooked": [0.5, 0.5, 0.1],
+  "Couscous, cooked": [0.1, 0.1, 0],
+  "Quinoa, cooked": [0.2, 0.9, 0.01],
+  "Potato, boiled": [0, 0.8, 0],
+  "Jacket potato": [0, 1, 0.02],
+  "Mashed potato": [2.5, 1.2, 0.4],
+  "Oven chips": [0.7, 0.5, 0.3],
+  "Sweet potato, baked": [0.1, 6.5, 0.1, "fv"],
+  "Pizza, margherita": [4.5, 3.5, 1.2],
+  Broccoli: [0.1, 1.7, 0.03, "fv"],
+  Carrot: [0, 4.7, 0.1, "fv"],
+  "Peas, boiled": [0.1, 4, 0, "fv"],
+  Sweetcorn: [0.2, 4.5, 0.01, "fv"],
+  Mushrooms: [0.1, 0.2, 0.01, "fv"],
+  Spinach: [0.1, 0.4, 0.2, "fv"],
+  Tomato: [0, 2.6, 0.01, "fv"],
+  Onion: [0, 4.2, 0.01, "fv"],
+  "Mixed salad leaves": [0, 1.5, 0.05, "fv"],
+  Avocado: [2.1, 0.7, 0.02, "fv"],
+  Banana: [0.1, 12, 0, "fv"],
+  Apple: [0, 10, 0, "fv"],
+  Orange: [0, 9, 0, "fv"],
+  Grapes: [0.1, 16, 0, "fv"],
+  Strawberries: [0, 4.9, 0, "fv"],
+  Blueberries: [0, 10, 0, "fv"],
+  Almonds: [3.8, 4.4, 0],
+  "Mixed nuts": [6, 4, 0.03],
+  "Crisps, ready salted": [2.5, 0.5, 1.3],
+  "Digestive biscuit": [10, 17, 1.1],
+  "Milk chocolate": [18, 56, 0.2],
+  "Dark chocolate 70%": [25, 24, 0.02],
+  "Protein bar": [6, 5, 0.5],
+  "Rice cakes": [0.6, 0.5, 0.3],
+  "Whey protein powder": [3, 6, 0.4],
+  "Olive oil": [14, 0, 0],
+  Mayonnaise: [6, 1.3, 1.5],
+  "Tomato ketchup": [0, 22, 1.8],
+  Sugar: [0, 100, 0],
+  "Tomato soup, cream of": [0.3, 5, 0.7],
+  "Tea with semi-skimmed milk": [0.1, 0.7, 0],
+  "Coffee with semi-skimmed milk": [0.4, 1.9, 0.03],
+  "Latte, semi-skimmed": [1.1, 4.7, 0.1],
+  "Orange juice": [0, 9, 0, "juice"],
+  Cola: [0, 10.6, 0],
+  "Diet cola": [0, 0, 0.02],
+  "Beer, 4%": [0, 0, 0, null, 4],
+  "Red wine": [0, 0.6, 0, null, 13],
+  "White wine": [0, 1, 0, null, 12.5],
+  "Spirits, 40%": [0, 0, 0, null, 40],
+};
+
+export const FOOD_DB: FoodItem[] = BASE.map((f) => {
+  const x = EXTRA[f.name];
+  if (!x) return f;
+  const [satFat, sugars, salt, fiveADay, abv] = x;
+  return { ...f, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
+});
+
+/** 5 a day portions and alcohol units for an amount in grams or millilitres. */
+export function extrasFor(food: { fiveADay?: FiveADayKind; abv?: number }, amount: number) {
+  const out: { fiveADay?: number; fiveADayKind?: FiveADayKind; alcoholUnits?: number } = {};
+  if (food.fiveADay) {
+    out.fiveADayKind = food.fiveADay;
+    out.fiveADay = Math.round((amount / (food.fiveADay === "juice" ? 150 : 80)) * 10) / 10;
+  }
+  if (food.abv) out.alcoholUnits = Math.round(((amount * food.abv) / 1000) * 10) / 10;
+  return out;
+}
 
 /** "2 large eggs", "½ slice", "1.5 pints". */
 export function formatQty(qty: number, unit: FoodUnit): string {

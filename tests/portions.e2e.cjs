@@ -41,7 +41,7 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   const nums = p.locator("[role=dialog] input[type=number]");
   await nums.nth(0).fill("250"); await nums.nth(1).fill("15"); await nums.nth(2).fill("8"); await nums.nth(3).fill("18"); await nums.nth(4).fill("1");
   await p.getByPlaceholder("e.g. sausage").fill("sausage");
-  await nums.nth(5).fill("57");
+  await nums.nth(8).fill("57");
   await p.getByRole("button", { name: "Next: choose amount" }).click();
   await p.getByRole("button", { name: "More" }).click();
   ok("manual food logs by serving", (await p.getByText("2 sausages (114 g)").count()) === 1);

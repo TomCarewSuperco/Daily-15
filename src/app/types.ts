@@ -19,7 +19,13 @@ export interface Targets {
   waterMl: number;
   steps: number;
   activeMinutes: number;
+  /** Daily limits. Optional for profiles created before they existed. */
+  satFatG?: number;
+  sugarsG?: number;
+  saltG?: number;
 }
+
+export type FocusGoal = "cholesterol" | "sugar" | "salt" | "fibre" | "fruit-veg" | "alcohol" | "protein";
 
 export interface Profile {
   name: string;
@@ -31,9 +37,13 @@ export interface Profile {
   experience: Experience;
   activityLevel: ActivityLevel;
   goal: Goal;
+  /** Extra areas to focus on in the weekly review. */
+  focus?: FocusGoal[];
   targets: Targets;
   /** True once the user has edited targets by hand, so goal changes don't overwrite them. */
   targetsCustomised: boolean;
+  /** When the user last accepted a calorie change from the weekly review. */
+  adjustedAt?: string;
 }
 
 export type RoutineMode = "standard" | "light" | "recovery";
@@ -95,7 +105,13 @@ export interface Nutrients {
   carbs: number;
   fat: number;
   fibre: number;
+  /** Optional: unknown for older entries and some products. Grams. */
+  satFat?: number;
+  sugars?: number;
+  salt?: number;
 }
+
+export type FiveADayKind = "fv" | "juice" | "pulses";
 
 export interface FoodEntry extends Nutrients {
   id: string;
@@ -105,6 +121,10 @@ export interface FoodEntry extends Nutrients {
   portion: string;
   /** True for database, barcode or default values the user hasn't confirmed. */
   estimated: boolean;
+  /** Fruit and vegetable portions (80 g each), before the daily caps on juice and pulses. */
+  fiveADay?: number;
+  fiveADayKind?: FiveADayKind;
+  alcoholUnits?: number;
 }
 
 /** A food the user entered by hand and saved, with its everyday serving. */

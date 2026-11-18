@@ -26,6 +26,7 @@ import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import type { MeasurementEntry } from "../types";
+import { weeklyReview, type ReviewPoint } from "../review";
 
 const AXIS = { fontSize: 11, fill: "hsl(var(--muted-foreground))" };
 const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 };
@@ -71,7 +72,14 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const weekActive = week.reduce((s, d) => s + (state.activity[d]?.activeMinutes ?? 0), 0);
   const stepGoalDays = stepsData.filter((d) => d.steps >= p.targets.steps).length;
 
-  const report = useMemo(() => weeklyReport(state), [state]);
+  const report = useMemo(() => weeklyReport(state, addDays(todayKey(), -1)), [state]);
+  const review = useMemo(() => weeklyReview(state), [state]);
+  const applyAdjustment = () => {
+    if (!review.adjustment) return;
+    const change = review.adjustment.change;
+    update((s) => ({ ...s, profile: { ...s.profile!, targetsCustomised: true, adjustedAt: todayKey(), targets: { ...s.profile!.targets, ...change } } }));
+    toast.success(`Daily target updated to ${change.calories?.toLocaleString("en-GB")} kcal`);
+  };
   const fmtChange = (v: number | null) => (v === null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)} kg`);
 
   const measurements = [...state.measurements].sort((a, b) => a.date.localeCompare(b.date));
@@ -182,10 +190,33 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         <Stat label="Food logging" value={foodLoggingStreak(state)} sub="days in a row" />
       </div>
 
-      {/* Weekly report */}
-      <div ref={reportRef}>
+      {/* Weekly review */}
+      <div ref={reportRef} className="space-y-4">
         <Card>
-          <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(report.start, { day: "numeric", month: "short" })} to {formatDay(report.end, { day: "numeric", month: "short" })}</span>}>Weekly report</CardHeading>
+          <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(review.start, { day: "numeric", month: "short" })} to {formatDay(review.end, { day: "numeric", month: "short" })}</span>}>Weekly review</CardHeading>
+          <p className="text-lg leading-snug">{review.headline}</p>
+
+          {review.adjustment && (
+            <div className="mt-4 rounded-xl border border-copper/40 bg-copper/5 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-copper">Suggested change</p>
+              <p className="mt-1 font-medium">{review.adjustment.text}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{review.adjustment.reason}</p>
+              <Button size="sm" className="mt-3" onClick={applyAdjustment}>Apply</Button>
+            </div>
+          )}
+
+          {review.wins.length > 0 && <ReviewList title="Keep doing" items={review.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
+          {review.moreOf.length > 0 && <ReviewList title="Do more of" items={review.moreOf} />}
+          {review.lessOf.length > 0 && <ReviewList title="Do less of" items={review.lessOf} />}
+          {review.notes.map((n) => <p key={n} className="mt-3 text-sm text-muted-foreground">{n}</p>)}
+          {!review.moreOf.length && !review.lessOf.length && !review.adjustment && <p className="mt-3 text-sm">Nothing to change this week. Keep doing what you're doing.</p>}
+          <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+            General guidance from your logged data, which may be incomplete. Not medical or dietetic advice. If you're pregnant, breastfeeding, under 18, managing a medical condition or have had an eating disorder, speak to your GP or a registered dietitian before changing your diet.
+          </p>
+        </Card>
+
+        <Card>
+          <CardHeading>Week in numbers</CardHeading>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-semibold tabular-nums">{report.goalCompletion}%</span>
             <span className="text-sm text-muted-foreground">of daily goals met</span>
@@ -206,18 +237,6 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
               </div>
             ))}
           </dl>
-          {report.achievements.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">This week</p>
-              <ul className="mt-1 space-y-1 text-sm">{report.achievements.map((a) => <li key={a}>{a}</li>)}</ul>
-            </div>
-          )}
-          {report.suggestions.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Next week</p>
-              <ul className="mt-1 space-y-1 text-sm">{report.suggestions.map((a) => <li key={a}>{a}</li>)}</ul>
-            </div>
-          )}
           <p className="mt-3 text-[11px] text-muted-foreground">Goal completion counts four daily goals: being active, steps, calories within target and protein.</p>
         </Card>
       </div>
@@ -372,5 +391,22 @@ function PhotosCard() {
         </>
       )}
     </Card>
+  );
+}
+
+function ReviewList({ title, items }: { title: string; items: ReviewPoint[] }) {
+  return (
+    <div className="mt-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      <ul className="mt-1.5 space-y-2.5">
+        {items.map((it) => (
+          <li key={it.id} className="text-sm">
+            <span className="font-medium">{it.text}</span>
+            {it.focus && <span className="ml-1.5 rounded bg-copper/15 px-1.5 py-0.5 align-middle text-[10px] uppercase tracking-wide text-copper">Focus</span>}
+            {it.detail && <p className="mt-0.5 text-muted-foreground">{it.detail}</p>}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

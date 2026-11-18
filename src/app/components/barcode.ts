@@ -28,6 +28,8 @@ interface RawProduct {
 }
 
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
+/** Undefined when the product doesn't state the value, so it isn't counted as zero. */
+const opt = (v: unknown) => (v === undefined || v === null || v === "" || Number.isNaN(Number(v)) ? undefined : Number(v));
 
 function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
   const n = p.nutriments ?? {};
@@ -46,6 +48,9 @@ function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
     carbs: num(n.carbohydrates_100g),
     fat: num(n.fat_100g),
     fibre: num(n.fiber_100g),
+    satFat: opt(n["saturated-fat_100g"]),
+    sugars: opt(n.sugars_100g),
+    salt: opt(n.salt_100g),
   };
 }
 

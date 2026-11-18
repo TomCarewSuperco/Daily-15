@@ -49,10 +49,10 @@ const SIZES = [
     await shot(4, "progress");
 
     await p.evaluate(() => {
-      const el = [...document.querySelectorAll("h3")].find((h) => h.textContent === "Weekly report");
+      const el = [...document.querySelectorAll("h3")].find((h) => h.textContent === "Weekly review");
       window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 70);
     });
-    await shot(5, "weekly-report");
+    await shot(5, "weekly-review");
 
     await tab("Workouts");
     await p.getByRole("button", { name: /Air squats/ }).click();

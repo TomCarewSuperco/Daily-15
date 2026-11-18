@@ -6,9 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { scaleNutrients, sumNutrients, uid } from "../calc";
-import { FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
+import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
-import type { CustomFood, FoodEntry, Meal, Nutrients } from "../types";
+import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
@@ -33,6 +33,8 @@ interface Pending {
   unitIdx: number;
   qty: number;
   estimated: boolean;
+  fiveADay?: FiveADayKind;
+  abv?: number;
 }
 
 const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
@@ -40,7 +42,8 @@ const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
 function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
   if (f.unit === "serving") return { name: f.name, base: f, per: f.per, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated };
   const hasUnits = f.units.length > 0;
-  return { name: f.name, base: f, per: f.per, baseUnit: f.unit, units: f.units, unitIdx: hasUnits ? 0 : -1, qty: hasUnits ? 1 : "typical" in f ? f.typical : 100, estimated };
+  const extra = "typical" in f ? { fiveADay: f.fiveADay, abv: f.abv } : {};
+  return { name: f.name, base: f, per: f.per, baseUnit: f.unit, units: f.units, unitIdx: hasUnits ? 0 : -1, qty: hasUnits ? 1 : "typical" in f ? f.typical : 100, estimated, ...extra };
 }
 
 function fromOff(p: OffProduct): Pending {
@@ -356,7 +359,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       <NutrientGrid n={n} />
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button className="flex-1" disabled={amount <= 0} onClick={() => onAdd({ name: pending.name, portion: label, ...n, estimated: pending.estimated })}>
+        <Button className="flex-1" disabled={amount <= 0} onClick={() => onAdd({ name: pending.name, portion: label, ...n, estimated: pending.estimated, ...(pending.baseUnit !== "serving" ? extrasFor(pending, amount) : {}) })}>
           <Plus className="mr-1.5 h-4 w-4" />Add
         </Button>
       </div>
@@ -456,12 +459,13 @@ function ManualStep({ onNext }: { onNext: (p: Pending) => void }) {
   const { update } = useDaily15();
   const [name, setName] = useState("");
   const [basis, setBasis] = useState<Basis>("100g");
-  const [v, setV] = useState<Record<keyof Nutrients, number | "">>({ kcal: "", protein: "", carbs: "", fat: "", fibre: "" });
+  const [v, setV] = useState<Record<keyof Nutrients, number | "">>({ kcal: "", protein: "", carbs: "", fat: "", fibre: "", satFat: "", sugars: "", salt: "" });
   const [servingName, setServingName] = useState("");
   const [servingSize, setServingSize] = useState<number | "">("");
   const [save, setSave] = useState(true);
   const num = (x: number | "") => (typeof x === "number" ? x : 0);
   const n: Nutrients = { kcal: num(v.kcal), protein: num(v.protein), carbs: num(v.carbs), fat: num(v.fat), fibre: num(v.fibre) };
+  for (const k of ["satFat", "sugars", "salt"] as const) if (typeof v[k] === "number") n[k] = v[k] as number;
   const measure = basis === "100ml" ? "ml" : "g";
   const label = basis === "serving" ? "per serving" : basis === "100ml" ? "per 100 ml" : "per 100 g";
 
@@ -497,6 +501,9 @@ function ManualStep({ onNext }: { onNext: (p: Pending) => void }) {
         <NumField label="Carbohydrate" value={v.carbs} onChange={(x) => setV({ ...v, carbs: x })} suffix="g" step={0.1} />
         <NumField label="Fat" value={v.fat} onChange={(x) => setV({ ...v, fat: x })} suffix="g" step={0.1} />
         <NumField label="Fibre" value={v.fibre} onChange={(x) => setV({ ...v, fibre: x })} suffix="g" step={0.1} />
+        <NumField label="of which saturates" value={v.satFat} onChange={(x) => setV({ ...v, satFat: x })} suffix="g" step={0.1} />
+        <NumField label="of which sugars" value={v.sugars} onChange={(x) => setV({ ...v, sugars: x })} suffix="g" step={0.1} />
+        <NumField label="Salt" value={v.salt} onChange={(x) => setV({ ...v, salt: x })} suffix="g" step={0.01} />
       </div>
       <div className="rounded-xl bg-muted/60 p-3">
         <p className="mb-2 text-xs font-medium text-muted-foreground">Typical serving, so you can log '2 sausages' next time</p>

@@ -188,7 +188,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
       </div>
 
       <Card>
-        <CardHeading action={<Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onNavigate("progress", "weekly-report")}>Weekly report</Button>}>
+        <CardHeading action={<Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onNavigate("progress", "weekly-report")}>Weekly review</Button>}>
           Macros today
         </CardHeading>
         <div className="grid grid-cols-4 gap-2 text-center text-sm tabular-nums">

@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ACTIVITY_LABELS, GOAL_LABELS, latestWeight, suggestTargets, todayKey } from "../calc";
+import { ACTIVITY_LABELS, GOAL_LABELS, latestWeight, limitsFor, suggestTargets, todayKey } from "../calc";
 import { REMINDER_LABELS } from "../data";
 import { Choice, Field, NumField } from "../components/Field";
 import { Card, CardHeading } from "../components/Section";
@@ -29,7 +29,17 @@ import { notificationPermission, requestNotificationPermission, scheduleReminder
 import { isNative } from "../native/platform";
 import { useHealthSync } from "../native/useHealthSync";
 import { clearStorage, emptyState, useDaily15 } from "../store";
-import type { ActivityLevel, AppState, Experience, Goal, Profile, Targets } from "../types";
+import type { ActivityLevel, AppState, Experience, FocusGoal, Goal, Profile, Targets } from "../types";
+
+const FOCUS: { value: FocusGoal; label: string; detail: string }[] = [
+  { value: "cholesterol", label: "Lower cholesterol", detail: "Keep saturated fat under your daily limit, eat more fibre, swap to unsaturated fats." },
+  { value: "fibre", label: "More fibre", detail: "Reach 30 g a day from oats, wholegrains, beans, fruit and vegetables." },
+  { value: "fruit-veg", label: "Five a day", detail: "Five 80 g portions of fruit and vegetables a day." },
+  { value: "protein", label: "More protein", detail: "Hit your protein target, spread across meals." },
+  { value: "sugar", label: "Less sugar", detail: "Keep total sugars under your daily limit." },
+  { value: "salt", label: "Less salt", detail: "Keep salt under 6 g a day." },
+  { value: "alcohol", label: "Less alcohol", detail: "Stay within 14 units a week, spread over several days." },
+];
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -189,10 +199,38 @@ export function ProfileTab() {
           <NumField label="Water" value={p.targets.waterMl} onChange={(v) => setTarget("waterMl", v)} suffix="ml" step={250} />
           <NumField label="Steps" value={p.targets.steps} onChange={(v) => setTarget("steps", v)} step={500} />
           <NumField label="Active minutes" value={p.targets.activeMinutes} onChange={(v) => setTarget("activeMinutes", v)} suffix="min" />
+          <NumField label="Saturated fat limit" value={limitsFor(p).satFatG} onChange={(v) => setTarget("satFatG", v)} suffix="g" />
+          <NumField label="Sugars limit" value={limitsFor(p).sugarsG} onChange={(v) => setTarget("sugarsG", v)} suffix="g" />
+          <NumField label="Salt limit" value={limitsFor(p).saltG} onChange={(v) => setTarget("saltG", v)} suffix="g" step={0.5} />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
           {p.targetsCustomised ? "You've set these by hand, so changing your details won't overwrite them. " : "Suggested from your details and updated when they change. "}
           Calorie targets are estimates. Recalculate every five kilos or so. Check targets with a GP or registered dietitian if you have a medical condition.
+        </p>
+      </Card>
+
+      <Card>
+        <CardHeading>Focus areas</CardHeading>
+        <p className="mb-3 text-xs text-muted-foreground">Choose any you'd like the weekly review to concentrate on.</p>
+        <div className="space-y-2">
+          {FOCUS.map((f) => {
+            const on = (p.focus ?? []).includes(f.value);
+            return (
+              <button
+                key={f.value}
+                role="switch"
+                aria-checked={on}
+                onClick={() => setProfile({ focus: on ? (p.focus ?? []).filter((x) => x !== f.value) : [...(p.focus ?? []), f.value] })}
+                className={`w-full rounded-xl border p-3 text-left transition-colors ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+              >
+                <div className="text-sm font-medium">{f.label}</div>
+                <div className={`text-xs ${on ? "opacity-75" : "text-muted-foreground"}`}>{f.detail}</div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          General guidance based on NHS advice, not a treatment plan. If you've been told you have high cholesterol, high blood pressure or another condition, follow your GP's or dietitian's advice.
         </p>
       </Card>
 
