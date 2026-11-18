@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
+import { COFID_CREDIT, loadCofid, searchFoods } from "../cofid";
 import { flagsForFood, lifeStageOf } from "../pregnancy";
 import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
@@ -113,6 +114,11 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
   const matches = (name: string) => words.every((w) => stems(w).some((x) => name.toLowerCase().includes(x)));
   const dbResults = q ? FOOD_DB.filter((f) => matches(f.name)) : [];
+  const [cofid, setCofid] = useState<FoodItem[] | null>(null);
+  useEffect(() => {
+    if (open && q.length >= 2 && !cofid) loadCofid().then(setCofid).catch(() => setCofid([]));
+  }, [open, q, cofid]);
+  const cofidResults = useMemo(() => (cofid && q.length >= 2 ? searchFoods(cofid, q, 15) : []), [cofid, q]);
   const myFoods = (state.customFoods ?? []).filter((f) => !q || matches(f.name)).slice(0, q ? 20 : 8);
   const savedResults = state.savedMeals.filter((m) => !q || m.name.toLowerCase().includes(q));
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
@@ -212,6 +218,14 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                     <ResultGroup title="Common foods">
                       {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
                     </ResultGroup>
+                  )}
+                  {cofidResults.length > 0 && (
+                    <div>
+                      <ResultGroup title="UK food database">
+                        {cofidResults.map((f) => <ResultRow key={f.cofid} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
+                      </ResultGroup>
+                      <p className="mt-1 text-[11px] text-muted-foreground">{COFID_CREDIT}</p>
+                    </div>
                   )}
                   {q.length >= 2 && (
                     online.query === query.trim() && online.status !== "idle" ? (

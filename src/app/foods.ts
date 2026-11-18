@@ -1,4 +1,5 @@
 import type { FiveADayKind, Nutrients } from "./types";
+import CURATED from "./data/curated.json";
 
 /** A household measure for a food, such as one large egg = 60 g. */
 export interface FoodUnit {
@@ -23,6 +24,8 @@ export interface FoodItem extends Nutrients {
   abv?: number;
   /** Caffeine, mg per 100 g or 100 ml. */
   caffeine?: number;
+  /** CoFID food code when the values come from CoFID 2021; absent for the app's own estimates. */
+  cofid?: string;
 }
 
 const u = (name: string, g: number, plural = `${name}s`): FoodUnit => ({ name, plural, g });
@@ -32,10 +35,9 @@ function food(name: string, unit: "g" | "ml", kcal: number, protein: number, car
 }
 
 /*
- * Starter food list. Values are rounded typical UK figures per 100 g or 100 ml,
- * compiled from general nutrition knowledge rather than a published dataset, so
- * every entry is shown as an estimate. Unit weights are typical edible weights.
- * Replace with McCance and Widdowson's CoFID data before public release.
+ * Everyday foods with household units. The nutrient figures below are the
+ * app's original estimates; most are replaced with CoFID 2021 values at the
+ * bottom of this file. Unit weights are typical edible weights.
  */
 const BASE: FoodItem[] = [
   // Breakfast and bakery
@@ -74,7 +76,7 @@ const BASE: FoodItem[] = [
   food("Bacon, back rasher, grilled", "g", 287, 23, 0, 22, 0, [u("rasher", 25)]),
   food("Ham, sliced", "g", 107, 18, 1.4, 3.3, 0, [u("slice", 15)]),
   food("Chicken breast, cooked", "g", 165, 31, 0, 3.6, 0, [u("breast", 150), u("small breast", 120)]),
-  food("Chicken thigh, roast, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
+  food("Chicken thigh, cooked, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
   food("Beef mince 5% fat, cooked", "g", 175, 27, 0, 7.5, 0, [u("portion", 125)]),
   food("Turkey mince, cooked", "g", 165, 27, 0, 6, 0, [u("portion", 125)]),
   food("Beef burger, grilled", "g", 250, 23, 2, 17, 0, [u("burger", 90)]),
@@ -134,13 +136,13 @@ const BASE: FoodItem[] = [
   food("Crisps, ready salted", "g", 530, 6, 53, 32, 4, [u("bag", 25), u("sharing bag", 150)]),
   food("Digestive biscuit", "g", 480, 7, 63, 21, 3.5, [u("biscuit", 15)]),
   food("Milk chocolate", "g", 530, 7.5, 57, 30, 2, [u("standard bar", 45), u("square", 6)]),
-  food("Dark chocolate 70%", "g", 598, 7.8, 46, 43, 11, [u("square", 10)]),
+  food("Plain (dark) chocolate", "g", 598, 7.8, 46, 43, 11, [u("square", 10)]),
   food("Protein bar", "g", 360, 30, 35, 12, 8, [u("bar", 60)]),
   food("Rice cakes", "g", 380, 8, 80, 3, 3, [u("rice cake", 8)]),
   food("Whey protein powder", "g", 380, 75, 8, 6, 0, [u("scoop", 30)]),
 
   // Sauces and extras
-  food("Olive oil", "ml", 824, 0, 0, 92, 0, [u("tablespoon", 15), u("teaspoon", 5)]),
+  food("Olive oil", "g", 899, 0, 0, 99.9, 0, [u("tablespoon", 14), u("teaspoon", 5)]),
   food("Mayonnaise", "g", 680, 1, 1.3, 75, 0, [u("tablespoon", 15)]),
   food("Tomato ketchup", "g", 100, 1.2, 23, 0.1, 0.9, [u("tablespoon", 15)]),
   food("Sugar", "g", 400, 0, 100, 0, 0, [u("teaspoon", 4)]),
@@ -156,7 +158,7 @@ const BASE: FoodItem[] = [
   food("Cola", "ml", 42, 0, 10.6, 0, 0, [u("can", 330)]),
   food("Diet cola", "ml", 0.4, 0, 0, 0, 0, [u("can", 330)]),
   food("Energy drink", "ml", 45, 0, 11, 0, 0, [u("can", 250), u("large can", 500)]),
-  food("Beer, 4%", "ml", 43, 0.5, 3.6, 0, 0, [u("pint", 568), u("bottle", 330)]),
+  food("Beer, bitter", "ml", 43, 0.5, 3.6, 0, 0, [u("pint", 568), u("bottle", 330)]),
   food("Red wine", "ml", 85, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("White wine", "ml", 82, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("Spirits, 40%", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
@@ -199,7 +201,7 @@ const EXTRA: Record<string, Extra> = {
   "Bacon, back rasher, grilled": [8, 0, 3.5],
   "Ham, sliced": [1.1, 1, 2],
   "Chicken breast, cooked": [1, 0, 0.18],
-  "Chicken thigh, roast, no skin": [4, 0, 0.25],
+  "Chicken thigh, cooked, no skin": [4, 0, 0.25],
   "Beef mince 5% fat, cooked": [3.2, 0, 0.2],
   "Turkey mince, cooked": [1.8, 0, 0.2],
   "Beef burger, grilled": [7.5, 1, 1],
@@ -249,7 +251,7 @@ const EXTRA: Record<string, Extra> = {
   "Crisps, ready salted": [2.5, 0.5, 1.3],
   "Digestive biscuit": [10, 17, 1.1],
   "Milk chocolate": [18, 56, 0.2],
-  "Dark chocolate 70%": [25, 24, 0.02],
+  "Plain (dark) chocolate": [25, 24, 0.02],
   "Protein bar": [6, 5, 0.5],
   "Rice cakes": [0.6, 0.5, 0.3],
   "Whey protein powder": [3, 6, 0.4],
@@ -267,7 +269,7 @@ const EXTRA: Record<string, Extra> = {
   "Orange juice": [0, 9, 0, "juice"],
   Cola: [0, 10.6, 0],
   "Diet cola": [0, 0, 0.02],
-  "Beer, 4%": [0, 0, 0, null, 4],
+  "Beer, bitter": [0, 0, 0, null, 4],
   "Red wine": [0, 0.6, 0, null, 13],
   "White wine": [0, 1, 0, null, 12.5],
   "Spirits, 40%": [0, 0, 0, null, 40],
@@ -288,17 +290,44 @@ const CAFFEINE: Record<string, number> = {
   Cola: 12,
   "Diet cola": 13,
   "Energy drink": 32,
-  "Dark chocolate 70%": 50,
+  "Plain (dark) chocolate": 50,
   "Milk chocolate": 20,
 };
 
+type CofidValues = { code: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fibre: number | null; satFat: number | null; sugars: number | null; salt: number | null; abv: number | null };
+const COFID = CURATED as Record<string, CofidValues>;
+
+/*
+ * Everyday foods: units and categories from this file, nutrient values from
+ * CoFID 2021 where scripts/curated-map.json maps the food to a CoFID code.
+ * The estimates above remain only for foods CoFID doesn't cover.
+ */
 export const FOOD_DB: FoodItem[] = BASE.map((f) => {
   const x = EXTRA[f.name];
   const caffeine = CAFFEINE[f.name];
-  const withCaffeine = caffeine ? { ...f, caffeine } : f;
-  if (!x) return withCaffeine;
-  const [satFat, sugars, salt, fiveADay, abv] = x;
-  return { ...withCaffeine, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
+  let item: FoodItem = caffeine ? { ...f, caffeine } : f;
+  if (x) {
+    const [satFat, sugars, salt, fiveADay, abv] = x;
+    item = { ...item, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
+  }
+  const c = COFID[f.name];
+  if (c) {
+    const keep = (v: number | null, fallback: number) => (v === null ? fallback : v);
+    item = {
+      ...item,
+      cofid: c.code,
+      kcal: c.kcal,
+      protein: keep(c.protein, item.protein),
+      carbs: keep(c.carbs, item.carbs),
+      fat: keep(c.fat, item.fat),
+      fibre: keep(c.fibre, item.fibre),
+      satFat: c.satFat ?? item.satFat,
+      sugars: c.sugars ?? item.sugars,
+      salt: c.salt ?? item.salt,
+      ...(c.abv ? { abv: c.abv } : {}),
+    };
+  }
+  return item;
 });
 
 /** 5 a day portions, alcohol units and caffeine for an amount in grams or millilitres. */

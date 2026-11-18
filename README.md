@@ -54,7 +54,7 @@ Sync saves a short delay after each change. If another device saved in the meant
 - In the browser, steps are entered by hand. The iPhone app syncs them from Apple Health.
 - In the browser, reminders fire only while the app is open. The iPhone app schedules them with the phone.
 - Photo meal recognition isn't built.
-- The built-in food list has 100 common UK foods with everyday units, compiled from general nutrition knowledge and shown as estimates. Replace with CoFID data before public release.
+- Food data: 103 everyday foods with household units (`src/app/foods.ts`), 98 of them with values from CoFID 2021 via `scripts/curated-map.json`, plus the full CoFID list of about 2,650 foods for search, loaded on first search. Rebuild with `python3 scripts/build-cofid.py <CoFID 2021 xlsx> > src/app/data/cofid.json` then `python3 scripts/build-curated.py > src/app/data/curated.json`. Confirm the CoFID licence on its GOV.UK page before release. The 'old foods' file is not used because PHE hasn't revalidated it.
 - Branded product search and barcode lookups use Open Food Facts under the Open Database Licence, which requires the attribution shown in the app. Its search allows about ten requests a minute per user, so the app searches only when asked.
 - Camera scanning uses the browser's barcode detector where available and ZXing elsewhere, including Safari on iPhone.
 - Calorie and protein targets are estimates from the Mifflin-St Jeor equation and should be checked by a registered dietitian before launch.

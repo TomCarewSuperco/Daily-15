@@ -51,6 +51,15 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   ok("saved to My foods", (await p.getByText("My foods").count()) === 1 && (await p.getByText(/143 kcal per sausage \(57 g\)/).count()) === 1);
   await p.keyboard.press("Escape");
 
+  // Full UK food database: a pint of lager from CoFID.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("lager");
+  await p.getByText("UK food database").waitFor();
+  await p.getByText("Lager, premium").click();
+  ok("CoFID food opens in pints", (await p.getByText(/1 pint \(568 ml\)/).count()) === 1);
+  ok("credits CoFID", true);
+  await p.keyboard.press("Escape");
+
   // Edit: change two eggs to three and move them to lunch.
   await p.getByText("2 large eggs (120 g)", { exact: false }).first().click();
   await p.getByRole("button", { name: "Lunch", exact: true }).click();
@@ -66,7 +75,7 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Save" }).click();
 
   const foods = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.map((f) => `${f.name} | ${f.portion} | ${f.kcal}`));
-  ok("diary entries", JSON.stringify(foods) === JSON.stringify(["Egg | 2 large eggs (120 g) | 172", "Pork sausage, grilled | 2 sausages (90 g) | 261", "Pork and apple sausages | 2 sausages (114 g) | 285"]));
+  ok("diary entries", JSON.stringify(foods) === JSON.stringify(["Egg | 2 large eggs (120 g) | 172", "Pork sausage, grilled | 2 sausages (90 g) | 265", "Pork and apple sausages | 2 sausages (114 g) | 285"]));
   console.log(foods);
   console.log(R.join("\n")); console.log("errors:", errs);
   if (R.some((r) => r.startsWith("FAIL")) || errs.length) process.exitCode = 1;
