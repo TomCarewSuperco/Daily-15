@@ -6,6 +6,7 @@ import { Choice, Field, NumField } from "../components/Field";
 import { useDaily15 } from "../store";
 import type { ActivityLevel, Experience, Goal, Profile, Sex } from "../types";
 import { PREGNANCY_MODE_ENABLED } from "../pregnancy";
+import { cloudEnabled } from "../cloud/client";
 
 type Draft = {
   name: string;
@@ -81,7 +82,7 @@ export function Onboarding() {
 
     <div key="body" className="space-y-4">
       <h2 className="text-3xl">About you</h2>
-      <p className="text-sm text-muted-foreground">Used to estimate calorie and protein targets. Nothing leaves this device.</p>
+      <p className="text-sm text-muted-foreground">Used to estimate calorie and protein targets. {cloudEnabled ? "Saved to your account and visible only to you." : "Nothing leaves this device."}</p>
       <div className="grid grid-cols-2 gap-3">
         <NumField label="Age" value={d.age} onChange={(v) => set("age", v)} suffix="yrs" />
         <NumField label="Height" value={d.heightCm} onChange={(v) => set("heightCm", v)} suffix="cm" />
@@ -89,9 +90,9 @@ export function Onboarding() {
         <NumField label="Target weight" value={d.targetWeightKg} onChange={(v) => set("targetWeightKg", v)} suffix="kg" step={0.1} />
       </div>
       <Field label="Sex used for energy calculations">
-        <Choice value={d.sex} onChange={(v) => set("sex", v)} options={[{ value: "female", label: "Female" }, { value: "male", label: "Male" }]} />
+        <Choice value={d.sex} onChange={(v) => setD((p) => ({ ...p, sex: v, lifeStage: v === "male" ? "none" : p.lifeStage }))} options={[{ value: "female", label: "Female" }, { value: "male", label: "Male" }]} />
       </Field>
-      {PREGNANCY_MODE_ENABLED && (
+      {PREGNANCY_MODE_ENABLED && d.sex === "female" && (
         <Field label="Are you pregnant or breastfeeding?" hint="If so, DAILY 15 won't set calorie targets or give weight-loss advice.">
           <Choice columns={3} value={d.lifeStage} onChange={(v) => set("lifeStage", v)} options={[{ value: "none", label: "No" }, { value: "pregnant", label: "Pregnant" }, { value: "breastfeeding", label: "Breastfeeding" }]} />
         </Field>

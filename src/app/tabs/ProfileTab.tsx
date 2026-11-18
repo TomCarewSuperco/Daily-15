@@ -159,7 +159,7 @@ export function ProfileTab() {
         </Card>
       )}
 
-      {PREGNANCY_MODE_ENABLED && (
+      {PREGNANCY_MODE_ENABLED && (p.sex === "female" || p.lifeStage) && (
         <Card>
           <CardHeading>Pregnancy and breastfeeding<PreviewBadge /></CardHeading>
           <Choice
