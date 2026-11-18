@@ -372,6 +372,7 @@ export function ProfileTab() {
         <a className="underline" href="./privacy.html" target="_blank" rel="noreferrer">Privacy policy</a>
         <a className="underline" href="./support.html" target="_blank" rel="noreferrer">Support</a>
       </p>
+      <p className="px-1 text-[11px] text-muted-foreground">Version {__APP_BUILD__}</p>
       <p className="px-1 pb-2 text-[11px] leading-relaxed text-muted-foreground">
         DAILY 15 offers general fitness information, not medical advice. Calorie, nutrition and exercise figures are estimates. Speak to a GP before starting a new exercise or diet plan if you have a health condition, are pregnant or are returning from injury.
       </p>
