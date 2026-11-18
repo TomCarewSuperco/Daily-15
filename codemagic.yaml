@@ -1,0 +1,45 @@
+# Cloud iOS build and TestFlight upload with Codemagic (codemagic.io), for building without a Mac.
+# Before the first run, in Codemagic:
+#   1. Add this repository.
+#   2. Teams, Integrations, Developer Portal: add an App Store Connect API key named "DAILY 15 ASC".
+#   3. Code signing identities: let Codemagic fetch or create the iOS distribution certificate and
+#      App Store profile for com.carewtechnologies.daily15.
+#   4. Set APP_STORE_APPLE_ID below to the app's Apple ID from App Store Connect (App Information).
+workflows:
+  ios-testflight:
+    name: iOS to TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: DAILY 15 ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.carewtechnologies.daily15
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        APP_STORE_APPLE_ID: "0000000000"
+    scripts:
+      - name: Install and build the web app
+        script: |
+          npm ci
+          npm run build
+          npx cap sync ios
+      - name: Apply signing profiles
+        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Build the IPA
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-xcargs "CURRENT_PROJECT_VERSION=$((LATEST + 1))"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

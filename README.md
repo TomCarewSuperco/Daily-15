@@ -21,6 +21,14 @@ The app is hosted on Vercel, which redeploys on every push to `main`. `vercel.js
 
 Config for Netlify (`netlify.toml`) and Cloudflare Pages (`wrangler.toml` and `public/_headers`) is included in case it moves.
 
+## iPhone app
+
+See `docs/ios.md`. The Capacitor project is in `ios/`. Run `npm run ios:sync` after web changes.
+
+## Tests
+
+`npm run test:e2e` runs browser tests against stand-ins for Supabase and Open Food Facts. It needs Playwright with Chromium, and ffmpeg.
+
 ## Accounts and sync
 
 With `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` set (see `.env.example`), the app requires an account: sign in, register with email confirmation, forgot password and change password. Each user's data is saved to Supabase as one JSON document per user and synced across devices. Without those settings, the app runs on-device only with no accounts.
@@ -37,8 +45,8 @@ Sync is last write wins for the whole document, with a short delay after each ch
 
 ## Known limits
 
-- Steps are entered by hand. Apple Health, Health Connect and wearables need native apps.
-- Reminders fire only while the app is open.
+- In the browser, steps are entered by hand. The iPhone app syncs them from Apple Health.
+- In the browser, reminders fire only while the app is open. The iPhone app schedules them with the phone.
 - Photo meal recognition isn't built.
 - The food database is a 40-item starter set and needs a licensed database before public release.
 - Branded product search and barcode lookups use Open Food Facts under the Open Database Licence, which requires the attribution shown in the app. Its search allows about ten requests a minute per user, so the app searches only when asked.

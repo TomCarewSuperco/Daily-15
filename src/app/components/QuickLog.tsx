@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
+import { healthName, saveWeightToHealth } from "../native/health";
 import { useDaily15 } from "../store";
 import { Field, NumField } from "./Field";
 
@@ -27,7 +28,9 @@ export function WeightDialog({ open, onOpenChange }: DialogProps) {
 
   const save = () => {
     if (typeof kg !== "number" || kg < 30 || kg > 350) return;
-    update((s) => ({ ...s, weights: [...s.weights.filter((w) => w.date !== date), { id: uid(), date, kg: Math.round(kg * 10) / 10 }] }));
+    const value = Math.round(kg * 10) / 10;
+    update((s) => ({ ...s, weights: [...s.weights.filter((w) => w.date !== date), { id: uid(), date, kg: value }] }));
+    if (state.health?.connected) saveWeightToHealth(value, date).catch(() => {});
     toast.success("Weigh-in saved");
     onOpenChange(false);
   };
@@ -87,7 +90,11 @@ export function StepsDialog({ open, onOpenChange }: DialogProps) {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Steps and activity</DialogTitle>
-          <DialogDescription>Copy today's figures from your phone or watch. Automatic sync with Apple Health and Health Connect arrives with the mobile app.</DialogDescription>
+          <DialogDescription>
+            {state.health?.connected
+              ? `Steps and activity sync from ${healthName} when the app opens. Anything you enter here is replaced at the next sync if ${healthName} has a figure for that day.`
+              : "Copy today's figures from your phone or watch. In the iPhone app, connect Apple Health in Profile to sync them automatically."}
+          </DialogDescription>
         </DialogHeader>
         <Field label="Date">
           <Input type="date" value={date} max={todayKey()} onChange={(e) => setDate(e.target.value || todayKey())} />

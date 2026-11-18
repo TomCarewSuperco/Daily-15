@@ -3,6 +3,7 @@ import { Dumbbell, Home, LineChart, User, Utensils } from "lucide-react";
 import { AuthProvider, useAuth } from "./cloud/AuthProvider";
 import { cloudEnabled } from "./cloud/client";
 import { useReminders } from "./components/useReminders";
+import { useHealthSync } from "./native/useHealthSync";
 import type { Intent, TabId } from "./nav";
 import { Daily15Provider, useDaily15 } from "./store";
 import { AuthScreen, ResetPasswordScreen } from "./tabs/Auth";
@@ -36,6 +37,7 @@ function Shell() {
   const [intent, setIntent] = useState<Intent>(null);
   const clearIntent = useCallback(() => setIntent(null), []);
   useReminders(state);
+  useHealthSync(true);
 
   const navigate = useCallback((t: TabId, i: Intent = null) => {
     setTab(t);

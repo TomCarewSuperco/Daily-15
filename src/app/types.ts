@@ -169,4 +169,6 @@ export interface AppState {
   measurements: MeasurementEntry[];
   photos: ProgressPhoto[];
   reminders: Reminder[];
+  /** Apple Health or Health Connect link, native app only. */
+  health?: { connected: boolean; lastSync?: string };
 }

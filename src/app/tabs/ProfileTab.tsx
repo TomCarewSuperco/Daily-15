@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Cloud, CloudOff, Download, KeyRound, LogOut, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "../notify";
 import {
@@ -24,6 +24,10 @@ import { Card, CardHeading } from "../components/Section";
 import { useAuth } from "../cloud/AuthProvider";
 import { supabase } from "../cloud/client";
 import { NewPasswordForm } from "./Auth";
+import { healthName } from "../native/health";
+import { notificationPermission, requestNotificationPermission, scheduleReminders } from "../native/notifications";
+import { isNative } from "../native/platform";
+import { useHealthSync } from "../native/useHealthSync";
 import { clearStorage, emptyState, useDaily15 } from "../store";
 import type { ActivityLevel, AppState, Experience, Goal, Profile, Targets } from "../types";
 
@@ -62,7 +66,11 @@ export function ProfileTab() {
     replace(emptyState());
   };
   const fileInput = useRef<HTMLInputElement>(null);
-  const [notifPerm, setNotifPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [notifPerm, setNotifPerm] = useState<string>(isNative ? "unknown" : typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const health = useHealthSync();
+  useEffect(() => {
+    if (isNative) notificationPermission().then((p) => setNotifPerm(p === "prompt" ? "default" : p));
+  }, []);
 
   const setProfile = (patch: Partial<Profile>) =>
     update((s) => {
@@ -101,6 +109,12 @@ export function ProfileTab() {
   };
 
   const askNotifications = async () => {
+    if (isNative) {
+      const ok = await requestNotificationPermission();
+      setNotifPerm(ok ? "granted" : "denied");
+      if (ok) await scheduleReminders(state.reminders);
+      return;
+    }
     if (typeof Notification === "undefined") return;
     setNotifPerm(await Notification.requestPermission());
   };
@@ -202,22 +216,52 @@ export function ProfileTab() {
         {notifPerm === "default" && (
           <Button variant="outline" size="sm" className="mt-2 w-full" onClick={askNotifications}>Allow notifications</Button>
         )}
+        {notifPerm === "denied" && isNative && <p className="mt-2 text-xs text-muted-foreground">Notifications are off for DAILY 15. Turn them on in the iPhone's Settings app.</p>}
         <p className="mt-2 text-xs text-muted-foreground">
-          The web version reminds you while it's open. Reminders when the app is closed need the iOS and Android apps.
+          {isNative ? "Reminders arrive even when the app is closed." : "The web version reminds you while it's open. The iPhone app sends reminders when it's closed."}
         </p>
       </Card>
 
       <Card>
         <CardHeading>Integrations</CardHeading>
-        <ul className="divide-y text-sm">
-          {["Apple Health", "Android Health Connect", "Smartwatches and fitness trackers"].map((n) => (
-            <li key={n} className="flex items-center justify-between py-2">
-              <span>{n}</span>
-              <span className="text-xs text-muted-foreground">Mobile app</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-muted-foreground">Until then, enter steps and active minutes from your phone or watch on the Home or Progress tab.</p>
+        {isNative && health.available ? (
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span>{healthName}</span>
+              <span className="text-xs text-muted-foreground">{health.connected ? "Connected" : "Not connected"}</span>
+            </div>
+            {health.connected ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Steps, distance, active energy, exercise minutes, weigh-ins and workouts sync when the app opens.
+                  {health.lastSync ? ` Last synced ${new Date(health.lastSync).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` : ""}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" disabled={health.syncing} onClick={health.sync}>{health.syncing ? "Syncing" : "Sync now"}</Button>
+                  <Button variant="ghost" onClick={health.disconnect}>Disconnect</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">To change what DAILY 15 can read, open the Health app, then your profile, then Apps.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">Bring in steps, distance, exercise minutes and workouts from your iPhone and watch, and save weigh-ins to {healthName}.</p>
+                <Button className="w-full" onClick={health.connect}>Connect {healthName}</Button>
+              </>
+            )}
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y text-sm">
+              {["Apple Health", "Android Health Connect", "Smartwatches and fitness trackers"].map((n) => (
+                <li key={n} className="flex items-center justify-between py-2">
+                  <span>{n}</span>
+                  <span className="text-xs text-muted-foreground">{isNative ? "Unavailable" : "In the app"}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">In the browser, enter steps and active minutes from your phone or watch on the Home or Progress tab.</p>
+          </>
+        )}
       </Card>
 
       <Card>

@@ -3,6 +3,8 @@ import { toast } from "../notify";
 import { todayKey } from "../calc";
 import { REMINDER_MESSAGES } from "../data";
 import type { AppState } from "../types";
+import { scheduleReminders } from "../native/notifications";
+import { isNative } from "../native/platform";
 
 /**
  * Fires reminders while the app is open. Browsers can't schedule notifications
@@ -13,7 +15,14 @@ export function useReminders(state: AppState) {
   const latest = useRef(state);
   latest.current = state;
 
+  // Native: hand the schedule to the phone whenever reminders change.
+  const schedule = JSON.stringify(state.reminders);
   useEffect(() => {
+    if (isNative) scheduleReminders(JSON.parse(schedule)).catch(() => {});
+  }, [schedule]);
+
+  useEffect(() => {
+    if (isNative) return;
     const check = () => {
       const s = latest.current;
       const now = new Date();
