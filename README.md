@@ -15,7 +15,14 @@ npm run dev
 npm run build
 ```
 
-The build writes static files to `dist/`. Upload that folder to any static host or any subfolder of an existing site. Paths are relative, so it doesn't need to sit at the domain root. It can be added to a phone's home screen.
+The build writes static files to `dist/`. Paths are relative, so the output works at a domain root or in any subfolder. Users can add it to a phone's home screen.
+
+Config is included for four hosts. Use one.
+
+- GitHub Pages: in the repository's Settings, Pages, set Source to 'GitHub Actions'. Every push to `main` then deploys through `.github/workflows/deploy-pages.yml`. Pages on a private repository needs a paid GitHub plan.
+- Netlify: import the repository. `netlify.toml` sets the build.
+- Vercel: import the repository. `vercel.json` sets the build.
+- Cloudflare Pages: connect the repository, set the build command to `npm run build` and the output directory to `dist`. `wrangler.toml` and `public/_headers` cover the rest.
 
 ## Data
 
