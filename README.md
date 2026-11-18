@@ -31,7 +31,7 @@ Supabase setup, once per project:
 2. Deploy the `delete-account` Edge Function in `supabase/functions/delete-account`. It deletes the signed-in user and, through the foreign key, their data.
 3. In Authentication, URL Configuration, set the Site URL to the production address and add it to Redirect URLs. Confirmation and reset emails link back there.
 4. In Authentication, Providers, Email, keep 'Confirm email' on and set the minimum password length to 8.
-5. Add both environment variables in Vercel, then redeploy.
+5. The production values are in `.env.production`, so Vercel picks them up on each build. Both are public by design.
 
 Sync is last write wins for the whole document, with a short delay after each change. Changes made offline are kept on the device and saved on reconnection. If another device saved more recently, its copy wins. Progress photos stay on the device and aren't synced. Signing out removes the user's data from the device.
 
