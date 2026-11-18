@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dumbbell, Home, LineChart, User, Utensils } from "lucide-react";
+import { AuthProvider, useAuth } from "./cloud/AuthProvider";
+import { cloudEnabled } from "./cloud/client";
 import { useReminders } from "./components/useReminders";
 import type { Intent, TabId } from "./nav";
 import { Daily15Provider, useDaily15 } from "./store";
+import { AuthScreen, ResetPasswordScreen } from "./tabs/Auth";
 import { HomeTab } from "./tabs/HomeTab";
 import { NutritionTab } from "./tabs/NutritionTab";
 import { Onboarding } from "./tabs/Onboarding";
@@ -18,8 +21,17 @@ const TABS: { id: TabId; label: string; Icon: typeof Home }[] = [
   { id: "profile", label: "Profile", Icon: User },
 ];
 
+function Splash({ text }: { text: string }) {
+  return (
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2">
+      <p className="text-sm font-semibold uppercase tracking-widest text-copper">DAILY 15</p>
+      <p className="text-sm text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
 function Shell() {
-  const { state } = useDaily15();
+  const { state, sync } = useDaily15();
   const [tab, setTab] = useState<TabId>("home");
   const [intent, setIntent] = useState<Intent>(null);
   const clearIntent = useCallback(() => setIntent(null), []);
@@ -34,6 +46,7 @@ function Shell() {
     window.scrollTo({ top: 0 });
   }, [tab]);
 
+  if (!sync.ready) return <Splash text="Loading your data" />;
   if (!state.profile) return <Onboarding />;
 
   return (
@@ -65,12 +78,30 @@ function Shell() {
   );
 }
 
+function AccountGate() {
+  const { session, loading, recovering } = useAuth();
+  if (loading) return <Splash text="Signing in" />;
+  if (session && recovering) return <ResetPasswordScreen />;
+  if (!session) return <AuthScreen />;
+  return (
+    <Daily15Provider key={session.user.id} userId={session.user.id}>
+      <Shell />
+    </Daily15Provider>
+  );
+}
+
 export function Daily15App() {
   return (
-    <Daily15Provider>
-      <div className="mx-auto min-h-[100dvh] max-w-md bg-background">
-        <Shell />
-      </div>
-    </Daily15Provider>
+    <div className="mx-auto min-h-[100dvh] max-w-md bg-background">
+      {cloudEnabled ? (
+        <AuthProvider>
+          <AccountGate />
+        </AuthProvider>
+      ) : (
+        <Daily15Provider>
+          <Shell />
+        </Daily15Provider>
+      )}
+    </div>
   );
 }

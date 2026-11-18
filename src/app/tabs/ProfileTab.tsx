@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Cloud, CloudOff, Download, KeyRound, LogOut, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "../notify";
 import {
   AlertDialog,
@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -20,14 +21,46 @@ import { ACTIVITY_LABELS, GOAL_LABELS, latestWeight, suggestTargets, todayKey } 
 import { REMINDER_LABELS } from "../data";
 import { Choice, Field, NumField } from "../components/Field";
 import { Card, CardHeading } from "../components/Section";
+import { useAuth } from "../cloud/AuthProvider";
+import { supabase } from "../cloud/client";
+import { NewPasswordForm } from "./Auth";
 import { clearStorage, emptyState, useDaily15 } from "../store";
 import type { ActivityLevel, AppState, Experience, Goal, Profile, Targets } from "../types";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function ProfileTab() {
-  const { state, update, replace } = useDaily15();
+  const { state, update, replace, sync } = useDaily15();
+  const { session } = useAuth();
+  const userId = session?.user.id;
   const p = state.profile!;
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const signOut = async () => {
+    const saved = await sync.flush();
+    if (!saved && !window.confirm("Some recent changes haven't saved to your account yet. Sign out anyway and lose them?")) return;
+    await supabase?.auth.signOut();
+    // Don't leave health data on a shared device.
+    clearStorage(userId);
+  };
+
+  const deleteEverything = async () => {
+    if (supabase && userId) {
+      setDeleting(true);
+      const { error } = await supabase.functions.invoke("delete-account", { method: "POST" });
+      setDeleting(false);
+      if (error) {
+        toast.error("Couldn't delete your account. Check your connection and try again.");
+        return;
+      }
+      clearStorage(userId);
+      await supabase.auth.signOut();
+      return;
+    }
+    clearStorage();
+    replace(emptyState());
+  };
   const fileInput = useRef<HTMLInputElement>(null);
   const [notifPerm, setNotifPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 
@@ -77,6 +110,28 @@ export function ProfileTab() {
       <header className="pt-2">
         <h1 className="text-4xl">Profile</h1>
       </header>
+
+      {session && (
+        <Card>
+          <CardHeading>Account</CardHeading>
+          <p className="text-sm">{session.user.email}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {sync.status === "offline" ? <CloudOff className="h-3.5 w-3.5" /> : <Cloud className="h-3.5 w-3.5" />}
+            {sync.status === "saving" ? "Saving to your account" : sync.status === "offline" ? "Offline. Changes are kept on this device and will save when you reconnect." : "All changes saved to your account"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Progress photos stay on this device and aren't saved to your account.</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={() => setChangingPassword(true)}><KeyRound className="mr-1.5 h-4 w-4" />Password</Button>
+            <Button variant="outline" onClick={signOut}><LogOut className="mr-1.5 h-4 w-4" />Sign out</Button>
+          </div>
+          <Dialog open={changingPassword} onOpenChange={setChangingPassword}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader><DialogTitle>Change password</DialogTitle></DialogHeader>
+              <NewPasswordForm onDone={() => setChangingPassword(false)} onCancel={() => setChangingPassword(false)} />
+            </DialogContent>
+          </Dialog>
+        </Card>
+      )}
 
       <Card>
         <CardHeading>Personal details</CardHeading>
@@ -168,7 +223,9 @@ export function ProfileTab() {
       <Card>
         <CardHeading>Your data</CardHeading>
         <p className="mb-3 text-xs text-muted-foreground">
-          Everything is stored on this device only. Export regularly as a backup or to move to another device. Clearing browser data deletes it.
+          {session
+            ? "Your data is saved to your account. Export a copy at any time."
+            : "Everything is stored on this device only. Export regularly as a backup or to move to another device. Clearing browser data deletes it."}
         </p>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={exportData}><Download className="mr-1.5 h-4 w-4" />Export</Button>
@@ -177,23 +234,25 @@ export function ProfileTab() {
         <input ref={fileInput} type="file" accept="application/json" className="hidden" onChange={(e) => { importData(e.target.files?.[0]); e.target.value = ""; }} />
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="mt-2 w-full text-destructive hover:text-destructive"><Trash2 className="mr-1.5 h-4 w-4" />Delete all my data</Button>
+            <Button variant="ghost" className="mt-2 w-full text-destructive hover:text-destructive"><Trash2 className="mr-1.5 h-4 w-4" />{session ? "Delete my account and data" : "Delete all my data"}</Button>
           </AlertDialogTrigger>
           <AlertDialogContent className="max-w-sm">
             <AlertDialogHeader>
               <AlertDialogTitle>Delete everything?</AlertDialogTitle>
-              <AlertDialogDescription>This removes your profile, workouts, food diary, weigh-ins and photos from this device. It can't be undone. Export first if you want a copy.</AlertDialogDescription>
+              <AlertDialogDescription>
+                {session
+                  ? "This permanently deletes your account and everything in it: profile, workouts, food diary, weigh-ins and photos. It can't be undone. Export first if you want a copy."
+                  : "This removes your profile, workouts, food diary, weigh-ins and photos from this device. It can't be undone. Export first if you want a copy."}
+              </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => {
-                  clearStorage();
-                  replace(emptyState());
-                }}
+                disabled={deleting}
+                onClick={deleteEverything}
               >
-                Delete
+                {deleting ? "Deleting" : "Delete"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
