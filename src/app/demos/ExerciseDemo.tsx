@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { demoFor, type Demo, type Pose, type Prop, type Pt } from "./poses";
+import { demoFor, type Demo, type Held, type Pose, type Prop, type Pt } from "./poses";
 
 const KEYS: (keyof Pose)[] = ["h", "s", "p", "c", "fe", "fh", "be", "bh", "fk", "ff", "bk", "bf"];
 
@@ -20,6 +20,14 @@ function PropShape({ prop }: { prop: Prop }) {
   const cls = "fill-none stroke-[hsl(var(--border))]";
   if (prop === "box") return <rect x={62} y={84} width={30} height={8} rx={1.5} className="fill-[hsl(var(--muted))] stroke-[hsl(var(--border))]" strokeWidth={1.5} />;
   if (prop === "wall") return <line x1={101} y1={4} x2={101} y2={92} className={cls} strokeWidth={3} />;
+  if (prop === "bench")
+    return (
+      <g className="stroke-[hsl(var(--border))]" strokeWidth={2.5} strokeLinecap="round">
+        <line x1={14} y1={79} x2={62} y2={79} strokeWidth={4} />
+        <line x1={20} y1={80} x2={20} y2={92} />
+        <line x1={56} y1={80} x2={56} y2={92} />
+      </g>
+    );
   if (prop === "mat") return <line x1={4} y1={93} x2={116} y2={93} className="stroke-[hsl(var(--copper)/0.35)]" strokeWidth={3} strokeLinecap="round" />;
   return (
     <g className={cls} strokeWidth={2.5} strokeLinecap="round">
@@ -28,6 +36,33 @@ function PropShape({ prop }: { prop: Prop }) {
       <line x1={50} y1={66} x2={50} y2={92} />
     </g>
   );
+}
+
+/** Dumbbells, barbell or kettlebell, drawn in the copper accent. */
+function Equipment({ held, pose, front }: { held: Held; pose: Pose; front?: boolean }) {
+  const cls = "stroke-[hsl(var(--copper))] fill-[hsl(var(--copper))]";
+  if (held.kind === "barbell") {
+    if (held.at === "back") return <circle cx={pose.s[0] - 2} cy={pose.s[1] - 1} r={6.5} className={`${cls} fill-opacity-80`} strokeWidth={1} />;
+    if (front) return <line x1={pose.bh[0] - 10} y1={pose.bh[1]} x2={pose.fh[0] + 10} y2={pose.fh[1]} className={cls} strokeWidth={2.5} />;
+    return <circle cx={pose.fh[0]} cy={pose.fh[1]} r={6.5} className={`${cls} fill-opacity-80`} strokeWidth={1} />;
+  }
+  if (held.kind === "kettlebell") {
+    const [x, y] = pose.fh;
+    return (
+      <g className={cls}>
+        <circle cx={x} cy={y + 5.5} r={4.5} strokeWidth={0} />
+        <path d={`M${x - 3},${y + 2} Q${x},${y - 3} ${x + 3},${y + 2}`} fill="none" strokeWidth={1.5} />
+      </g>
+    );
+  }
+  const bell = ([x, y]: Pt, key: string) => (
+    <g key={key} className={cls} strokeLinecap="round">
+      <line x1={x - 4} y1={y} x2={x + 4} y2={y} strokeWidth={1.8} />
+      <rect x={x - 6} y={y - 3} width={2.5} height={6} rx={0.8} strokeWidth={0} />
+      <rect x={x + 3.5} y={y - 3} width={2.5} height={6} rx={0.8} strokeWidth={0} />
+    </g>
+  );
+  return <>{[bell(pose.fh, "f"), ...(front ? [bell(pose.bh, "b")] : [])]}</>;
 }
 
 function Figure({ pose, front }: { pose: Pose; front?: boolean }) {
@@ -79,6 +114,7 @@ export function DemoFigure({ demo, animate = true, className = "", label }: { de
       <line x1={2} y1={92.5} x2={118} y2={92.5} className="stroke-[hsl(var(--border))]" strokeWidth={1.5} />
       {demo.prop && <PropShape prop={demo.prop} />}
       <Figure pose={lerpPose(demo.a, demo.b, t)} front={demo.front} />
+      {demo.held && <Equipment held={demo.held} pose={lerpPose(demo.a, demo.b, t)} front={demo.front} />}
     </svg>
   );
 }

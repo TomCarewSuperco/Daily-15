@@ -16,7 +16,14 @@ export interface Pose {
   fk: Pt; ff: Pt; bk: Pt; bf: Pt; // knees and feet
 }
 
-export type Prop = "box" | "wall" | "chair" | "mat";
+export type Prop = "box" | "wall" | "chair" | "mat" | "bench";
+
+/** Equipment held by the figure. Barbells in side view are drawn end-on, as a plate. */
+export interface Held {
+  kind: "dumbbell" | "barbell" | "kettlebell";
+  /** Where it sits: in the hands (default) or across the upper back. */
+  at?: "hands" | "back";
+}
 
 export interface Demo {
   a: Pose;
@@ -26,6 +33,7 @@ export interface Demo {
   prop?: Prop;
   /** Front view rather than side view. */
   front?: boolean;
+  held?: Held;
 }
 
 const stand: Pose = {
@@ -198,7 +206,93 @@ export const DEMOS: Record<string, Demo> = {
   },
 };
 
-const BY_NAME: Record<string, keyof typeof DEMOS> = {
+
+/* ---------- Weighted exercises ---------- */
+
+const hinge: Pose = { h: [83, 37], s: [75, 41], p: [52, 52], fe: [76, 53], fh: [76, 65], be: [75, 53], bh: [75, 65], fk: [58, 72], ff: [60, 92], bk: [57, 72], bf: [59, 92] };
+const lyingBench: Pose = { h: [20, 70], s: [30, 74], p: [56, 74], fe: [24, 82], fh: [31, 70], be: [25, 82], bh: [32, 70], fk: [72, 68], ff: [76, 92], bk: [71, 69], bf: [75, 92] };
+const squatLow: Pose = { h: [70, 41], s: [64, 50], p: [47, 70], fe: [70, 58], fh: [70, 51], be: [69, 59], bh: [69, 52], fk: [66, 72], ff: [60, 92], bk: [65, 72], bf: [59, 92] };
+
+export const WEIGHTED: Record<string, Demo> = {
+  gobletSquat: {
+    period: 2.8,
+    held: { kind: "dumbbell" },
+    a: pose(stand, { fe: [65, 36], fh: [66, 29], be: [64, 37], bh: [65, 30] }),
+    b: squatLow,
+  },
+  dumbbellRdl: { period: 3, held: { kind: "dumbbell" }, a: pose(stand, { fh: [62, 51], bh: [61, 51] }), b: hinge },
+  dumbbellRow: { period: 2.4, held: { kind: "dumbbell" }, a: hinge, b: pose(hinge, { fe: [63, 39], fh: [70, 49], be: [62, 40], bh: [69, 50] }) },
+  shoulderPressDb: {
+    period: 2.4,
+    held: { kind: "dumbbell" },
+    a: pose(stand, { fe: [64, 34], fh: [64, 22], be: [63, 35], bh: [63, 23] }),
+    b: pose(stand, { fe: [61, 12], fh: [61, 0], be: [60, 12], bh: [60, 0] }),
+  },
+  bicepCurl: { period: 2.2, held: { kind: "dumbbell" }, a: pose(stand, { fh: [62, 50], bh: [61, 50] }), b: pose(stand, { fh: [69, 28], bh: [68, 29] }) },
+  lateralRaise: {
+    period: 2.4,
+    front: true,
+    held: { kind: "dumbbell" },
+    a: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [66, 36], fh: [68, 48], be: [54, 36], bh: [52, 48], fk: [63, 72], ff: [64, 92], bk: [57, 72], bf: [56, 92] },
+    b: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [72, 25], fh: [84, 26], be: [48, 25], bh: [36, 26], fk: [63, 72], ff: [64, 92], bk: [57, 72], bf: [56, 92] },
+  },
+  tricepOverhead: {
+    period: 2.4,
+    held: { kind: "dumbbell" },
+    a: pose(stand, { fe: [63, 9], fh: [54, 17], be: [62, 9], bh: [53, 17] }),
+    b: pose(stand, { fe: [61, 11], fh: [61, 0], be: [60, 11], bh: [60, 0] }),
+  },
+  dumbbellPress: { period: 2.4, prop: "bench", held: { kind: "dumbbell" }, a: lyingBench, b: pose(lyingBench, { fe: [30, 62], fh: [30, 50], be: [31, 62], bh: [31, 50] }) },
+  splitSquat: {
+    period: 2.6,
+    held: { kind: "dumbbell" },
+    a: { h: [59, 13], s: [58, 24], p: [58, 52], fe: [59, 37], fh: [60, 49], be: [57, 37], bh: [57, 49], fk: [68, 71], ff: [74, 92], bk: [50, 71], bf: [40, 91] },
+    b: { h: [59, 28], s: [58, 39], p: [58, 66], fe: [59, 52], fh: [60, 64], be: [57, 52], bh: [57, 64], fk: [76, 68], ff: [75, 92], bk: [49, 86], bf: [36, 90] },
+  },
+  calfRaise: { period: 1.8, held: { kind: "dumbbell" }, a: pose(stand, { fh: [62, 50], bh: [61, 50] }), b: pose(stand, { h: [60, 9], s: [60, 20], p: [60, 48], fe: [61, 33], fh: [62, 46], be: [59, 33], bh: [61, 46], fk: [61, 69], ff: [62, 90], bk: [60, 69], bf: [61, 90] }) },
+  kettlebellSwing: {
+    period: 1.6,
+    held: { kind: "kettlebell" },
+    a: { h: [80, 36], s: [72, 40], p: [50, 54], fe: [68, 52], fh: [63, 62], be: [67, 52], bh: [62, 62], fk: [58, 72], ff: [60, 92], bk: [57, 72], bf: [59, 92] },
+    b: pose(stand, { fe: [72, 26], fh: [84, 28], be: [71, 27], bh: [83, 29] }),
+  },
+  kettlebellDeadlift: {
+    period: 2.8,
+    held: { kind: "kettlebell" },
+    a: { h: [78, 47], s: [71, 52], p: [48, 64], fe: [70, 64], fh: [68, 76], be: [69, 64], bh: [67, 76], fk: [64, 76], ff: [60, 92], bk: [63, 76], bf: [59, 92] },
+    b: pose(stand, { fh: [62, 51], bh: [61, 51] }),
+  },
+  backSquat: {
+    period: 2.8,
+    held: { kind: "barbell", at: "back" },
+    a: pose(stand, { fe: [54, 32], fh: [58, 23], be: [53, 33], bh: [57, 24] }),
+    b: { h: [70, 41], s: [64, 50], p: [47, 70], fe: [58, 58], fh: [62, 49], be: [57, 59], bh: [61, 50], fk: [66, 72], ff: [60, 92], bk: [65, 72], bf: [59, 92] },
+  },
+  deadlift: {
+    period: 3,
+    held: { kind: "barbell" },
+    a: { h: [78, 44], s: [70, 48], p: [48, 62], fe: [69, 60], fh: [68, 72], be: [68, 60], bh: [67, 72], fk: [64, 74], ff: [60, 92], bk: [63, 74], bf: [59, 92] },
+    b: pose(stand, { fh: [62, 51], bh: [61, 51] }),
+  },
+  overheadPress: {
+    period: 2.6,
+    held: { kind: "barbell" },
+    a: pose(stand, { fe: [64, 34], fh: [66, 23], be: [63, 35], bh: [65, 24] }),
+    b: pose(stand, { fe: [61, 12], fh: [61, 0], be: [60, 12], bh: [60, 0] }),
+  },
+  barbellRow: { period: 2.4, held: { kind: "barbell" }, a: hinge, b: pose(hinge, { fe: [63, 39], fh: [70, 49], be: [62, 40], bh: [69, 50] }) },
+  benchPress: { period: 2.6, prop: "bench", held: { kind: "barbell" }, a: lyingBench, b: pose(lyingBench, { fe: [30, 62], fh: [30, 50], be: [31, 62], bh: [31, 50] }) },
+  hipThrust: {
+    period: 2.6,
+    prop: "bench",
+    held: { kind: "barbell" },
+    a: { h: [26, 62], s: [33, 70], p: [52, 86], fe: [42, 80], fh: [52, 84], be: [41, 80], bh: [51, 84], fk: [70, 74], ff: [74, 92], bk: [69, 75], bf: [73, 92] },
+    b: { h: [26, 62], s: [33, 70], p: [56, 70], fe: [45, 72], fh: [56, 68], be: [44, 72], bh: [55, 68], fk: [72, 69], ff: [74, 92], bk: [71, 70], bf: [73, 92] },
+  },
+};
+Object.assign(DEMOS, WEIGHTED);
+
+const BY_NAME: Record<string, string> = {
   "march or brisk walk": "march",
   "air squats": "squat",
   "push-ups": "pushup",
@@ -224,6 +318,26 @@ const BY_NAME: Record<string, keyof typeof DEMOS> = {
   quads: "quadStretch",
   chest: "chestStretch",
   shoulders: "shoulderStretch",
+  "goblet squat": "gobletSquat",
+  "dumbbell romanian deadlift": "dumbbellRdl",
+  "dumbbell row": "dumbbellRow",
+  "dumbbell shoulder press": "shoulderPressDb",
+  "bicep curl": "bicepCurl",
+  "lateral raise": "lateralRaise",
+  "overhead tricep extension": "tricepOverhead",
+  "dumbbell bench press": "dumbbellPress",
+  "split squat": "splitSquat",
+  "calf raise": "calfRaise",
+  "kettlebell swing": "kettlebellSwing",
+  "kettlebell deadlift": "kettlebellDeadlift",
+  "kettlebell goblet squat": "gobletSquat",
+  "back squat": "backSquat",
+  deadlift: "deadlift",
+  "overhead press": "overheadPress",
+  "bent-over row": "barbellRow",
+  "bench press": "benchPress",
+  "hip thrust": "hipThrust",
+  "romanian deadlift": "dumbbellRdl",
 };
 
 export function demoFor(exerciseName: string): Demo | null {

@@ -192,15 +192,17 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
         </Button>
       </div>
 
-      {state.templates.length > 0 && (
-        <Card>
-          <CardHeading>Favourites</CardHeading>
+      <Card>
+        <CardHeading action={<Button variant="outline" size="sm" className="h-8" onClick={() => { setSeed({ asTemplate: true }); setFormOpen(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Build</Button>}>My workouts</CardHeading>
+        {state.templates.length === 0 ? (
+          <Empty>Build your own workout to reuse, or tick 'Save to My workouts' when you log one.</Empty>
+        ) : (
           <ul className="divide-y">
             {state.templates.map((t) => (
               <li key={t.id} className="flex items-center justify-between py-2">
                 <button className="flex-1 text-left" onClick={() => { setSeed({ template: t }); setFormOpen(true); }}>
                   <div className="flex items-center gap-1.5 font-medium"><Star className="h-3.5 w-3.5 fill-copper text-copper" />{t.name}</div>
-                  <div className="text-xs text-muted-foreground">{t.category} · {t.exercises.length} exercises</div>
+                  <div className="text-xs text-muted-foreground">{t.category} · {t.exercises.map((e) => e.name).join(", ")}</div>
                 </button>
                 <Button variant="ghost" size="icon" onClick={() => update((s) => ({ ...s, templates: s.templates.filter((x) => x.id !== t.id) }))} aria-label={`Remove ${t.name}`}>
                   <Trash2 className="h-4 w-4" />
@@ -208,8 +210,8 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
               </li>
             ))}
           </ul>
-        </Card>
-      )}
+        )}
+      </Card>
 
       <Card>
         <CardHeading>Personal bests</CardHeading>
