@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cardioBests, formatDay, formatPace, personalBests, restAdvice, todayKey } from "../calc";
-import { DEFAULT_ROUTINE, MODE_INFO, SUBSTITUTES } from "../data";
+import { DEFAULT_ROUTINE, MODE_INFO, stepsFor, SUBSTITUTES } from "../data";
 import { NumField } from "../components/Field";
 import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlayer";
 import { Card, CardHeading, Empty } from "../components/Section";
@@ -141,7 +141,18 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
               </div>
               {expanded === e.id && (
                 <div className="ml-8 mt-2 space-y-2">
-                  <ExerciseDemo name={e.name} className="h-24 w-auto rounded-lg bg-muted/50" />
+                  {stepsFor(e.name) ? (
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {stepsFor(e.name)!.map((st) => (
+                        <figure key={st.name} className="text-center">
+                          <ExerciseDemo name={st.name} animate={false} className="h-16 w-full rounded-lg bg-muted/50" />
+                          <figcaption className="mt-0.5 text-[10px] text-muted-foreground">{st.name}</figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  ) : (
+                    <ExerciseDemo name={e.name} className="h-24 w-auto rounded-lg bg-muted/50" />
+                  )}
                   {exerciseWarning(stage, e.name) && <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{exerciseWarning(stage, e.name)}</p>}
                   <p className="text-sm text-muted-foreground">{e.instructions}</p>
                   {mode !== "recovery" && (

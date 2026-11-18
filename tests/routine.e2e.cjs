@@ -31,6 +31,26 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
   ok("difficulty shows +1", (await p.getByText("+1", { exact: true }).count()) === 1);
   await p.screenshot({ path: OUT + "/routine-workouts.png", fullPage: true });
+  // Stretching steps through four moves as the timer runs.
+  const ctx2 = await b.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx2.addInitScript((s) => { if (!localStorage.getItem("daily15:v1")) localStorage.setItem("daily15:v1", JSON.stringify(s)); }, seed);
+  const q = await ctx2.newPage();
+  await q.clock.install();
+  await q.goto(BASE);
+  await q.getByRole("button", { name: "Start", exact: true }).click();
+  for (let i = 0; i < 11; i++) await q.getByRole("button", { name: "Next exercise" }).click();
+  await q.getByText(/12 of 12/).waitFor();
+  const h = await q.locator("h2").allTextContents();
+  if (!h.includes("Hamstrings")) console.log("debug headings:", h, await q.getByText(/of 12/).allTextContents());
+  ok("stretching starts with hamstrings", h.includes("Hamstrings"));
+  await q.getByRole("button", { name: /Start timer/ }).click();
+  await q.clock.runFor(31_000);
+  ok("moves on to quads after 30 seconds", (await q.getByRole("heading", { name: "Quads" }).count()) === 1);
+  await q.screenshot({ path: OUT + "/routine-stretch.png" });
+  await q.clock.runFor(60_000);
+  ok("then shoulders", (await q.getByRole("heading", { name: "Shoulders" }).count()) === 1);
+  await ctx2.close();
+
   console.log(R.join("\n")); console.log("errors:", errs);
   if (R.some((r) => r.startsWith("FAIL")) || errs.length) process.exitCode = 1;
   await b.close();

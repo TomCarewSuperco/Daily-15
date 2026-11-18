@@ -169,6 +169,27 @@ export const DEMOS: Record<string, Demo> = {
     a: { h: [92, 54], s: [84, 59], p: [60, 72], fe: [84, 74], fh: [84, 91], be: [83, 74], bh: [83, 91], fk: [78, 70], ff: [81, 92], bk: [42, 82], bf: [24, 91] },
     b: { h: [92, 52], s: [84, 58], p: [60, 72], fe: [85, 44], fh: [86, 31], be: [83, 74], bh: [83, 91], fk: [78, 70], ff: [81, 92], bk: [42, 82], bf: [24, 91] },
   },
+  hamstringStretch: {
+    period: 5,
+    a: { h: [86, 35], s: [78, 41], p: [56, 54], fe: [80, 54], fh: [81, 66], be: [79, 55], bh: [80, 67], fk: [69, 73], ff: [82, 92], bk: [55, 73], bf: [51, 92] },
+    b: { h: [88, 38], s: [80, 44], p: [56, 55], fe: [82, 57], fh: [83, 69], be: [81, 58], bh: [82, 70], fk: [69, 73], ff: [82, 92], bk: [55, 74], bf: [51, 92] },
+  },
+  quadStretch: {
+    period: 5,
+    a: { h: [61, 13], s: [60, 24], p: [59, 52], fe: [55, 40], fh: [50, 56], be: [68, 31], bh: [77, 27], fk: [60, 71], ff: [49, 59], bk: [60, 72], bf: [60, 92] },
+    b: { h: [61, 14], s: [60, 25], p: [59, 52], fe: [55, 41], fh: [49, 55], be: [68, 32], bh: [77, 29], fk: [61, 71], ff: [48, 57], bk: [60, 72], bf: [60, 92] },
+  },
+  chestStretch: {
+    period: 5,
+    a: { h: [62, 13], s: [60, 24], p: [59, 52], fe: [53, 36], fh: [47, 47], be: [54, 36], bh: [48, 48], fk: [60, 72], ff: [60, 92], bk: [59, 72], bf: [59, 92] },
+    b: { h: [64, 13], s: [62, 24], p: [59, 52], fe: [50, 31], fh: [40, 37], be: [51, 32], bh: [41, 38], fk: [60, 72], ff: [60, 92], bk: [59, 72], bf: [59, 92] },
+  },
+  shoulderStretch: {
+    period: 5,
+    front: true,
+    a: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [52, 28], fh: [41, 29], be: [66, 38], bh: [55, 31], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
+    b: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [51, 27], fh: [39, 27], be: [66, 37], bh: [54, 29], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
+  },
   childsPose: {
     period: 5,
     prop: "mat",
@@ -199,6 +220,10 @@ const BY_NAME: Record<string, keyof typeof DEMOS> = {
   "thoracic rotations": "thoracic",
   "world's greatest stretch": "worldsGreatest",
   "child's pose": "childsPose",
+  hamstrings: "hamstringStretch",
+  quads: "quadStretch",
+  chest: "chestStretch",
+  shoulders: "shoulderStretch",
 };
 
 export function demoFor(exerciseName: string): Demo | null {

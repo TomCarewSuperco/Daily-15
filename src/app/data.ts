@@ -72,6 +72,25 @@ export const SUBSTITUTES: Omit<RoutineExercise, "id">[] = [
   { name: "Side plank", kind: "time", amount: 20, instructions: "On one forearm, feet stacked, lift your hips. Split the time between sides." },
 ];
 
+/** Exercises made of several moves done in turn, splitting the time equally. */
+export interface ExerciseStep {
+  name: string;
+  instructions: string;
+}
+
+const STEPS: Record<string, ExerciseStep[]> = {
+  "gentle stretching": [
+    { name: "Hamstrings", instructions: "Put one heel forward with the leg straight and toes up. Hinge at the hips with a straight back until you feel the back of the thigh. Switch legs halfway." },
+    { name: "Quads", instructions: "Stand tall and hold one ankle behind you, knees together and hips pushed slightly forward. Hold a wall for balance if needed. Switch legs halfway." },
+    { name: "Chest", instructions: "Clasp your hands behind your back, straighten your arms and lift them gently while opening your chest. Keep your shoulders down." },
+    { name: "Shoulders", instructions: "Bring one arm across your chest and hold it above the elbow with the other hand. Keep the shoulder down. Switch arms halfway." },
+  ],
+};
+
+export function stepsFor(exerciseName: string): ExerciseStep[] | null {
+  return STEPS[exerciseName.trim().toLowerCase()] ?? null;
+}
+
 export const MOBILITY_ROUTINE: Omit<RoutineExercise, "id">[] = [
   { name: "Cat-cow", kind: "time", amount: 60, instructions: "On all fours, alternate arching and rounding your back slowly with your breath." },
   { name: "Hip circles", kind: "time", amount: 60, instructions: "Hands on hips, draw slow circles in each direction." },

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
-import { MODE_INFO } from "../data";
+import { MODE_INFO, stepsFor } from "../data";
 import { buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
@@ -42,6 +42,17 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   const [running, setRunning] = useState(false);
   const [reps, setReps] = useState(0);
   const tick = useRef<number>();
+  const lastStep = useRef(0);
+
+  // Stop the page behind from scrolling while the workout is open, so it can't show through on iPhone.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.scrollTo(0, 0);
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   useEffect(() => {
     setLeft(ex.kind === "time" ? ex.amount : 0);
@@ -86,11 +97,27 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
 
   if (finishedScreen) return <FinishScreen mode={mode} onClose={onClose} />;
 
+  // Multi-move exercises (the stretches): split the time equally and show the current move.
+  const steps = stepsFor(ex.name);
+  const stepIdx = steps && ex.kind === "time" ? Math.min(steps.length - 1, Math.floor(((ex.amount - left) / ex.amount) * steps.length)) : 0;
+  const step = steps ? steps[stepIdx] : null;
+  const stepSeconds = steps ? Math.round(ex.amount / steps.length) : 0;
+  if (steps && running && stepIdx !== lastStep.current) {
+    lastStep.current = stepIdx;
+    if (stepIdx > 0) {
+      try {
+        navigator.vibrate?.(150);
+      } catch {
+        /* unsupported */
+      }
+    }
+  }
+
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, "0");
 
   return (
-    <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close">
           <X className="h-5 w-5" />
@@ -108,10 +135,17 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
       </div>
 
       <div className="flex flex-1 flex-col justify-center overflow-y-auto py-4">
-        <ExerciseDemo key={ex.id} name={ex.name} className="mx-auto mb-2 h-36 w-auto max-w-full" />
-        <p className="text-sm text-muted-foreground">{fmtAmount(ex)}</p>
-        <h2 className="mt-1 text-4xl leading-tight">{ex.name}</h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{ex.instructions}</p>
+        <ExerciseDemo key={step ? step.name : ex.id} name={step ? step.name : ex.name} className="mx-auto mb-2 h-36 w-auto max-w-full" />
+        <p className="text-sm text-muted-foreground">{step ? `${ex.name} · ${stepIdx + 1} of ${steps!.length} · ${stepSeconds} s each` : fmtAmount(ex)}</p>
+        <h2 className="mt-1 text-4xl leading-tight">{step ? step.name : ex.name}</h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{step ? step.instructions : ex.instructions}</p>
+        {steps && (
+          <div className="mt-3 flex gap-1.5" aria-hidden>
+            {steps.map((st, i) => (
+              <span key={st.name} className={`rounded-full px-2 py-0.5 text-[11px] ${i === stepIdx ? "bg-foreground text-background" : i < stepIdx ? "bg-muted text-muted-foreground line-through" : "bg-muted text-muted-foreground"}`}>{st.name}</span>
+            ))}
+          </div>
+        )}
         {exerciseWarning(lifeStageOf(state.profile), ex.name) && <p className="mt-3 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">{exerciseWarning(lifeStageOf(state.profile), ex.name)}</p>}
 
         <div className="mt-6 flex flex-col items-center">
