@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { appUrl, supabase } from "../cloud/client";
 import { useAuth } from "../cloud/AuthProvider";
@@ -10,6 +11,9 @@ import { toast } from "../notify";
 type Mode = "sign-in" | "register" | "forgot" | "check-email";
 
 export const MIN_PASSWORD = 8;
+
+/** Bump when the privacy policy changes in a way that needs fresh consent. */
+export const PRIVACY_VERSION = "2026-11";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,6 +64,7 @@ export function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<{ email: string; reason: "confirm" | "reset" } | null>(null);
@@ -97,8 +102,14 @@ export function AuthScreen() {
     if (!EMAIL_RE.test(cleanEmail)) return setError("Enter a valid email address.");
     if (password.length < MIN_PASSWORD) return setError(`Use at least ${MIN_PASSWORD} characters for your password.`);
     if (password !== confirm) return setError("The passwords don't match.");
+    if (!consent) return setError("Tick the box to agree to DAILY 15 storing your health and fitness data.");
     run(async () => {
-      const { data, error: err } = await supabase!.auth.signUp({ email: cleanEmail, password, options: { emailRedirectTo: appUrl() } });
+      const { data, error: err } = await supabase!.auth.signUp({
+        email: cleanEmail,
+        password,
+        // Record when explicit consent to store health data was given.
+        options: { emailRedirectTo: appUrl(), data: { health_data_consent_at: new Date().toISOString(), privacy_policy_version: PRIVACY_VERSION } },
+      });
       if (err) return setError(message(err));
       // With email confirmation on, there's no session until the link is clicked.
       if (!data.session) {
@@ -198,6 +209,15 @@ export function AuthScreen() {
             <PasswordInput id="confirm" value={confirm} onChange={setConfirm} autoComplete="new-password" />
           </div>
         )}
+        {registering && (
+          <label className="flex items-start gap-3 text-sm leading-snug">
+            <Checkbox checked={consent} onCheckedChange={(v) => setConsent(!!v)} className="mt-0.5" aria-label="Consent to storing health data" />
+            <span>
+              I agree to DAILY 15 storing my health and fitness data, such as weight, food and activity, to provide the app. I can withdraw by deleting my account.{" "}
+              <a href="./privacy.html" target="_blank" rel="noreferrer" className="underline">Privacy policy</a>
+            </span>
+          </label>
+        )}
         <ErrorText>{error}</ErrorText>
         <Button type="submit" size="lg" className="w-full" disabled={busy}>{submitLabel(registering ? "Create account" : "Sign in")}</Button>
       </form>
@@ -209,7 +229,7 @@ export function AuthScreen() {
       </p>
       {registering && (
         <p className="mt-6 text-center text-[11px] leading-relaxed text-muted-foreground">
-          Your data is stored securely and only you can see it. You can export or delete it at any time from Profile.
+          Only you can see your data. You can export or delete it at any time from Profile.
         </p>
       )}
     </Frame>

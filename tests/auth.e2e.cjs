@@ -6,6 +6,7 @@ const users = {}; // email -> {id,password,confirmed}
 const rows = {};  // user_id -> {data, updated_at}
 const calls = [];
 let tick = 0;
+let consentMeta = null;
 let confirmMode = true;
 function session(u) {
   const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -24,6 +25,7 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
     if (m === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
     if (u.pathname === '/auth/v1/signup') {
       if (users[body.email]) return json(422, { code: 'user_already_exists', msg: 'User already registered' });
+      consentMeta = body.data;
       const usr = users[body.email] = { id: 'u' + Object.keys(users).length, email: body.email, password: body.password, confirmed: !confirmMode };
       return json(200, confirmMode ? userObj(usr) : session(usr));
     }
@@ -80,10 +82,14 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
   await p.getByRole('button', { name: 'Create account' }).click();
   ok('mismatch rejected', await p.getByRole('alert').textContent().then((t) => t.includes("don't match")));
   await p.getByLabel('Confirm password').fill('longenough1');
+  await p.getByRole('button', { name: 'Create account' }).click();
+  ok('consent required', await p.getByRole('alert').textContent().then((t) => t.includes('Tick the box')));
+  await p.getByRole('checkbox', { name: 'Consent to storing health data' }).click();
   await p.screenshot({ path: OUT + '/a2-register.png' });
   await p.getByRole('button', { name: 'Create account' }).click();
   await p.getByRole('heading', { name: 'Check your email.' }).waitFor();
   ok('register shows check email', true);
+  ok('consent time recorded on the account', !!consentMeta?.health_data_consent_at);
   await p.screenshot({ path: OUT + '/a3-check.png' });
   await p.getByRole('button', { name: 'Back to sign in' }).click();
   await p.getByLabel('Email').fill('sam@example.com');

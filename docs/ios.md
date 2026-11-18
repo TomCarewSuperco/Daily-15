@@ -26,6 +26,9 @@ Without a Mac: Codemagic, using `codemagic.yaml`. Follow the setup notes at the 
 
 ## App Store submission checklist
 
+Listing copy, App Privacy answers, review notes and screenshots are in `docs/app-store/`. The privacy policy and support pages are `public/privacy.html` and `public/support.html`, served at `/privacy` and `/support`. Fill in the highlighted placeholders before publishing.
+
+
 - Privacy policy URL, and the App Privacy answers in App Store Connect: email address, health and fitness data, linked to the user, used for app functionality, not tracking. `ios/App/App/PrivacyInfo.xcprivacy` declares the same.
 - Screenshots for 6.9-inch and 6.5-inch iPhones.
 - A demo account for App Review, with data in it, and notes explaining Apple Health is optional.
