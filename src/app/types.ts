@@ -52,6 +52,8 @@ export type RoutineMode = "standard" | "light" | "recovery";
 
 export interface RoutineExercise {
   id: string;
+  /** Which round of the main block this is, when the routine has more than one. */
+  round?: number;
   name: string;
   kind: "reps" | "time";
   /** Reps, or seconds when kind is 'time'. */
@@ -59,11 +61,24 @@ export interface RoutineExercise {
   instructions: string;
 }
 
+export type Feeling = "easy" | "right" | "hard";
+
 export interface RoutineLog {
   date: string;
   mode: RoutineMode;
   completedIds: string[];
   finished: boolean;
+  /** How the session felt, asked at the end. */
+  feeling?: Feeling;
+}
+
+export interface RoutineSettings {
+  /** Difficulty step. 0 is the default amounts; each step is about 15% more or less. */
+  level: number;
+  /** Times through the main exercises, between the warm-up and the stretch. */
+  rounds: number;
+  /** Rotate similar exercises day to day. */
+  variety: boolean;
 }
 
 export type Intensity = "light" | "moderate" | "intense";
@@ -204,6 +219,7 @@ export interface AppState {
   version: 1;
   profile: Profile | null;
   routine: RoutineExercise[];
+  routineSettings?: RoutineSettings;
   routineLogs: Record<string, RoutineLog>;
   restDays: string[];
   workouts: Workout[];

@@ -20,4 +20,5 @@ sleep 1
 OUT="$OUT" node tests/food.e2e.cjs
 OUT="$OUT" node tests/portions.e2e.cjs
 OUT="$OUT" node tests/pregnancy.e2e.cjs
+OUT="$OUT" node tests/routine.e2e.cjs
 OUT="$OUT" node tests/auth.e2e.cjs

@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
-import { MODE_INFO, MOBILITY_ROUTINE } from "../data";
-import { todayKey } from "../calc";
+import { MODE_INFO } from "../data";
+import { buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
+import type { Feeling, RoutineSettings } from "../types";
+import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
 import type { RoutineExercise, RoutineMode } from "../types";
 
-export function routineFor(base: RoutineExercise[], mode: RoutineMode): RoutineExercise[] {
-  if (mode === "recovery") return MOBILITY_ROUTINE.map((e, i) => ({ ...e, id: `mob-${i}` }));
-  if (mode === "light") return base.map((e) => ({ ...e, amount: Math.max(e.kind === "time" ? 10 : 3, Math.round(e.amount / 2)) }));
-  return base;
+export function routineFor(base: RoutineExercise[], mode: RoutineMode, settings: RoutineSettings, date?: string): RoutineExercise[] {
+  return buildRoutine(base, mode, settings, date);
 }
 
 export function fmtAmount(e: Pick<RoutineExercise, "kind" | "amount">): string {
@@ -29,7 +29,9 @@ export function fmtAmount(e: Pick<RoutineExercise, "kind" | "amount">): string {
 export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: () => void }) {
   const { state, update } = useDaily15();
   const today = todayKey();
-  const list = useMemo(() => routineFor(state.routine, mode), [state.routine, mode]);
+  const settings = settingsOf(state);
+  const list = useMemo(() => routineFor(state.routine, mode, settings, today), [state.routine, mode, settings.level, settings.rounds, settings.variety, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [finishedScreen, setFinishedScreen] = useState(false);
   const log = state.routineLogs[today];
   const done = new Set(log?.mode === mode ? log.completedIds : []);
   const firstOpen = list.findIndex((e) => !done.has(e.id));
@@ -74,14 +76,15 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     const entry = { date: today, mode, completedIds: [...ids], finished: finished || !!prev?.finished };
     update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: entry } }));
     if (finishedNow) {
-      toast.success("DAILY 15 complete. That's another day banked.");
-      onClose();
+      setFinishedScreen(true);
       return;
     }
     const next = list.findIndex((e, i) => i > idx && !ids.has(e.id));
     if (next >= 0) setIdx(next);
     else if (idx < list.length - 1) setIdx(idx + 1);
   }
+
+  if (finishedScreen) return <FinishScreen mode={mode} onClose={onClose} />;
 
   const mm = Math.floor(left / 60);
   const ss = String(left % 60).padStart(2, "0");
@@ -94,6 +97,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         </Button>
         <span className="text-sm text-muted-foreground">
           {MODE_INFO[mode].label} · {idx + 1} of {list.length}
+          {ex.round ? ` · round ${ex.round}` : ""}
         </span>
         <span className="w-10" />
       </div>
@@ -153,6 +157,93 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         </Button>
       </div>
       <p className="mt-3 text-center text-[11px] text-muted-foreground">Stop if you feel sharp pain, dizziness or chest discomfort.</p>
+    </div>
+  );
+}
+
+/** Shown when the routine is finished: how did it feel, and what to change next time. */
+function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => void }) {
+  const { state, update } = useDaily15();
+  const today = todayKey();
+  const settings = settingsOf(state);
+  const [feeling, setFeeling] = useState<Feeling | null>(null);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+
+  const rate = (f: Feeling) => {
+    setFeeling(f);
+    const logs = Object.values({ ...state.routineLogs, [today]: { ...state.routineLogs[today], feeling: f } }).sort((a, b) => a.date.localeCompare(b.date));
+    update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: { ...s.routineLogs[today], feeling: f } } }));
+    setProposal(mode === "standard" ? proposeAfter(f, settings, logs) : null);
+  };
+
+  const apply = (next: RoutineSettings, message: string) => {
+    update((s) => ({ ...s, routineSettings: next }));
+    toast.success(message);
+    onClose();
+  };
+
+  // Preview tomorrow's actual exercises, since variety may rotate them.
+  const tomorrow = addDays(today, 1);
+  const preview = proposal ? mainOnce(buildRoutine(state.routine, "standard", proposal.settings, tomorrow)) : [];
+  const current = mainOnce(buildRoutine(state.routine, "standard", settings, tomorrow));
+
+  return (
+    <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
+      <p className="text-sm font-semibold uppercase tracking-widest text-copper">Done</p>
+      <h2 className="mt-2 text-4xl leading-tight">That's another day banked.</h2>
+
+      {!feeling ? (
+        <>
+          <p className="mt-6 text-lg">How did that feel?</p>
+          <div className="mt-3 grid gap-2">
+            {([
+              ["easy", "Too easy", "I could have done a lot more"],
+              ["right", "About right", "Hard work, but manageable"],
+              ["hard", "Too hard", "I struggled to finish"],
+            ] as const).map(([f, label, sub]) => (
+              <button key={f} onClick={() => rate(f)} className="rounded-2xl border bg-card p-4 text-left">
+                <div className="font-medium">{label}</div>
+                <div className="text-sm text-muted-foreground">{sub}</div>
+              </button>
+            ))}
+          </div>
+          <Button variant="ghost" className="mt-4" onClick={onClose}>Skip</Button>
+        </>
+      ) : proposal ? (
+        <div className="mt-6 flex flex-1 flex-col">
+          <p className="text-lg font-medium">{proposal.headline}</p>
+          <p className="mt-1 text-muted-foreground">{proposal.detail}</p>
+          <div className="mt-4 rounded-2xl border bg-card p-4 text-sm">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tomorrow</p>
+            {proposal.settings.rounds !== settings.rounds && <p className="mb-2">{proposal.settings.rounds} rounds instead of {settings.rounds}</p>}
+            <ul className="space-y-1">
+              {preview.map((e, i) => (
+                <li key={e.id} className="flex justify-between">
+                  <span>{e.name}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {current[i] && current[i].amount !== e.amount && <span className="mr-1 line-through opacity-60">{fmtAmount(current[i])}</span>}
+                    {fmtAmount(e)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-auto grid gap-2 pt-6">
+            <Button size="lg" onClick={() => apply(proposal.settings, "Next session updated")}>Sounds good</Button>
+            <Button size="lg" variant="outline" onClick={onClose}>Keep it the same</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-1 flex-col">
+          <p className="text-lg">{feeling === "right" ? "Good. Keep it as it is for now." : feeling === "easy" ? "You're at the top level. Try adding a round in Workouts." : "You're at the easiest setting. Try light mode on tougher days."}</p>
+          <div className="mt-auto grid gap-2 pt-6">
+            {settings.rounds < 3 && mode === "standard" && (
+              <Button size="lg" variant="outline" onClick={() => apply({ ...settings, rounds: settings.rounds + 1 }, `${settings.rounds + 1} rounds from next time`)}>Felt short? Add a round</Button>
+            )}
+            <Button size="lg" onClick={onClose}>Done</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

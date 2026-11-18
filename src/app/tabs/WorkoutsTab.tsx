@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Pencil, Play, Plus, Star, Trash2, Trophy } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Pencil, Play, Plus, Star, Trash2, Trophy, Wind } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,9 @@ import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
-import type { RoutineExercise, RoutineMode } from "../types";
+import { estimateMinutes, MAX_LEVEL, MAX_ROUNDS, MIN_LEVEL, settingsOf } from "../routine";
+import { Switch } from "@/components/ui/switch";
+import type { RoutineExercise, RoutineMode, RoutineSettings } from "../types";
 
 const INTENSITY_STYLE = {
   light: "bg-muted text-muted-foreground",
@@ -43,7 +45,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
     if (intent) clearIntent();
   }, [intent, clearIntent]);
 
-  const list = routineFor(state.routine, mode);
+  const settings = settingsOf(state);
+  const list = routineFor(state.routine, mode, settings, today);
+  const minutes = estimateMinutes(list);
+  const setSettings = (patch: Partial<RoutineSettings>) => update((s) => ({ ...s, routineSettings: { ...settingsOf(s), ...patch } }));
   const stage = lifeStageOf(state.profile);
   const done = new Set(log?.mode === mode ? log.completedIds : []);
   const advice = restAdvice(state);
@@ -90,7 +95,31 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
             </button>
           ))}
         </div>
-        <p className="mb-3 text-xs text-muted-foreground">{MODE_INFO[mode].note}</p>
+        <p className="mb-3 text-xs text-muted-foreground">{MODE_INFO[mode].note} About {minutes} minutes.</p>
+        {mode === "standard" && (
+          <div className="mb-3 space-y-2 rounded-xl bg-muted/50 p-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span>Rounds of the main exercises</span>
+              <div className="flex gap-1">
+                {Array.from({ length: MAX_ROUNDS }, (_, i) => i + 1).map((r) => (
+                  <button key={r} onClick={() => setSettings({ rounds: r })} className={`h-8 w-8 rounded-full text-sm ${settings.rounds === r ? "bg-foreground text-background" : "bg-card"}`} aria-pressed={settings.rounds === r}>{r}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Difficulty</span>
+              <div className="flex items-center gap-2">
+                <button className="h-8 w-8 rounded-full bg-card disabled:opacity-40" disabled={settings.level <= MIN_LEVEL} onClick={() => setSettings({ level: settings.level - 1 })} aria-label="Easier">−</button>
+                <span className="w-16 text-center tabular-nums">{settings.level === 0 ? "Standard" : settings.level > 0 ? `+${settings.level}` : settings.level}</span>
+                <button className="h-8 w-8 rounded-full bg-card disabled:opacity-40" disabled={settings.level >= MAX_LEVEL} onClick={() => setSettings({ level: settings.level + 1 })} aria-label="Harder">+</button>
+              </div>
+            </div>
+            <label className="flex items-center justify-between">
+              <span>Mix it up daily</span>
+              <Switch checked={settings.variety} onCheckedChange={(v) => setSettings({ variety: v })} aria-label="Rotate similar exercises each day" />
+            </label>
+          </div>
+        )}
         {advice && mode === "standard" && <p className="mb-3 rounded-lg bg-muted p-2 text-xs">{advice}</p>}
 
         <ul className="divide-y">
@@ -101,6 +130,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                 <button className="flex flex-1 items-center justify-between text-left" onClick={() => setExpanded(expanded === e.id ? null : e.id)}>
                   <span className={done.has(e.id) ? "text-muted-foreground line-through" : ""}>
                     {e.name}
+                    {e.round && e.round > 1 && <span className="ml-1.5 text-xs text-muted-foreground">round {e.round}</span>}
                     {exerciseWarning(stage, e.name) && <span className="ml-1.5 text-xs text-destructive">Check</span>}
                   </span>
                   <span className="flex items-center gap-1 text-sm tabular-nums text-muted-foreground">
@@ -116,10 +146,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                   <p className="text-sm text-muted-foreground">{e.instructions}</p>
                   {mode !== "recovery" && (
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditing(state.routine.find((r) => r.id === e.id) ?? null)}>
+                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditing(state.routine.find((r) => r.id === e.id.split("~")[0]) ?? null)}>
                         <Pencil className="mr-1 h-3 w-3" />Adjust
                       </Button>
-                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setSwapping(state.routine.find((r) => r.id === e.id) ?? null)}>
+                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setSwapping(state.routine.find((r) => r.id === e.id.split("~")[0]) ?? null)}>
                         <ArrowLeftRight className="mr-1 h-3 w-3" />Substitute
                       </Button>
                     </div>
@@ -146,7 +176,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
           Log workout
         </Button>
         <Button variant="outline" className="h-auto flex-col gap-1 rounded-2xl py-4" onClick={() => setMode("recovery")}>
-          <span className="text-lg leading-5">~</span>
+          <Wind className="h-5 w-5" />
           Mobility routine
         </Button>
       </div>

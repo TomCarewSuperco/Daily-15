@@ -21,6 +21,7 @@ import type { Navigate } from "../nav";
 import { useDaily15 } from "../store";
 import { PregnancyCard } from "../components/PregnancyCard";
 import { lifeStageOf } from "../pregnancy";
+import { buildRoutine, estimateMinutes, settingsOf } from "../routine";
 
 export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const { state, update } = useDaily15();
@@ -40,6 +41,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const weight = latestWeight(state);
   const change = weight !== null ? Math.round((weight - p.startWeightKg) * 10) / 10 : null;
   const stage = lifeStageOf(p);
+  const todayRoutine = buildRoutine(state.routine, "standard", settingsOf(state));
   const toGo = weight !== null ? Math.round(Math.abs(weight - p.targetWeightKg) * 10) / 10 : null;
   const water = state.water[today] ?? 0;
   const advice = restAdvice(state);
@@ -78,7 +80,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
                 ? "Anything else today is a bonus."
                 : restToday
                   ? "Recovery is part of training. Your streak is paused, not broken."
-                  : `${state.routine.length} exercises, about 15 minutes.`}
+                  : `${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`}
             </p>
           </div>
           <div className="shrink-0 text-right">

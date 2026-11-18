@@ -64,6 +64,7 @@ export function mergeStates(base: AppState, local: AppState, remote: AppState): 
     version: 1,
     profile: mergeValue(base.profile, local.profile, remote.profile),
     routine: mergeValue(base.routine, local.routine, remote.routine),
+    routineSettings: mergeValue(base.routineSettings, local.routineSettings, remote.routineSettings),
     routineLogs: mergeRecord(base.routineLogs, local.routineLogs, remote.routineLogs),
     restDays: mergeSet(base.restDays, local.restDays, remote.restDays),
     workouts: mergeById(base.workouts, local.workouts, remote.workouts),
