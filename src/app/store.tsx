@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { mergeStates, sameState } from "./cloud/merge";
 import { supabase } from "./cloud/client";
 import { DEFAULT_REMINDERS, DEFAULT_ROUTINE } from "./data";
 import { toast } from "./notify";
@@ -60,6 +61,19 @@ function writeMeta(key: string, m: SyncMeta) {
   }
 }
 
+/** The last version saved to or loaded from the account. The common ancestor for merges. */
+function readBase(key: string): AppState | null {
+  return read(`${key}:base`);
+}
+
+function writeBase(key: string, s: AppState) {
+  try {
+    localStorage.setItem(`${key}:base`, JSON.stringify(s));
+  } catch {
+    /* storage full: merges fall back to treating everything as new */
+  }
+}
+
 export type SyncStatus = "local" | "loading" | "saved" | "saving" | "offline";
 
 interface Store {
@@ -100,49 +114,85 @@ export function Daily15Provider({ children, userId }: { children: ReactNode; use
     }
   }, [state, key]);
 
+  /** Applies a merged account copy to the device, keeping any edits made while the merge ran. */
+  const adoptMerged = useCallback((snapshot: AppState, merged: AppState) => {
+    setState((cur) => {
+      const next = cur === snapshot ? merged : mergeStates(snapshot, cur, merged);
+      const withPhotos = { ...next, photos: cur.photos };
+      if (sameState(withPhotos, cur)) return cur;
+      if (cur === snapshot) skipNextPush.current = true;
+      return withPhotos;
+    });
+  }, []);
+
+  /**
+   * Saves to the account. If another device saved since this one last synced,
+   * merges first, then writes only if the row hasn't changed again meanwhile.
+   */
   const push = useCallback(async (): Promise<boolean> => {
     if (!userId || !supabase) return true;
     window.clearTimeout(timer.current);
     setStatus("saving");
-    const { data, error } = await supabase
-      .from("user_state")
-      .upsert({ user_id: userId, data: forCloud(latest.current) })
-      .select("updated_at")
-      .single();
-    if (error) {
-      setStatus("offline");
-      return false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const snapshot = latest.current;
+      const meta = readMeta(key);
+      const { data: remote, error: readError } = await supabase.from("user_state").select("data, updated_at").eq("user_id", userId).maybeSingle();
+      if (readError) break;
+
+      let toSave = forCloud(snapshot);
+      if (remote && remote.updated_at !== meta.syncedAt) {
+        const remoteState = { ...emptyState(), ...(remote.data as AppState) };
+        const base = readBase(key) ?? emptyState();
+        toSave = forCloud(mergeStates(forCloud(base), forCloud(snapshot), remoteState));
+      }
+
+      const query = remote
+        ? supabase.from("user_state").update({ data: toSave }).eq("user_id", userId).eq("updated_at", remote.updated_at).select("updated_at")
+        : supabase.from("user_state").insert({ user_id: userId, data: toSave }).select("updated_at");
+      const { data: rows, error } = await query;
+      if (error && error.code !== "23505") break; // 23505: another device created the row first
+      if (!rows?.length) continue; // the row changed under us: merge again
+
+      writeBase(key, toSave);
+      writeMeta(key, { dirty: false, syncedAt: rows[0].updated_at });
+      adoptMerged(snapshot, toSave);
+      setStatus("saved");
+      return true;
     }
+    setStatus("offline");
+    return false;
+  }, [userId, key, adoptMerged]);
+
+  /** Fetches the account copy and brings this device up to date. */
+  const pull = useCallback(async (): Promise<"updated" | "current" | "pushed" | "failed"> => {
+    if (!userId || !supabase) return "current";
+    const meta = readMeta(key);
+    const { data, error } = await supabase.from("user_state").select("data, updated_at").eq("user_id", userId).maybeSingle();
+    if (error) return "failed";
+    // Push merges if needed. A device that has never synced but already holds data
+    // (from before the account existed) merges it in rather than discarding it.
+    const neverSynced = !meta.syncedAt && !!latest.current.profile;
+    if (!data || meta.dirty || neverSynced) return (await push()) ? "pushed" : "failed";
+    if (data.updated_at === meta.syncedAt) return "current";
+    const remoteState = { ...emptyState(), ...(data.data as AppState) };
+    const snapshot = latest.current;
+    writeBase(key, remoteState);
     writeMeta(key, { dirty: false, syncedAt: data.updated_at });
-    setStatus("saved");
-    return true;
-  }, [userId, key]);
+    adoptMerged(snapshot, { ...remoteState, photos: snapshot.photos });
+    return "updated";
+  }, [userId, key, push, adoptMerged]);
 
   // First load: reconcile the device copy with the account.
   useEffect(() => {
     if (!userId || !supabase) return;
     let cancelled = false;
     (async () => {
-      const meta = readMeta(key);
-      const { data, error } = await supabase.from("user_state").select("data, updated_at").eq("user_id", userId).maybeSingle();
+      const result = await pull();
       if (cancelled) return;
-      if (error) {
-        // Work from the device copy and retry later.
-        setStatus("offline");
-        setReady(true);
-        return;
-      }
-      const cloudNewer = data && (!meta.syncedAt || data.updated_at > meta.syncedAt);
-      if (data && (cloudNewer || !meta.dirty)) {
-        skipNextPush.current = true;
-        setState((local) => ({ ...emptyState(), ...(data.data as AppState), photos: local.photos }));
-        writeMeta(key, { dirty: false, syncedAt: data.updated_at });
-        if (cloudNewer && meta.dirty) toast("Your account had newer changes from another device, so this device has been updated.");
+      if (result === "failed") setStatus("offline");
+      else {
         setStatus("saved");
-      } else {
-        // No account data yet, or unsaved changes here that are newer: upload.
-        const saved = await push();
-        if (saved && !data && fromLegacy.current) {
+        if (result === "pushed" && fromLegacy.current) {
           try {
             localStorage.removeItem(LOCAL_KEY);
           } catch {
@@ -155,7 +205,17 @@ export function Daily15Provider({ children, userId }: { children: ReactNode; use
     return () => {
       cancelled = true;
     };
-  }, [userId, key, push]);
+  }, [userId, pull]);
+
+  // Pick up changes from other devices when the app comes back to the foreground.
+  useEffect(() => {
+    if (!userId || !ready) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") pull();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [userId, ready, pull]);
 
   // After load, save changes to the account shortly after they stop.
   useEffect(() => {
@@ -199,6 +259,7 @@ export function clearStorage(userId?: string) {
   try {
     localStorage.removeItem(key);
     localStorage.removeItem(`${key}:meta`);
+    localStorage.removeItem(`${key}:base`);
   } catch {
     /* nothing to clear */
   }

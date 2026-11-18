@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "ios:sync": "npm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "test:e2e": "bash tests/run.sh"
+    "test:e2e": "bash tests/run.sh",
+    "test:unit": "tsx --test tests/unit/*.test.ts",
+    "test": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
@@ -48,6 +50,7 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "tsx": "4.23.15",
     "typescript": "^5.8.3",
     "vite": "^5.4.19"
   }

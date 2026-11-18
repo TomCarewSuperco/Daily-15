@@ -27,7 +27,7 @@ See `docs/ios.md`. The Capacitor project is in `ios/`. Run `npm run ios:sync` af
 
 ## Tests
 
-`npm run test:e2e` runs browser tests against stand-ins for Supabase and Open Food Facts. It needs Playwright with Chromium, and ffmpeg.
+`npm test` runs unit tests for the merge rules and calculations, then browser tests against stand-ins for Supabase and Open Food Facts. It needs Playwright with Chromium, and ffmpeg.
 
 ## Accounts and sync
 
@@ -41,7 +41,7 @@ Supabase setup, once per project:
 4. In Authentication, Providers, Email, keep 'Confirm email' on and set the minimum password length to 8.
 5. The production values are in `.env.production`, so Vercel picks them up on each build. Both are public by design.
 
-Sync is last write wins for the whole document, with a short delay after each change. Changes made offline are kept on the device and saved on reconnection. If another device saved more recently, its copy wins. Progress photos stay on the device and aren't synced. Signing out removes the user's data from the device.
+Sync saves a short delay after each change. If another device saved in the meantime, the two versions are merged item by item (`src/app/cloud/merge.ts`): additions from both are kept, a deletion wins unless the other device edited that item, and if both edited the same item the device saving last wins. Writes only succeed if the row is unchanged since it was read, so two devices saving at once merge rather than overwrite. Changes made offline are kept on the device and saved on reconnection. Progress photos stay on the device and aren't synced. Signing out removes the user's data from the device.
 
 ## Known limits
 

@@ -5,6 +5,7 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const users = {}; // email -> {id,password,confirmed}
 const rows = {};  // user_id -> {data, updated_at}
 const calls = [];
+let tick = 0;
 let confirmMode = true;
 function session(u) {
   const exp = Math.floor(Date.now() / 1000) + 3600;
@@ -16,7 +17,7 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
-  await ctx.route('https://fake-d15.supabase.co/**', async (route) => {
+  const handler = async (route) => {
     const req = route.request(); const u = new URL(req.url()); const m = req.method(); const body = req.postDataJSON?.() ?? null;
     calls.push(`${m} ${u.pathname}${u.search.includes('grant_type') ? u.search : ''}`);
     const json = (status, j) => route.fulfill({ status, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(j) });
@@ -41,17 +42,25 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
     }
     if (u.pathname === '/rest/v1/user_state') {
       const id = who(req);
+      const stamp = () => new Date(Date.now() + (++tick)).toISOString();
       if (m === 'GET') { const r = rows[id]; return json(200, r ? [{ data: r.data, updated_at: r.updated_at }] : []); }
       if (m === 'POST') {
         if (body.user_id !== id) return json(403, { message: 'rls' });
-        rows[id] = { data: body.data, updated_at: new Date().toISOString() };
-        const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
-        return json(201, single ? { updated_at: rows[id].updated_at } : [{ updated_at: rows[id].updated_at }]);
+        if (rows[id]) return json(409, { code: '23505', message: 'duplicate key' });
+        rows[id] = { data: body.data, updated_at: stamp() };
+        return json(201, [{ updated_at: rows[id].updated_at }]);
+      }
+      if (m === 'PATCH') {
+        const want = (u.searchParams.get('updated_at') || '').replace(/^eq\./, '');
+        if (!rows[id] || rows[id].updated_at !== want) return json(200, []);
+        rows[id] = { data: body.data, updated_at: stamp() };
+        return json(200, [{ updated_at: rows[id].updated_at }]);
       }
     }
     if (u.pathname === '/functions/v1/delete-account') { const id = who(req); delete rows[id]; for (const k in users) if (users[k].id === id) delete users[k]; return json(200, { deleted: true }); }
     return json(404, { message: 'unhandled ' + u.pathname });
-  });
+  };
+  await ctx.route('https://fake-d15.supabase.co/**', handler);
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && !m.text().includes('status of 4') && errs.push(m.text()));
   const R = [];
@@ -128,6 +137,31 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
   await p.getByRole('button', { name: 'Sign in' }).click();
   await p.getByText(/Good (morning|afternoon|evening)/).waitFor();
   ok('signing back in restores data from account', await p.getByText('0.25 / 2.8 L').count() > 0 || await p.getByText(/0\.25 \//).count() > 0);
+  // Two devices editing at once: both changes should survive.
+  const ctxB = await b.newContext({ viewport: { width: 390, height: 844 } });
+  await ctxB.route('https://fake-d15.supabase.co/**', handler);
+  const pB = await ctxB.newPage();
+  await pB.goto(BASE);
+  await pB.getByLabel('Email').fill('sam@example.com');
+  await pB.getByLabel('Password', { exact: true }).fill('newpassword9');
+  await pB.getByRole('button', { name: 'Sign in' }).click();
+  await pB.getByText(/Good (morning|afternoon|evening)/).waitFor();
+  // A logs water while B records a weigh-in, before either has synced the other's change.
+  await p.getByRole('button', { name: '+ Bottle 500 ml' }).click();
+  await pB.getByRole('button', { name: /Weight/ }).first().click();
+  await pB.locator('[role=dialog] input[type=number]').first().fill('91.2');
+  await pB.getByRole('button', { name: 'Save' }).click();
+  await p.waitForTimeout(3500);
+  await pB.waitForTimeout(3500);
+  const cloud = rows['u0'].data;
+  ok('two devices: both changes saved', Object.values(cloud.water)[0] === 750 && cloud.weights.some((w) => w.kg === 91.2));
+  // Each device picks up the other's change when it comes back to the foreground.
+  for (const page of [p, pB]) await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await p.waitForTimeout(800);
+  ok('two devices: A sees B\'s weigh-in', await p.getByText('91.2').count() > 0);
+  ok('two devices: B sees A\'s water', await pB.getByText(/0\.75 \//).count() > 0);
+  await ctxB.close();
+
   // Delete account
   await p.getByRole('button', { name: 'Profile' }).click();
   await p.getByRole('button', { name: 'Delete my account and data' }).click();
