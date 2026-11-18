@@ -18,4 +18,5 @@ trap 'kill $P1 $P2 2>/dev/null' EXIT
 sleep 1
 
 OUT="$OUT" node tests/food.e2e.cjs
+OUT="$OUT" node tests/portions.e2e.cjs
 OUT="$OUT" node tests/auth.e2e.cjs

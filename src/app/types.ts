@@ -107,6 +107,16 @@ export interface FoodEntry extends Nutrients {
   estimated: boolean;
 }
 
+/** A food the user entered by hand and saved, with its everyday serving. */
+export interface CustomFood extends Nutrients {
+  id: string;
+  name: string;
+  /** Values are per this many grams or millilitres, or per one serving. */
+  per: number;
+  unit: "g" | "ml" | "serving";
+  units: { name: string; plural: string; g: number }[];
+}
+
 export interface SavedMeal extends Nutrients {
   id: string;
   name: string;
@@ -163,6 +173,7 @@ export interface AppState {
   templates: WorkoutTemplate[];
   foods: FoodEntry[];
   savedMeals: SavedMeal[];
+  customFoods: CustomFood[];
   water: Record<string, number>;
   activity: Record<string, ActivityDay>;
   weights: WeightEntry[];

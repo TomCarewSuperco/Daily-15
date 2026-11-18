@@ -70,6 +70,7 @@ export function mergeStates(base: AppState, local: AppState, remote: AppState): 
     templates: mergeById(base.templates, local.templates, remote.templates),
     foods: mergeById(base.foods, local.foods, remote.foods),
     savedMeals: mergeById(base.savedMeals, local.savedMeals, remote.savedMeals),
+    customFoods: mergeById(base.customFoods, local.customFoods, remote.customFoods),
     water: mergeRecord(base.water, local.water, remote.water),
     activity: mergeRecord(base.activity, local.activity, remote.activity),
     weights: mergeById(base.weights, local.weights, remote.weights),

@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChefHat, Globe, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { scaleNutrients, sumNutrients, uid } from "../calc";
-import { FOOD_DB, type FoodItem } from "../data";
+import { FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
-import type { FoodEntry, Meal, Nutrients } from "../types";
+import type { CustomFood, FoodEntry, Meal, Nutrients } from "../types";
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
@@ -24,15 +24,47 @@ type Mode = "search" | "barcode" | "manual" | "recipe";
 
 interface Pending {
   name: string;
+  /** Nutrients per `per` of `baseUnit`. */
   base: Nutrients;
   per: number;
-  unit: "g" | "ml" | "serving";
-  amount: number;
+  baseUnit: "g" | "ml" | "serving";
+  /** Everyday measures. Index -1 means weigh in grams or millilitres. */
+  units: FoodUnit[];
+  unitIdx: number;
+  qty: number;
   estimated: boolean;
 }
 
+const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
+
+function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
+  if (f.unit === "serving") return { name: f.name, base: f, per: f.per, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated };
+  const hasUnits = f.units.length > 0;
+  return { name: f.name, base: f, per: f.per, baseUnit: f.unit, units: f.units, unitIdx: hasUnits ? 0 : -1, qty: hasUnits ? 1 : "typical" in f ? f.typical : 100, estimated };
+}
+
 function fromOff(p: OffProduct): Pending {
-  return { name: p.name, base: p, per: 100, unit: "g", amount: p.servingG ?? 100, estimated: true };
+  const units: FoodUnit[] = [];
+  if (p.servingG) units.push({ name: "serving", plural: "servings", g: p.servingG });
+  const pack = p.quantity?.match(/^(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
+  if (pack && Number(pack[1]) > 0) units.push({ name: `pack (${p.quantity})`, plural: `packs (${p.quantity})`, g: Number(pack[1]) });
+  return { name: p.name, base: p, per: 100, baseUnit: "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true };
+}
+
+/** Amount in the food's base unit, and a readable portion label. */
+function portionOf(p: Pending): { amount: number; label: string } {
+  const unit = p.unitIdx >= 0 ? p.units[p.unitIdx] : null;
+  if (!unit) return { amount: p.qty, label: `${p.qty} ${p.baseUnit}` };
+  const amount = p.qty * unit.g;
+  if (p.baseUnit === "serving") return { amount, label: formatQty(p.qty, unit) };
+  return { amount, label: `${formatQty(p.qty, unit)} (${Math.round(amount)} ${p.baseUnit})` };
+}
+
+function unitHint(f: FoodItem | CustomFood): string {
+  const first = f.units[0];
+  if (f.unit === "serving") return `${Math.round(f.kcal)} kcal per serving`;
+  if (!first) return `${Math.round(f.kcal)} kcal per ${f.per} ${f.unit}`;
+  return `${Math.round((f.kcal * first.g) / f.per)} kcal per ${first.name} (${first.g} ${f.unit})`;
 }
 
 function defaultMeal(): Meal {
@@ -71,7 +103,12 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   }, [state.foods]);
 
   const q = query.trim().toLowerCase();
-  const dbResults = q ? FOOD_DB.filter((f) => f.name.toLowerCase().includes(q)) : [];
+  const words = q.split(/\s+/).filter(Boolean);
+  // Plural-tolerant: 'eggs' finds 'Egg', 'potatoes' finds 'Potato'.
+  const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
+  const matches = (name: string) => words.every((w) => stems(w).some((x) => name.toLowerCase().includes(x)));
+  const dbResults = q ? FOOD_DB.filter((f) => matches(f.name)) : [];
+  const myFoods = (state.customFoods ?? []).filter((f) => !q || matches(f.name)).slice(0, q ? 20 : 8);
   const savedResults = state.savedMeals.filter((m) => !q || m.name.toLowerCase().includes(q));
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
 
@@ -96,7 +133,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
     }
   };
 
-  const pickDb = (f: FoodItem) => setPending({ name: f.name, base: f, per: f.per, unit: f.unit, amount: f.typical, estimated: true });
+  const pickDb = (f: FoodItem) => setPending(fromItem(f, true));
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -128,6 +165,19 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
               {mode === "search" && (
                 <div className="space-y-4">
                   <Input autoFocus enterKeyHint="search" placeholder="Search foods, brands, saved meals" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchOnline()} />
+                  {myFoods.length > 0 && (
+                    <ResultGroup title="My foods">
+                      {myFoods.map((f) => (
+                        <ResultRow
+                          key={f.id}
+                          name={f.name}
+                          detail={unitHint(f)}
+                          onClick={() => setPending(fromItem(f, false))}
+                          onDelete={() => update((s) => ({ ...s, customFoods: s.customFoods.filter((x) => x.id !== f.id) }))}
+                        />
+                      ))}
+                    </ResultGroup>
+                  )}
                   {savedResults.length > 0 && (
                     <ResultGroup title="Saved meals and recipes">
                       {savedResults.map((m) => (
@@ -135,7 +185,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                           key={m.id}
                           name={m.name}
                           detail={`${m.kcal} kcal · ${m.portion}`}
-                          onClick={() => setPending({ name: m.name, base: m, per: 1, unit: "serving", amount: 1, estimated: false })}
+                          onClick={() => setPending({ name: m.name, base: m, per: 1, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated: false })}
                           onDelete={() => update((s) => ({ ...s, savedMeals: s.savedMeals.filter((x) => x.id !== m.id) }))}
                         />
                       ))}
@@ -155,7 +205,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                   )}
                   {q && dbResults.length > 0 && (
                     <ResultGroup title="Common foods">
-                      {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={`${f.kcal} kcal per ${f.per} ${f.unit}`} onClick={() => pickDb(f)} />)}
+                      {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
                     </ResultGroup>
                   )}
                   {q.length >= 2 && (
@@ -183,12 +233,12 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                       Product data from <a className="underline" href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">Open Food Facts</a> under the Open Database Licence. Check values against the label.
                     </p>
                   )}
-                  {!q && !savedResults.length && !recentResults.length && <p className="text-sm text-muted-foreground">Start typing, e.g. 'oats', 'chicken' or 'banana'.</p>}
+                  {!q && !savedResults.length && !recentResults.length && !myFoods.length && <p className="text-sm text-muted-foreground">Start typing, e.g. 'eggs', 'sausage' or 'banana'.</p>}
                 </div>
               )}
 
               {mode === "barcode" && <BarcodeStep onFound={setPending} />}
-              {mode === "manual" && <ManualStep onAdd={add} />}
+              {mode === "manual" && <ManualStep onNext={setPending} />}
               {mode === "recipe" && <RecipeStep onSaved={() => setMode("search")} />}
             </>
           )}
@@ -224,43 +274,89 @@ function ResultRow({ name, detail, onClick, onDelete }: { name: string; detail: 
 }
 
 function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void; onBack: () => void }) {
-  const n = scaleNutrients(pending.base, pending.amount / pending.per);
-  const unitLabel = pending.unit === "serving" ? (pending.amount === 1 ? "serving" : "servings") : pending.unit;
+  const unit = pending.unitIdx >= 0 ? pending.units[pending.unitIdx] : null;
+  const { amount, label } = portionOf(pending);
+  const n = scaleNutrients(pending.base, amount / pending.per);
+  const countable = !!unit;
+  const step = countable ? 1 : pending.baseUnit === "ml" ? 25 : 10;
+  const quick = countable ? [0.5, 1, 2, 3] : [50, 100, 150, 200];
+  const set = (qty: number) => setPending({ ...pending, qty: Math.max(0, Math.round(qty * 100) / 100) });
+
+  const chooseUnit = (idx: number) => {
+    if (idx === pending.unitIdx) return;
+    // Keep roughly the same amount when switching between a unit and grams.
+    const qty = idx < 0 ? Math.round(amount) : Math.max(0.5, Math.round((amount / pending.units[idx].g) * 2) / 2 || 1);
+    setPending({ ...pending, unitIdx: idx, qty });
+  };
+
   return (
     <div className="space-y-4">
       <div>
         <p className="font-medium">{pending.name}{pending.estimated && <Estimate />}</p>
         <p className="text-xs text-muted-foreground">
-          {pending.unit === "serving" ? "Per serving" : `Per ${pending.per} ${pending.unit}`}: {Math.round(pending.base.kcal)} kcal
+          {pending.baseUnit === "serving" ? `${Math.round(pending.base.kcal)} kcal per serving` : `${Math.round(pending.base.kcal)} kcal per ${pending.per} ${pending.baseUnit}`}
         </p>
       </div>
-      <NumField
-        label="Portion"
-        value={pending.amount}
-        onChange={(v) => setPending({ ...pending, amount: typeof v === "number" ? v : 0 })}
-        suffix={unitLabel}
-        step={pending.unit === "serving" ? 0.5 : 5}
-      />
-      {pending.unit !== "serving" && (
-        <div className="flex flex-wrap gap-2">
-          {[0.5, 1, 1.5, 2].map((f) => {
-            const amt = Math.round(FOOD_DB.find((x) => x.name === pending.name)?.typical ?? pending.per) * f;
-            return (
-              <Button key={f} variant="outline" size="sm" className="h-7 text-xs" onClick={() => setPending({ ...pending, amount: amt })}>
-                {amt} {pending.unit}
-              </Button>
-            );
-          })}
+
+      {(pending.units.length > 1 || pending.baseUnit !== "serving") && (
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Measure">
+          {pending.units.map((u, i) => (
+            <button
+              key={u.name}
+              role="radio"
+              aria-checked={pending.unitIdx === i}
+              onClick={() => chooseUnit(i)}
+              className={`rounded-full border px-3 py-1.5 text-sm ${pending.unitIdx === i ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+            >
+              {u.name}
+              {pending.baseUnit !== "serving" && <span className="opacity-60"> {u.g} {pending.baseUnit}</span>}
+            </button>
+          ))}
+          {pending.baseUnit !== "serving" && (
+            <button
+              role="radio"
+              aria-checked={pending.unitIdx === -1}
+              onClick={() => chooseUnit(-1)}
+              className={`rounded-full border px-3 py-1.5 text-sm ${pending.unitIdx === -1 ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+            >
+              {pending.baseUnit === "ml" ? "millilitres" : "grams"}
+            </button>
+          )}
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-full" onClick={() => set(pending.qty - step)} disabled={pending.qty <= step} aria-label="Less">
+          <Minus className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 text-center">
+          <Input
+            type="number"
+            inputMode="decimal"
+            value={pending.qty || ""}
+            onChange={(e) => set(Number(e.target.value) || 0)}
+            className="h-12 border-0 bg-transparent text-center text-3xl font-semibold tabular-nums shadow-none focus-visible:ring-0"
+            aria-label={unit ? `Number of ${unit.plural}` : `Amount in ${pending.baseUnit}`}
+          />
+          <p className="text-sm text-muted-foreground">{label}</p>
+        </div>
+        <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 rounded-full" onClick={() => set(pending.qty + step)} aria-label="More">
+          <Plus className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <div className="flex justify-center gap-2">
+        {quick.map((q) => (
+          <Button key={q} variant={pending.qty === q ? "default" : "outline"} size="sm" className="h-8 min-w-12 text-xs" onClick={() => set(q)}>
+            {countable ? (q === 0.5 ? "½" : q) : `${q} ${pending.baseUnit}`}
+          </Button>
+        ))}
+      </div>
+
       <NutrientGrid n={n} />
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button
-          className="flex-1"
-          disabled={pending.amount <= 0}
-          onClick={() => onAdd({ name: pending.name, portion: `${pending.amount} ${unitLabel}`, ...n, estimated: pending.estimated })}
-        >
+        <Button className="flex-1" disabled={amount <= 0} onClick={() => onAdd({ name: pending.name, portion: label, ...n, estimated: pending.estimated })}>
           <Plus className="mr-1.5 h-4 w-4" />Add
         </Button>
       </div>
@@ -354,39 +450,67 @@ function BarcodeStep({ onFound }: { onFound: (p: Pending) => void }) {
   );
 }
 
-function ManualStep({ onAdd }: { onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void }) {
+type Basis = "100g" | "100ml" | "serving";
+
+function ManualStep({ onNext }: { onNext: (p: Pending) => void }) {
   const { update } = useDaily15();
   const [name, setName] = useState("");
-  const [portion, setPortion] = useState("1 serving");
+  const [basis, setBasis] = useState<Basis>("100g");
   const [v, setV] = useState<Record<keyof Nutrients, number | "">>({ kcal: "", protein: "", carbs: "", fat: "", fibre: "" });
-  const [save, setSave] = useState(false);
+  const [servingName, setServingName] = useState("");
+  const [servingSize, setServingSize] = useState<number | "">("");
+  const [save, setSave] = useState(true);
   const num = (x: number | "") => (typeof x === "number" ? x : 0);
   const n: Nutrients = { kcal: num(v.kcal), protein: num(v.protein), carbs: num(v.carbs), fat: num(v.fat), fibre: num(v.fibre) };
+  const measure = basis === "100ml" ? "ml" : "g";
+  const label = basis === "serving" ? "per serving" : basis === "100ml" ? "per 100 ml" : "per 100 g";
+
+  const build = (): CustomFood => {
+    const sName = servingName.trim().toLowerCase() || "serving";
+    const unit = { name: sName, plural: sName.endsWith("s") ? sName : `${sName}s` };
+    if (basis === "serving") {
+      // Convert to per 100 g when the serving weight is known, so grams work too.
+      if (typeof servingSize === "number" && servingSize > 0) {
+        return { id: uid(), name: name.trim(), per: 100, unit: "g", ...scaleNutrients(n, 100 / servingSize), units: [{ ...unit, g: servingSize }] };
+      }
+      return { id: uid(), name: name.trim(), per: 1, unit: "serving", ...n, units: [{ ...unit, g: 1 }] };
+    }
+    const units = typeof servingSize === "number" && servingSize > 0 ? [{ ...unit, g: servingSize }] : [];
+    return { id: uid(), name: name.trim(), per: 100, unit: measure, ...n, units };
+  };
+
+  const next = () => {
+    const food = build();
+    if (save) update((s) => ({ ...s, customFoods: [...(s.customFoods ?? []).filter((f) => f.name.toLowerCase() !== food.name.toLowerCase()), food] }));
+    onNext(fromItem(food, false));
+  };
 
   return (
     <div className="space-y-3">
-      <Field label="Food name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-      <Field label="Portion"><Input value={portion} onChange={(e) => setPortion(e.target.value)} /></Field>
+      <Field label="Food name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Pork and apple sausages" /></Field>
+      <Field label="The label shows values">
+        <Choice columns={3} value={basis} onChange={setBasis} options={[{ value: "100g", label: "Per 100 g" }, { value: "100ml", label: "Per 100 ml" }, { value: "serving", label: "Per serving" }]} />
+      </Field>
       <div className="grid grid-cols-2 gap-3">
-        <NumField label="Calories" value={v.kcal} onChange={(x) => setV({ ...v, kcal: x })} suffix="kcal" />
+        <NumField label={`Calories ${label}`} value={v.kcal} onChange={(x) => setV({ ...v, kcal: x })} suffix="kcal" />
         <NumField label="Protein" value={v.protein} onChange={(x) => setV({ ...v, protein: x })} suffix="g" step={0.1} />
         <NumField label="Carbohydrate" value={v.carbs} onChange={(x) => setV({ ...v, carbs: x })} suffix="g" step={0.1} />
         <NumField label="Fat" value={v.fat} onChange={(x) => setV({ ...v, fat: x })} suffix="g" step={0.1} />
         <NumField label="Fibre" value={v.fibre} onChange={(x) => setV({ ...v, fibre: x })} suffix="g" step={0.1} />
       </div>
+      <div className="rounded-xl bg-muted/60 p-3">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">Typical serving, so you can log '2 sausages' next time</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Serving name"><Input value={servingName} onChange={(e) => setServingName(e.target.value)} placeholder="e.g. sausage" /></Field>
+          <NumField label="Serving weighs" value={servingSize} onChange={setServingSize} suffix={measure} hint={basis === "serving" ? "Optional" : undefined} />
+        </div>
+      </div>
       <label className="flex items-center gap-2 text-sm">
         <Checkbox checked={save} onCheckedChange={(c) => setSave(!!c)} />
-        Save for quick logging
+        Save to My foods
       </label>
-      <Button
-        className="w-full"
-        disabled={!name.trim() || typeof v.kcal !== "number"}
-        onClick={() => {
-          if (save) update((s) => ({ ...s, savedMeals: [...s.savedMeals, { id: uid(), name: name.trim(), portion, ...n }] }));
-          onAdd({ name: name.trim(), portion, ...n, estimated: false });
-        }}
-      >
-        Add
+      <Button className="w-full" disabled={!name.trim() || typeof v.kcal !== "number"} onClick={next}>
+        Next: choose amount
       </Button>
     </div>
   );

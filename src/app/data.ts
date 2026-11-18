@@ -105,62 +105,7 @@ export const WORKOUT_CATEGORIES = [
 export const DISTANCE_CATEGORIES = new Set(["Running", "Cycling", "Swimming", "Walking"]);
 export const STRENGTH_CATEGORIES = new Set(["Weight training", "Circuit training", "Home workout", "HIIT"]);
 
-export interface FoodItem extends Nutrients {
-  name: string;
-  /** Values are per this many grams or millilitres. */
-  per: number;
-  unit: "g" | "ml";
-  /** A typical portion, used as the default amount. */
-  typical: number;
-}
-
-/**
- * A small starter database. Values are rounded averages per 100 g or 100 ml from
- * typical UK product labels and are estimates only. Brands vary. Replace with a
- * licensed database before public release.
- */
-export const FOOD_DB: FoodItem[] = [
-  { name: "Porridge oats, dry", per: 100, unit: "g", typical: 40, kcal: 375, protein: 11, carbs: 60, fat: 8, fibre: 9 },
-  { name: "Semi-skimmed milk", per: 100, unit: "ml", typical: 200, kcal: 47, protein: 3.5, carbs: 4.8, fat: 1.7, fibre: 0 },
-  { name: "Skimmed milk", per: 100, unit: "ml", typical: 200, kcal: 35, protein: 3.5, carbs: 5, fat: 0.1, fibre: 0 },
-  { name: "Greek yoghurt, 0% fat", per: 100, unit: "g", typical: 150, kcal: 57, protein: 10, carbs: 3.6, fat: 0.2, fibre: 0 },
-  { name: "Egg, large", per: 100, unit: "g", typical: 60, kcal: 143, protein: 12.6, carbs: 0.7, fat: 9.5, fibre: 0 },
-  { name: "Wholemeal bread", per: 100, unit: "g", typical: 40, kcal: 240, protein: 10, carbs: 41, fat: 2.5, fibre: 7 },
-  { name: "White bread", per: 100, unit: "g", typical: 40, kcal: 250, protein: 9, carbs: 47, fat: 2, fibre: 2.7 },
-  { name: "Banana", per: 100, unit: "g", typical: 120, kcal: 89, protein: 1.1, carbs: 23, fat: 0.3, fibre: 2.6 },
-  { name: "Apple", per: 100, unit: "g", typical: 150, kcal: 52, protein: 0.3, carbs: 14, fat: 0.2, fibre: 2.4 },
-  { name: "Blueberries", per: 100, unit: "g", typical: 80, kcal: 57, protein: 0.7, carbs: 14, fat: 0.3, fibre: 2.4 },
-  { name: "Chicken breast, cooked", per: 100, unit: "g", typical: 150, kcal: 165, protein: 31, carbs: 0, fat: 3.6, fibre: 0 },
-  { name: "Salmon fillet, cooked", per: 100, unit: "g", typical: 120, kcal: 206, protein: 22, carbs: 0, fat: 13, fibre: 0 },
-  { name: "Tuna, tinned in water", per: 100, unit: "g", typical: 110, kcal: 109, protein: 25, carbs: 0, fat: 1, fibre: 0 },
-  { name: "Beef mince 5% fat, cooked", per: 100, unit: "g", typical: 125, kcal: 175, protein: 27, carbs: 0, fat: 7.5, fibre: 0 },
-  { name: "Tofu, firm", per: 100, unit: "g", typical: 100, kcal: 144, protein: 15, carbs: 3, fat: 8.7, fibre: 2.3 },
-  { name: "Baked beans", per: 100, unit: "g", typical: 200, kcal: 80, protein: 4.7, carbs: 13, fat: 0.4, fibre: 3.7 },
-  { name: "Lentils, cooked", per: 100, unit: "g", typical: 150, kcal: 116, protein: 9, carbs: 20, fat: 0.4, fibre: 7.9 },
-  { name: "White rice, cooked", per: 100, unit: "g", typical: 180, kcal: 130, protein: 2.7, carbs: 28, fat: 0.3, fibre: 0.4 },
-  { name: "Brown rice, cooked", per: 100, unit: "g", typical: 180, kcal: 123, protein: 2.7, carbs: 26, fat: 1, fibre: 1.6 },
-  { name: "Pasta, cooked", per: 100, unit: "g", typical: 180, kcal: 158, protein: 5.8, carbs: 31, fat: 0.9, fibre: 1.8 },
-  { name: "Potato, boiled", per: 100, unit: "g", typical: 200, kcal: 87, protein: 1.9, carbs: 20, fat: 0.1, fibre: 1.8 },
-  { name: "Sweet potato, baked", per: 100, unit: "g", typical: 150, kcal: 90, protein: 2, carbs: 21, fat: 0.2, fibre: 3.3 },
-  { name: "Broccoli", per: 100, unit: "g", typical: 80, kcal: 34, protein: 2.8, carbs: 7, fat: 0.4, fibre: 2.6 },
-  { name: "Mixed salad leaves", per: 100, unit: "g", typical: 50, kcal: 17, protein: 1.3, carbs: 3, fat: 0.2, fibre: 1.5 },
-  { name: "Avocado", per: 100, unit: "g", typical: 70, kcal: 160, protein: 2, carbs: 8.5, fat: 15, fibre: 6.7 },
-  { name: "Cheddar cheese", per: 100, unit: "g", typical: 30, kcal: 416, protein: 25, carbs: 0.1, fat: 35, fibre: 0 },
-  { name: "Cottage cheese", per: 100, unit: "g", typical: 150, kcal: 98, protein: 11, carbs: 3.4, fat: 4.3, fibre: 0 },
-  { name: "Peanut butter", per: 100, unit: "g", typical: 15, kcal: 588, protein: 25, carbs: 20, fat: 50, fibre: 6 },
-  { name: "Almonds", per: 100, unit: "g", typical: 30, kcal: 579, protein: 21, carbs: 22, fat: 50, fibre: 12.5 },
-  { name: "Olive oil", per: 100, unit: "ml", typical: 10, kcal: 824, protein: 0, carbs: 0, fat: 92, fibre: 0 },
-  { name: "Butter", per: 100, unit: "g", typical: 10, kcal: 717, protein: 0.9, carbs: 0.1, fat: 81, fibre: 0 },
-  { name: "Whey protein powder", per: 100, unit: "g", typical: 30, kcal: 380, protein: 75, carbs: 8, fat: 6, fibre: 0 },
-  { name: "Dark chocolate 70%", per: 100, unit: "g", typical: 20, kcal: 598, protein: 7.8, carbs: 46, fat: 43, fibre: 11 },
-  { name: "Crisps, ready salted", per: 100, unit: "g", typical: 25, kcal: 530, protein: 6, carbs: 53, fat: 32, fibre: 4 },
-  { name: "Orange juice", per: 100, unit: "ml", typical: 150, kcal: 45, protein: 0.7, carbs: 10, fat: 0.2, fibre: 0.2 },
-  { name: "Coffee with semi-skimmed milk", per: 100, unit: "ml", typical: 250, kcal: 20, protein: 1.3, carbs: 1.9, fat: 0.7, fibre: 0 },
-  { name: "Beer, 4%", per: 100, unit: "ml", typical: 568, kcal: 43, protein: 0.5, carbs: 3.6, fat: 0, fibre: 0 },
-  { name: "Red wine", per: 100, unit: "ml", typical: 175, kcal: 85, protein: 0.1, carbs: 2.6, fat: 0, fibre: 0 },
-  { name: "Hummus", per: 100, unit: "g", typical: 50, kcal: 280, protein: 7, carbs: 13, fat: 22, fibre: 6 },
-  { name: "Granola", per: 100, unit: "g", typical: 45, kcal: 450, protein: 10, carbs: 60, fat: 18, fibre: 7 },
-];
+export { FOOD_DB, type FoodItem, type FoodUnit } from "./foods";
 
 export const DEFAULT_REMINDERS: Reminder[] = [
   { type: "workout", enabled: true, time: "07:30" },
