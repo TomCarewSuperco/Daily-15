@@ -10,5 +10,5 @@ test("pain au chocolat is found with the English spelling", () => {
 test("salad dressing finds dressings, vinaigrette finds French dressing", () => {
   const names = searchFoods(FOOD_DB, "salad dressing", 15).map((f) => f.name);
   assert.ok(names.includes("Caesar dressing"), names.join(", "));
-  assert.equal(searchFoods(FOOD_DB, "salad cream", 3).length >= 0, true);
+  assert.ok(searchFoods(FOOD_DB, "dressing", 15).some((f) => f.name === "Caesar dressing"));
 });
