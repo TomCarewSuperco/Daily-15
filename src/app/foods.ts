@@ -148,6 +148,8 @@ const BASE: FoodItem[] = [
   // Sauces and extras
   food("Olive oil", "g", 899, 0, 0, 99.9, 0, [u("tablespoon", 14), u("teaspoon", 5)]),
   food("Mayonnaise", "g", 680, 1, 1.3, 75, 0, [u("tablespoon", 15)]),
+  // Not in CoFID 2021: typical UK supermarket label values.
+  food("Caesar dressing", "g", 430, 2.5, 4, 44, 0.2, [u("tablespoon", 15)]),
   food("Tomato ketchup", "g", 100, 1.2, 23, 0.1, 0.9, [u("tablespoon", 15)]),
   food("Sugar", "g", 400, 0, 100, 0, 0, [u("teaspoon", 4)]),
   food("Tomato soup, cream of", "g", 57, 0.9, 6.7, 3, 0.5, [u("half tin", 200, "half tins")]),
@@ -301,6 +303,7 @@ const EXTRA: Record<string, Extra> = {
   "Whey protein powder": [3, 6, 0.4],
   "Olive oil": [14, 0, 0],
   Mayonnaise: [6, 1.3, 1.5],
+  "Caesar dressing": [4, 2.5, 2.2],
   "Tomato ketchup": [0, 22, 1.8],
   Sugar: [0, 100, 0],
   "Tomato soup, cream of": [0.3, 5, 0.7],

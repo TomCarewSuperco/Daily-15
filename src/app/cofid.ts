@@ -47,6 +47,8 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/naan/.test(n)) return [u("naan", 160), u("half naan", 80, "half naans")];
   if (/pitta/.test(n)) return [u("pitta", 60)];
   if (/^pizza/.test(n) && !/base/.test(n)) return [u("slice", 80), u("whole pizza", 400, "whole pizzas")];
+  if (/^coleslaw/.test(n)) return [u("tablespoon", 30), u("side portion", 80)];
+  if (/^salad,/.test(n)) return [u("side portion", 100), u("main portion", 250)];
   if (/^croissant/.test(n)) return [u("croissant", 60)];
   if (/pastries, danish/.test(n)) return [u("pastry", 90, "pastries")];
   if (/samosa/.test(n)) return [u("samosa", 50)];
@@ -222,8 +224,15 @@ const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.s
 
 /** Small words that food names often leave out: 'gin and tonic', 'fish with chips'. */
 const FILLER = new Set(["and", "with", "of", "a", "an", "the", "in", "on", "n", "&", "some", "my"]);
+/** Phrases people type that the food names word differently. */
+const PHRASES: [RegExp, string][] = [
+  [/\bsalad dress(ings?)?\b/, "dressing"],
+  [/\bvinaigrette\b/, "french dressing"],
+];
 const queryWords = (q: string) => {
-  const all = fold(q).split(/\s+/).filter(Boolean);
+  let text = fold(q);
+  for (const [re, to] of PHRASES) text = text.replace(re, to);
+  const all = text.split(/\s+/).filter(Boolean);
   const kept = all.filter((w) => !FILLER.has(w));
   return kept.length ? kept : all;
 };

@@ -30,3 +30,8 @@ test("bakery: croissants and Danish pastries have a piece unit", () => {
   assert.equal(first("Croissants", "AN").g, 60);
   assert.equal(first("Pastries, Danish, retail", "AN").g, 90);
 });
+
+test("salads are side portions, coleslaw by the spoon", () => {
+  assert.equal(first("Salad, potato, with French dressing", "DR").g, 100);
+  assert.equal(first("Coleslaw, with reduced calorie dressing, retail", "DR").g, 30);
+});
