@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2 } from "lucide-react";
+import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
-import { COFID_CREDIT, loadCofid, matchesAll, searchFoods } from "../cofid";
+import { COFID_CREDIT, loadCofid, loadCofidByCode, matchesAll, searchFoods, sumComponents, type Row } from "../cofid";
+import { CUISINES, MEALS_OUT, SIZES, type EatingOutMeal } from "../eatingOut";
 import { flagsForFood, lifeStageOf } from "../pregnancy";
 import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
@@ -22,7 +23,7 @@ export const MEALS: { value: Meal; label: string }[] = [
   { value: "snacks", label: "Snacks" },
 ];
 
-type Mode = "search" | "barcode" | "manual" | "recipe";
+type Mode = "search" | "out" | "barcode" | "manual" | "recipe";
 
 export interface Pending {
   name: string;
@@ -158,9 +159,10 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
             <AmountStep pending={pending} setPending={setPending} onAdd={add} onBack={() => setPending(null)} />
           ) : (
             <>
-              <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1 text-xs">
+              <div className="grid grid-cols-5 gap-1 rounded-xl bg-muted p-1 text-[11px]">
                 {([
                   ["search", "Search", Search],
+                  ["out", "Eating out", UtensilsCrossed],
                   ["barcode", "Barcode", Barcode],
                   ["manual", "Manual", PenLine],
                   ["recipe", "Recipe", ChefHat],
@@ -237,6 +239,15 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                       {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
                     </ResultGroup>
                   )}
+                  {q.length >= 3 && MEALS_OUT.some((m) => matchesAll(m.name, q)) && (
+                    <button onClick={() => setMode("out")} className="flex w-full items-center gap-3 rounded-xl border border-copper/40 bg-copper/5 p-3 text-left text-sm">
+                      <UtensilsCrossed className="h-5 w-5 shrink-0 text-copper" />
+                      <span>
+                        <span className="font-medium">Had this at a restaurant or takeaway?</span>
+                        <span className="block text-xs text-muted-foreground">Estimate a typical portion with sides, no weighing needed.</span>
+                      </span>
+                    </button>
+                  )}
                   {cofidResults.length > 0 && (
                     <div>
                       <ResultGroup title="UK food database">
@@ -274,6 +285,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                 </div>
               )}
 
+              {mode === "out" && <EatingOutStep onAdd={add} />}
               {mode === "barcode" && <BarcodeStep onFound={setPending} />}
               {mode === "manual" && <ManualStep onNext={setPending} />}
               {mode === "recipe" && <RecipeStep onSaved={() => setMode("search")} />}
@@ -632,6 +644,79 @@ function RecipeStep({ onSaved }: { onSaved: () => void }) {
       >
         Save recipe
       </Button>
+    </div>
+  );
+}
+
+/** Restaurant and takeaway meals: choose a dish, sides and size; adds one estimated entry. */
+function EatingOutStep({ onAdd }: { onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void }) {
+  const [rows, setRows] = useState<Map<string, Row> | null>(null);
+  const [cuisine, setCuisine] = useState<string>("All");
+  const [meal, setMeal] = useState<EatingOutMeal | null>(null);
+  const [size, setSize] = useState<(typeof SIZES)[number]["id"]>("typical");
+  const [sides, setSides] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    loadCofidByCode().then(setRows).catch(() => setRows(new Map()));
+  }, []);
+
+  if (!rows) return <p className="text-sm text-muted-foreground">Loading</p>;
+
+  if (!meal) {
+    const list = MEALS_OUT.filter((m) => cuisine === "All" || m.cuisine === cuisine);
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">Pick the closest dish. You'll choose sides and portion size next.</p>
+        <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1">
+          {["All", ...CUISINES].map((c) => (
+            <button key={c} onClick={() => setCuisine(c)} className={`shrink-0 rounded-full border px-3 py-1 text-xs ${cuisine === c ? "border-foreground bg-foreground text-background" : "bg-card"}`}>{c}</button>
+          ))}
+        </div>
+        <ul className="divide-y rounded-xl border">
+          {list.map((m) => (
+            <ResultRow key={m.id} name={m.name} detail={`About ${Math.round(sumComponents(rows, m.parts).kcal / 10) * 10} kcal · ${m.cuisine}`} onClick={() => { setMeal(m); setSize("typical"); setSides(new Set()); }} />
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  const factor = SIZES.find((x) => x.id === size)!.factor;
+  const chosen = meal.sides.filter((x) => sides.has(x.id));
+  const total = sumComponents(rows, [...meal.parts, ...chosen.flatMap((x) => x.parts)], factor);
+  const n = { kcal: Math.round(total.kcal), protein: Math.round(total.protein * 10) / 10, carbs: Math.round(total.carbs * 10) / 10, fat: Math.round(total.fat * 10) / 10, fibre: Math.round(total.fibre * 10) / 10, satFat: Math.round(total.satFat * 10) / 10, sugars: Math.round(total.sugars * 10) / 10, salt: Math.round(total.salt * 100) / 100 };
+  const sizeLabel = SIZES.find((x) => x.id === size)!.label.toLowerCase();
+  const portion = `${sizeLabel} portion${chosen.length ? ` with ${chosen.map((x) => x.label.toLowerCase()).join(", ")}` : ""}`;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="font-medium">{meal.name}<Estimate /></p>
+        <p className="text-xs text-muted-foreground">A typical restaurant portion, estimated from UK food data. Nobody expects you to weigh it.</p>
+      </div>
+      <Choice columns={3} value={size} onChange={setSize} options={SIZES.map((x) => ({ value: x.id, label: x.label }))} />
+      {meal.sides.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Did you have</p>
+          {meal.sides.map((x) => (
+            <label key={x.id} className="flex items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm">
+              <span className="flex items-center gap-2">
+                <Checkbox checked={sides.has(x.id)} onCheckedChange={(v) => setSides((cur) => { const next = new Set(cur); if (v) next.add(x.id); else next.delete(x.id); return next; })} />
+                {x.label}
+              </span>
+              <span className="tabular-nums text-muted-foreground">+{Math.round(sumComponents(rows, x.parts, factor).kcal)} kcal</span>
+            </label>
+          ))}
+        </div>
+      )}
+      <NutrientGrid n={n} />
+      <p className="text-[11px] text-muted-foreground">Restaurant portions vary a lot, often by a quarter either way. Use 'Generous' if it was a big plate or came with extra sauce or oil.</p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => setMeal(null)}>Back</Button>
+        <Button className="flex-1" onClick={() => onAdd({ name: meal.name, portion, ...n, estimated: true, ...(total.fiveADay ? { fiveADay: Math.round(total.fiveADay * 10) / 10, fiveADayKind: "fv" as const } : {}) })}>
+          <Plus className="mr-1.5 h-4 w-4" />Add
+        </Button>
+      </div>
     </div>
   );
 }

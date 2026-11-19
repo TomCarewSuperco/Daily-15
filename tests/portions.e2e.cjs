@@ -70,6 +70,28 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   ok("credits CoFID", true);
   await p.keyboard.press("Escape");
 
+  // Eating out: chicken tikka masala, generous, with a naan.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("tikka masala");
+  await p.getByText("Had this at a restaurant or takeaway?").click();
+  await p.getByText("Chicken tikka masala with pilau rice").click();
+  await p.getByRole("button", { name: "Generous", exact: true }).click();
+  await p.getByText("Naan bread").click();
+  await p.screenshot({ path: OUT + "/eating-out.png" });
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  const out = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === "Chicken tikka masala with pilau rice"));
+  ok("eating-out meal added as one estimated entry", !!out && out.estimated && out.portion.includes("generous") && out.portion.includes("naan") && out.kcal > 1100 && out.kcal < 1800);
+  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("daily15:v1")); s.foods = s.foods.filter((f) => f.name !== "Chicken tikka masala with pilau rice"); localStorage.setItem("daily15:v1", JSON.stringify(s)); });
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Nutrition", exact: true }).click();
+
+  // UK database dishes offer portions rather than grams.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("cook-in sauce curry chicken");
+  await p.getByText("Curry, chicken, made with cook-in sauce").click();
+  ok("dish opens as a regular portion", (await p.getByText(/1 regular portion \(350 g\)/).count()) === 1);
+  await p.keyboard.press("Escape");
+
   // Edit: change two eggs to three and move them to lunch.
   await p.getByText("2 large eggs (120 g)", { exact: false }).first().click();
   await p.getByRole("button", { name: "Lunch", exact: true }).click();

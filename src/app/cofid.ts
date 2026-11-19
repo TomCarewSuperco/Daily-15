@@ -9,12 +9,50 @@ import type { FiveADayKind } from "./types";
 
 export const COFID_CREDIT = "UK food data from McCance and Widdowson's The Composition of Foods Integrated Dataset 2021, Public Health England. © Crown copyright.";
 
-type Row = [string, string, string, number, number | null, number | null, number | null, number | null, number | null, number | null, number | null, FiveADayKind | null, number | null, "g" | "ml"];
+export type Row = [string, string, string, number, number | null, number | null, number | null, number | null, number | null, number | null, number | null, FiveADayKind | null, number | null, "g" | "ml"];
 
 const u = (name: string, g: number, plural = `${name}s`): FoodUnit => ({ name, plural, g });
 
-function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null): FoodUnit[] {
+/*
+ * Typical portions so people don't have to weigh. Weights are typical UK
+ * amounts from general knowledge and are estimates.
+ */
+const MEAL: FoodUnit[] = [u("regular portion", 350), u("small portion", 250), u("restaurant or takeaway portion", 450)];
+
+function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null, group = ""): FoodUnit[] {
   const n = name.toLowerCase();
+  if (unit === "g") {
+    if (/^soup|, soup|\bsoup\b/.test(n)) return [u("bowl", 300), u("cup", 200)];
+    if (/^sandwich/.test(n)) return [u("sandwich", 180)];
+    if (/naan/.test(n)) return [u("naan", 160), u("half naan", 80, "half naans")];
+    if (/pitta/.test(n)) return [u("pitta", 60)];
+    if (/^pizza/.test(n) && !/base/.test(n)) return [u("slice", 80), u("whole pizza", 400, "whole pizzas")];
+    if (/samosa/.test(n)) return [u("samosa", 50)];
+    if (/pasty|pasties/.test(n)) return [u("pasty", 230)];
+    if (/^pie,|, pie\b|pies?,/.test(n) && !/fruit|pastry, raw/.test(n)) return [u("individual pie", 200), u("portion", 250)];
+    if (/spring roll/.test(n)) return [u("spring roll", 60)];
+    if (/prawn crackers/.test(n)) return [u("bowl", 30)];
+    if (/^rice/.test(n) && !/raw|flour/.test(n)) return [u("portion", 180), u("takeaway portion", 300)];
+    if (/^(pasta|noodles)/.test(n) && /boiled|cooked/.test(n)) return [u("portion", 180), u("large portion", 250)];
+    if (/chips|fries|wedges/.test(n) && group.startsWith("DAP")) return [u("portion", 150), u("takeaway portion", 250)];
+    if (/in batter|in breadcrumbs|coated/.test(n) && group.startsWith("J")) return [u("fillet", 140), u("takeaway portion", 220)];
+    if (/^(curry|chilli|lasagne|risotto|stew|casserole|chow mein|biryani|moussaka|paella|hotpot|goulash|spaghetti|pasta with|macaroni|shepherd|pie, cottage|enchiladas)/.test(n) || /korma|tikka|masala|balti|madras|bhuna|jalfrezi|sweet and sour/.test(n)) return MEAL;
+    if (group.startsWith("MR") || group.startsWith("JR") || group.startsWith("DR")) return MEAL;
+    if (/^sausages?/.test(n)) return [u("sausage", 45)];
+    if (/^burger/.test(n)) return [u("burger", 100)];
+    if (/^bread rolls|^rolls/.test(n)) return [u("roll", 60)];
+    if (/^bread/.test(n)) return [u("slice", 40)];
+    if (group.startsWith("AI") || /^breakfast cereal/.test(n)) return [u("bowl", 40)];
+    if (group.startsWith("AM") || /^biscuits/.test(n)) return [u("biscuit", 15)];
+    if (group.startsWith("AN") || /^cake|gateau|cheesecake|brownie/.test(n)) return [u("slice", 70), u("restaurant slice", 120)];
+    if (group.startsWith("AS") || /crumble|pudding|pie, fruit|tart/.test(n)) return [u("portion", 150)];
+    if (/^cheese/.test(n)) return [u("portion", 30)];
+    if (/^yogurt|^yoghurt/.test(n)) return [u("pot", 125)];
+    if (/^ice cream/.test(n)) return [u("scoop", 60)];
+    if (/^sauce|gravy|ketchup|mayonnaise|dressing/.test(n)) return [u("tablespoon", 15)];
+    if (group.startsWith("M") && !/raw/.test(n)) return [u("portion", 120)];
+    if (group.startsWith("J") && !/raw/.test(n)) return [u("fillet or portion", 130)];
+  }
   if (unit === "ml") {
     if (/^(beer|lager|cider|stout|ale)/.test(n)) return [u("pint", 568), u("bottle", 330)];
     if (/^wine/.test(n)) return [u("medium glass", 175), u("large glass", 250)];
@@ -26,6 +64,39 @@ function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null)
   return [];
 }
 
+let rowsCache: Promise<Map<string, Row>> | null = null;
+
+/** Every CoFID food by code, including those used in the everyday list. */
+export function loadCofidByCode(): Promise<Map<string, Row>> {
+  rowsCache ??= import("./data/cofid.json").then((m) => new Map((m.default.foods as Row[]).map((r) => [r[0], r])));
+  return rowsCache;
+}
+
+/** Sums CoFID foods at given weights into one set of nutrients. Unknown extras are left out. */
+export function sumComponents(rows: Map<string, Row>, parts: [string, number][], factor = 1) {
+  const out = { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0, satFat: 0, sugars: 0, salt: 0, fiveADay: 0, grams: 0, missing: [] as string[] };
+  for (const [code, grams] of parts) {
+    const r = rows.get(code);
+    if (!r) {
+      out.missing.push(code);
+      continue;
+    }
+    const g = grams * factor;
+    const k = g / 100;
+    out.grams += g;
+    out.kcal += r[3] * k;
+    out.protein += (r[4] ?? 0) * k;
+    out.carbs += (r[5] ?? 0) * k;
+    out.fat += (r[6] ?? 0) * k;
+    out.fibre += (r[7] ?? 0) * k;
+    out.satFat += (r[8] ?? 0) * k;
+    out.sugars += (r[9] ?? 0) * k;
+    out.salt += (r[10] ?? 0) * k;
+    if (r[11] === "fv" || r[11] === "pulses") out.fiveADay += g / 80;
+  }
+  return out;
+}
+
 let cache: Promise<FoodItem[]> | null = null;
 
 export function loadCofid(): Promise<FoodItem[]> {
@@ -33,11 +104,11 @@ export function loadCofid(): Promise<FoodItem[]> {
     const used = new Set(FOOD_DB.map((f) => f.cofid).filter(Boolean));
     return (m.default.foods as Row[])
       .filter((r) => !used.has(r[0]))
-      .map(([code, name, , kcal, protein, carbs, fat, fibre, satFat, sugars, salt, fiveADay, abv, unit]) => ({
+      .map(([code, name, group, kcal, protein, carbs, fat, fibre, satFat, sugars, salt, fiveADay, abv, unit]) => ({
         name,
         per: 100,
         unit,
-        units: unitsFor(name, unit, fiveADay),
+        units: unitsFor(name, unit, fiveADay, group),
         typical: 100,
         kcal,
         protein: protein ?? 0,
