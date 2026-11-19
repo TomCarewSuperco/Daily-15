@@ -114,7 +114,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[92dvh] max-w-md overflow-y-auto rounded-t-2xl">
+      <SheetContent side="bottom" className="mx-auto h-[92dvh] max-w-md overflow-y-auto overscroll-contain rounded-t-2xl">
         <SheetHeader>
           <SheetTitle>{asTemplate ? "New workout" : editing ? "Edit workout" : "Log a workout"}</SheetTitle>
         </SheetHeader>

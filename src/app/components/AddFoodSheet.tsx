@@ -147,7 +147,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[92dvh] max-w-md overflow-y-auto rounded-t-2xl">
+      <SheetContent side="bottom" className="mx-auto h-[92dvh] max-w-md overflow-y-auto overscroll-contain rounded-t-2xl">
         <SheetHeader>
           <SheetTitle>Add food</SheetTitle>
         </SheetHeader>
@@ -174,7 +174,26 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
 
               {mode === "search" && (
                 <div className="space-y-4">
-                  <Input autoFocus enterKeyHint="search" placeholder="Search foods, brands, saved meals" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchOnline()} />
+                  {/* Pinned to the top of the panel so it stays put while results change underneath. */}
+                  <div className="sticky -top-6 z-10 -mx-6 bg-background px-6 pb-2 pt-1">
+                    <Input
+                      type="search"
+                      enterKeyHint="search"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      placeholder="Search foods, brands, saved meals"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                          searchOnline();
+                        }
+                      }}
+                      aria-label="Search foods"
+                    />
+                  </div>
                   {myFoods.length > 0 && (
                     <ResultGroup title="My foods">
                       {myFoods.map((f) => (

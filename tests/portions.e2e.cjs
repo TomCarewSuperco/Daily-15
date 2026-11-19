@@ -14,9 +14,19 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   await p.goto(BASE);
   await p.getByRole("navigation").getByRole("button", { name: "Nutrition", exact: true }).click();
 
-  // Two eggs.
+  // Two eggs. The search box must stay put while results change.
   await p.getByRole("button", { name: "Add to breakfast" }).click();
-  await p.getByPlaceholder(/Search foods/).fill("eggs");
+  await p.waitForTimeout(600);
+  const box = p.getByPlaceholder(/Search foods/);
+  const y0 = (await box.boundingBox()).y;
+  await box.fill("eggs");
+  await p.getByText("UK food database").waitFor();
+  const y1 = (await box.boundingBox()).y;
+  await box.fill("zzzz");
+  await p.waitForTimeout(300);
+  const y2 = (await box.boundingBox()).y;
+  ok("search box doesn't move", Math.abs(y1 - y0) < 2 && Math.abs(y2 - y0) < 2);
+  await box.fill("eggs");
   await p.getByText("Egg", { exact: true }).click();
   ok("eggs default to one large egg", (await p.getByText("1 large egg (60 g)").count()) === 1);
   await p.getByRole("button", { name: "More" }).click();
