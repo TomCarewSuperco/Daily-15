@@ -35,3 +35,17 @@ test("salads are side portions, coleslaw by the spoon", () => {
   assert.equal(first("Salad, potato, with French dressing", "DR").g, 100);
   assert.equal(first("Coleslaw, with reduced calorie dressing, retail", "DR").g, 30);
 });
+
+test("countable foods: new potatoes, eggs, bacon, crisps, nuts", () => {
+  assert.deepEqual(unitsFor("Potatoes, new and salad, boiled in salted water, flesh and skin", "g", null, "DAR")[0], { name: "new potato", plural: "new potatoes", g: 40 });
+  assert.equal(first("Potatoes, old, baked, flesh only", "DAR").name, "jacket potato");
+  assert.equal(first("Potatoes, old, roasted in lard", "DAR").name, "roast potato");
+  assert.equal(first("Eggs, chicken, whole, poached", "CA").name, "egg");
+  assert.deepEqual(unitsFor("Eggs, chicken, whole, dried", "g", null, "CA"), []);
+  assert.equal(first("Bacon rashers, back, dry-cured, grilled", "MAA").g, 25);
+  assert.equal(first("Potato crisps, low fat", "SN").name, "bag");
+  assert.equal(first("Peanuts, dry roasted", "GA").g, 30);
+  assert.equal(first("Pasta, white, dried, raw", "AD").g, 75);
+  assert.equal(first("Drinking chocolate powder, made up with whole milk", "PAA").name, "mug");
+  assert.equal(first("Breakfast cereal, oat, instant, plain, fortified, cooked, made up with semi-skimmed milk", "AI").g, 200);
+});

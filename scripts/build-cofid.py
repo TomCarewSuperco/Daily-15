@@ -63,7 +63,7 @@ def five_a_day(group, name):
         return None if ("dried" in lower and re.search(r"\braw\b", lower)) else "pulses"
     if group.startswith("FA") and "dried" in lower and not re.search(r"stewed|soaked", lower):
         return "dried"
-    if group.startswith(("DF", "DG", "DI")) or group.startswith("FA"):
+    if group.startswith(("DF", "DG", "DI", "FA")) or group == "F":
         return "fv"
     return None
 
