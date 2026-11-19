@@ -162,6 +162,21 @@ const BASE: FoodItem[] = [
   food("Red wine", "ml", 85, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("White wine", "ml", 82, 0.1, 2.6, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
   food("Spirits, 40%", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Lager", "ml", 24, 0.3, 1.5, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330)]),
+  food("Lager, premium", "ml", 29, 0.3, 2.4, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330)]),
+  food("Cider", "ml", 36, 0, 2.6, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 500)]),
+  food("Stout", "ml", 37, 0.3, 3, 0, 0, [u("pint", 568), u("can", 440)]),
+  food("Prosecco or sparkling wine", "ml", 84, 0.3, 5, 0, 0, [u("glass", 125), u("bottle", 750)]),
+  food("Rosé wine", "ml", 79, 0.1, 2.5, 0, 0, [u("medium glass", 175), u("large glass", 250), u("bottle", 750)]),
+  food("Gin", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Vodka", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Whisky", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Rum", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Brandy", "ml", 222, 0, 0, 0, 0, [u("single", 25), u("double", 50)]),
+  food("Tonic water", "ml", 22, 0, 5.9, 0, 0, [u("mixer", 150), u("can", 150), u("glass", 200)]),
+  food("Port", "ml", 157, 0.1, 12, 0, 0, [u("glass", 50)]),
+  food("Sherry", "ml", 116, 0.2, 5.9, 0, 0, [u("glass", 50)]),
+  food("Cream liqueur", "ml", 305, 3, 22, 16, 0, [u("glass", 50)]),
 ];
 
 /*

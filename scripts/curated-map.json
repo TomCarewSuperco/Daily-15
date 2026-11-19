@@ -102,5 +102,20 @@
   "Beer, bitter": "17-208",
   "Red wine": "17-752",
   "White wine": "17-756",
-  "Spirits, 40%": "17-247"
+  "Spirits, 40%": "17-247",
+  "Lager": "17-749",
+  "Lager, premium": "17-751",
+  "Cider": "17-222",
+  "Stout": "17-767",
+  "Prosecco or sparkling wine": "17-757",
+  "Rosé wine": "17-754",
+  "Gin": "17-247",
+  "Vodka": "17-247",
+  "Whisky": "17-247",
+  "Rum": "17-247",
+  "Brandy": "17-247",
+  "Tonic water": "17-736",
+  "Port": "17-234",
+  "Sherry": "17-236",
+  "Cream liqueur": "17-768"
 }

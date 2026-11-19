@@ -75,19 +75,34 @@ const SYNONYMS: Record<string, string[]> = {
   aubergine: ["aubergine", "eggplant"],
   courgette: ["courgette", "zucchini"],
   prawn: ["prawns", "shrimp"],
+  alcohol: ["beer", "lager", "cider", "stout", "wine", "prosecco", "gin", "vodka", "whisky", "rum", "brandy", "spirits", "port", "sherry", "liqueur"],
+  booze: ["beer", "lager", "wine", "spirits"],
+  drink: ["drink", "beer", "lager", "cider", "wine", "cola"],
+  whiskey: ["whisky"],
+  scotch: ["whisky"],
+  bourbon: ["whisky"],
+  tequila: ["spirits"],
+  champagne: ["sparkling", "prosecco"],
+  cava: ["sparkling", "prosecco"],
+  fizz: ["sparkling", "prosecco"],
+  bubbly: ["sparkling", "prosecco"],
+  "g&t": ["gin", "tonic"],
+  guinness: ["stout", "guinness"],
+  bitter: ["bitter"],
 };
 
 const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
 const forms = (w: string) => [...stems(w), ...(SYNONYMS[w] ?? [])];
 
 /** Matches the start of a word in the name, so 'ale' doesn't find 'Wensleydale'. */
-const wordsOf = (name: string) => name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const wordsOf = (name: string) => fold(name).split(/[^a-z0-9&]+/).filter(Boolean);
 const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.some((nw) => nw.startsWith(x)));
 
 /** True if every query word, its singular or a common synonym starts a word in the name. */
 export function matchesAll(name: string, query: string): boolean {
   const nw = wordsOf(name);
-  return query.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hit(nw, w));
+  return fold(query).split(/\s+/).filter(Boolean).every((w) => hit(nw, w));
 }
 
 /**
@@ -96,7 +111,7 @@ export function matchesAll(name: string, query: string): boolean {
  * match most of them.
  */
 export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodItem[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = fold(query).split(/\s+/).filter(Boolean);
   if (!words.length) return [];
   const strict = rank(foods, words, words.length);
   if (strict.length || words.length === 1) return strict.slice(0, limit);
@@ -106,13 +121,15 @@ export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodI
 function rank(foods: FoodItem[], words: string[], need: number): FoodItem[] {
   const scored: { f: FoodItem; score: number }[] = [];
   for (const f of foods) {
-    const name = f.name.toLowerCase();
+    const name = fold(f.name);
     const nw = wordsOf(name);
     const hits = words.filter((w) => hit(nw, w)).length;
     if (hits < need) continue;
-    const first = name.split(/[,\s]/)[0];
+    const first = nw[0] ?? "";
     const segment = name.split(",")[0].trim();
     let score = hits * 20;
+    // Whole-word matches beat prefixes: 'rose' finds rosé wine before rosemary.
+    score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;
     if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;
     // 'Eggs, chicken, boiled' before 'Egg fu yung': the first part is just the food.
     if (segment.split(/\s+/).length === 1) score += 4;
