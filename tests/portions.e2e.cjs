@@ -61,6 +61,18 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   ok("saved to My foods", (await p.getByText("My foods").count()) === 1 && (await p.getByText(/143 kcal per sausage \(57 g\)/).count()) === 1);
   await p.keyboard.press("Escape");
 
+  // Mixed drinks: 'gin and tonic' ignores 'and' and counts one unit.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("Gin and tonic");
+  await p.getByText("Gin and tonic", { exact: true }).click();
+  ok("gin and tonic found as a drink", (await p.getByText(/1 drink \(175 ml\)/).count()) === 1);
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  const gt = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === "Gin and tonic"));
+  ok("one unit of alcohol", gt?.alcoholUnits === 1 && gt.kcal > 80 && gt.kcal < 100);
+  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("daily15:v1")); s.foods = s.foods.filter((f) => f.name !== "Gin and tonic"); localStorage.setItem("daily15:v1", JSON.stringify(s)); });
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Nutrition", exact: true }).click();
+
   // Full UK food database: a pint of lager from CoFID.
   await p.getByRole("button", { name: "Add to dinner" }).click();
   await p.getByPlaceholder(/Search foods/).fill("lager");

@@ -1,0 +1,23 @@
+{
+  "_comment": "Mixed drinks and cocktails built from CoFID 2021 parts, in ml (sugar in g). 'water' is soda or ice melt with no nutrients. Standard UK pub measures: single 25 ml, double 50 ml. Cocktail recipes are typical bar recipes and are estimates.",
+  "Gin and tonic": [["17-247", 25], ["17-736", 150]],
+  "Gin and tonic, double": [["17-247", 50], ["17-736", 150]],
+  "Gin and slimline tonic": [["17-247", 25], ["17-505", 150]],
+  "Vodka and tonic": [["17-247", 25], ["17-736", 150]],
+  "Vodka and cola": [["17-247", 25], ["17-175", 150]],
+  "Vodka and diet cola": [["17-247", 25], ["17-505", 150]],
+  "Vodka and lemonade": [["17-247", 25], ["17-179", 150]],
+  "Vodka and cranberry": [["17-247", 25], ["17-744", 150]],
+  "Vodka and orange": [["17-247", 25], ["14-329", 150]],
+  "Rum and cola": [["17-247", 25], ["17-175", 150]],
+  "Rum and diet cola": [["17-247", 25], ["17-505", 150]],
+  "Whisky and cola": [["17-247", 25], ["17-175", 150]],
+  "Whisky and diet cola": [["17-247", 25], ["17-505", 150]],
+  "Bucks fizz": [["17-757", 100], ["14-329", 50]],
+  "Mojito": [["17-247", 50], ["17-063", 10], ["14-279", 25], ["water", 100]],
+  "Margarita": [["17-247", 50], ["17-244", 25], ["14-279", 25]],
+  "Cosmopolitan": [["17-247", 40], ["17-244", 15], ["17-744", 30], ["14-279", 15]],
+  "Espresso martini": [["17-247", 50], ["17-245", 25], ["17-833", 30], ["17-063", 5]],
+  "Bloody Mary": [["17-247", 50], ["13-382", 150], ["14-277", 10]],
+  "Long Island iced tea": [["17-247", 75], ["17-244", 15], ["17-175", 100], ["14-277", 25]]
+}

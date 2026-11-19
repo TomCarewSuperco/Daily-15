@@ -158,6 +158,14 @@ const SYNONYMS: Record<string, string[]> = {
   fizz: ["sparkling", "prosecco"],
   bubbly: ["sparkling", "prosecco"],
   "g&t": ["gin", "tonic"],
+  gt: ["gin", "tonic"],
+  coke: ["cola"],
+  cocktail: ["mojito", "margarita", "cosmopolitan", "martini", "bloody", "long island", "bucks fizz"],
+  cocktails: ["mojito", "margarita", "cosmopolitan", "martini", "bloody", "long island", "bucks fizz"],
+  jd: ["whisky"],
+  jack: ["whisky"],
+  bacardi: ["rum"],
+  smirnoff: ["vodka"],
   guinness: ["stout", "guinness"],
   bitter: ["bitter"],
 };
@@ -170,10 +178,18 @@ const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 const wordsOf = (name: string) => fold(name).split(/[^a-z0-9&]+/).filter(Boolean);
 const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.some((nw) => nw.startsWith(x)));
 
+/** Small words that food names often leave out: 'gin and tonic', 'fish with chips'. */
+const FILLER = new Set(["and", "with", "of", "a", "an", "the", "in", "on", "n", "&", "some", "my"]);
+const queryWords = (q: string) => {
+  const all = fold(q).split(/\s+/).filter(Boolean);
+  const kept = all.filter((w) => !FILLER.has(w));
+  return kept.length ? kept : all;
+};
+
 /** True if every query word, its singular or a common synonym starts a word in the name. */
 export function matchesAll(name: string, query: string): boolean {
   const nw = wordsOf(name);
-  return fold(query).split(/\s+/).filter(Boolean).every((w) => hit(nw, w));
+  return queryWords(query).every((w) => hit(nw, w));
 }
 
 /**
@@ -182,7 +198,7 @@ export function matchesAll(name: string, query: string): boolean {
  * match most of them.
  */
 export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodItem[] {
-  const words = fold(query).split(/\s+/).filter(Boolean);
+  const words = queryWords(query);
   if (!words.length) return [];
   const strict = rank(foods, words, words.length);
   if (strict.length || words.length === 1) return strict.slice(0, limit);

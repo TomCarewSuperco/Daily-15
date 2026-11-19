@@ -177,6 +177,28 @@ const BASE: FoodItem[] = [
   food("Port", "ml", 157, 0.1, 12, 0, 0, [u("glass", 50)]),
   food("Sherry", "ml", 116, 0.2, 5.9, 0, 0, [u("glass", 50)]),
   food("Cream liqueur", "ml", 305, 3, 22, 16, 0, [u("glass", 50)]),
+
+  // Mixed drinks and cocktails: values come from scripts/mixed-drinks.json via build-curated.py.
+  food("Gin and tonic", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Gin and tonic, double", "ml", 0, 0, 0, 0, 0, [u("drink", 200)]),
+  food("Gin and slimline tonic", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and tonic", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and diet cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and lemonade", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and cranberry", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Vodka and orange", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Rum and cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Rum and diet cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Whisky and cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Whisky and diet cola", "ml", 0, 0, 0, 0, 0, [u("drink", 175)]),
+  food("Bucks fizz", "ml", 0, 0, 0, 0, 0, [u("drink", 150)]),
+  food("Mojito", "ml", 0, 0, 0, 0, 0, [u("drink", 185)]),
+  food("Margarita", "ml", 0, 0, 0, 0, 0, [u("drink", 100)]),
+  food("Cosmopolitan", "ml", 0, 0, 0, 0, 0, [u("drink", 100)]),
+  food("Espresso martini", "ml", 0, 0, 0, 0, 0, [u("drink", 110)]),
+  food("Bloody Mary", "ml", 0, 0, 0, 0, 0, [u("drink", 210)]),
+  food("Long Island iced tea", "ml", 0, 0, 0, 0, 0, [u("drink", 215)]),
 ];
 
 /*
@@ -309,7 +331,7 @@ const CAFFEINE: Record<string, number> = {
   "Milk chocolate": 20,
 };
 
-type CofidValues = { code: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fibre: number | null; satFat: number | null; sugars: number | null; salt: number | null; abv: number | null };
+type CofidValues = { ml?: number; code: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fibre: number | null; satFat: number | null; sugars: number | null; salt: number | null; abv: number | null };
 const COFID = CURATED as Record<string, CofidValues>;
 
 /*
@@ -330,7 +352,7 @@ export const FOOD_DB: FoodItem[] = BASE.map((f) => {
     const keep = (v: number | null, fallback: number) => (v === null ? fallback : v);
     item = {
       ...item,
-      cofid: c.code,
+      ...(c.code !== "mix" ? { cofid: c.code } : {}),
       kcal: c.kcal,
       protein: keep(c.protein, item.protein),
       carbs: keep(c.carbs, item.carbs),

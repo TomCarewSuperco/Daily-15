@@ -19,6 +19,30 @@ for name, code in mapping.items():
         missing.append(f"{name}: {code}")
         continue
     out[name] = {k: f[k] for k in ("code", "kcal", "protein", "carbs", "fat", "fibre", "satFat", "sugars", "salt", "abv")}
+# Mixed drinks: sum the parts and express per 100 ml.
+mixed = json.load(open("scripts/mixed-drinks.json"))
+for name, parts in mixed.items():
+    if name.startswith("_"):
+        continue
+    tot = {k: 0.0 for k in ("kcal", "protein", "carbs", "fat", "fibre", "satFat", "sugars", "salt")}
+    ml = 0.0
+    alcohol_ml = 0.0
+    for code, amount in parts:
+        ml += amount
+        if code == "water":
+            continue
+        f = by_code.get(code)
+        if not f:
+            missing.append(f"{name}: {code}")
+            continue
+        for k in tot:
+            tot[k] += (f[k] or 0) * amount / 100
+        if f["abv"]:
+            alcohol_ml += amount * f["abv"] / 100
+    per = {k: round(v * 100 / ml, 2 if k == "salt" else 1) for k, v in tot.items()}
+    per["kcal"] = round(tot["kcal"] * 100 / ml)
+    out[name] = {"code": "mix", **per, "abv": round(alcohol_ml * 100 / ml, 1), "ml": ml}
+
 if missing:
     sys.exit("Codes not found in cofid.json: " + ", ".join(missing))
 json.dump(out, sys.stdout, ensure_ascii=False, indent=1)
