@@ -51,11 +51,18 @@ def sheet_rows(wb, prefix):
 
 
 def five_a_day(group, name):
+    """NHS 5 a day: 80 g fresh, frozen or tinned fruit and veg; 30 g dried fruit;
+    150 ml juice and 80 g beans or pulses count once a day. Raw dried pulses and
+    lemon or lime juice don't count as eaten."""
     lower = name.lower()
+    if re.search(r"lemon juice|lime juice|cordial", lower):
+        return None
     if group.startswith("FC"):
         return "juice"
     if group.startswith("DB"):
-        return "pulses"
+        return None if ("dried" in lower and re.search(r"\braw\b", lower)) else "pulses"
+    if group.startswith("FA") and "dried" in lower and not re.search(r"stewed|soaked", lower):
+        return "dried"
     if group.startswith(("DF", "DG", "DI")) or group.startswith("FA"):
         return "fv"
     return None

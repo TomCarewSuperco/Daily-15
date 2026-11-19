@@ -373,7 +373,7 @@ export function extrasFor(food: { fiveADay?: FiveADayKind; abv?: number; caffein
   if (food.caffeine) out.caffeineMg = Math.round((amount * food.caffeine) / 100);
   if (food.fiveADay) {
     out.fiveADayKind = food.fiveADay;
-    out.fiveADay = Math.round((amount / (food.fiveADay === "juice" ? 150 : 80)) * 10) / 10;
+    out.fiveADay = Math.round((amount / (food.fiveADay === "juice" ? 150 : food.fiveADay === "dried" ? 30 : 80)) * 10) / 10;
   }
   if (food.abv) out.alcoholUnits = Math.round(((amount * food.abv) / 1000) * 10) / 10;
   return out;

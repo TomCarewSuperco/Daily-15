@@ -128,7 +128,8 @@ export interface Nutrients {
   salt?: number;
 }
 
-export type FiveADayKind = "fv" | "juice" | "pulses";
+/** 'dried' is dried fruit: 30 g a portion rather than 80 g. */
+export type FiveADayKind = "fv" | "juice" | "pulses" | "dried";
 
 export interface FoodEntry extends Nutrients {
   id: string;
