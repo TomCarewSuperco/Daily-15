@@ -1,0 +1,73 @@
+import { findExercise } from "./exercises";
+import type { ExerciseEntry, SetEntry, Workout } from "./types";
+
+/*
+ * Progression for guided gym sessions. The rule is the standard 'double
+ * progression' idea: if every set hit its target reps last time, add a small
+ * amount of weight; otherwise repeat the weight. General guidance only.
+ */
+
+export interface LastTime {
+  date: string;
+  sets: SetEntry[];
+}
+
+export function lastTimeFor(workouts: Workout[], exercise: string): LastTime | null {
+  const name = exercise.trim().toLowerCase();
+  // Newest first; on the same day, the one logged later wins.
+  const past = workouts.map((w, i) => ({ w, i })).sort((a, b) => b.w.date.localeCompare(a.w.date) || b.i - a.i).map((x) => x.w);
+  for (const w of past) {
+    const e = w.exercises.find((x) => x.name.trim().toLowerCase() === name);
+    if (e && e.sets.length) return { date: w.date, sets: e.sets };
+  }
+  return null;
+}
+
+/** Smallest sensible jump: 2.5 kg for barbells, 2 kg for dumbbells and kettlebells, 5 kg on machines. */
+export function increment(exercise: string): number {
+  const eq = findExercise(exercise)?.equipment;
+  if (eq === "barbell") return 2.5;
+  if (eq === "machine") return 5;
+  return 2;
+}
+
+export interface Suggestion {
+  weightKg: number;
+  /** Shown to the user. */
+  note: string;
+}
+
+export function suggestNext(exercise: string, targetReps: number, last: LastTime | null): Suggestion | null {
+  if (!last) return null;
+  const weighted = last.sets.filter((s) => s.weightKg > 0);
+  if (!weighted.length) return null;
+  const top = Math.max(...weighted.map((s) => s.weightKg));
+  const allHit = weighted.every((s) => s.reps >= targetReps);
+  if (allHit) {
+    const next = Math.round((top + increment(exercise)) * 2) / 2;
+    return { weightKg: next, note: `You hit every rep last time. Try ${next} kg.` };
+  }
+  return { weightKg: top, note: `Stay at ${top} kg until you hit ${targetReps} reps on every set.` };
+}
+
+export function describeLast(last: LastTime): string {
+  const w = last.sets[0].weightKg;
+  const same = last.sets.every((s) => s.weightKg === w && s.reps === last.sets[0].reps);
+  if (same) return `${last.sets.length} × ${last.sets[0].reps}${w ? ` at ${w} kg` : ""}`;
+  return last.sets.map((s) => `${s.reps}${s.weightKg ? `×${s.weightKg}` : ""}`).join(", ");
+}
+
+/** Plan for a session: each exercise's sets, pre-filled from the suggestion or last time. */
+export function planSession(template: ExerciseEntry[], workouts: Workout[]): ExerciseEntry[] {
+  return template.map((ex) => {
+    const last = lastTimeFor(workouts, ex.name);
+    return {
+      name: ex.name,
+      sets: ex.sets.map((s, i) => {
+        const sug = suggestNext(ex.name, s.reps, last);
+        const lastSet = last?.sets[Math.min(i, last.sets.length - 1)];
+        return { reps: s.reps, weightKg: s.weightKg || sug?.weightKg || lastSet?.weightKg || 0 };
+      }),
+    };
+  });
+}

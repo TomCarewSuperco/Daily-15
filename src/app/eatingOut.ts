@@ -11,6 +11,8 @@ export interface EatingOutSide {
   id: string;
   label: string;
   parts: Component[];
+  /** Sides in the same group are alternatives: ticking one unticks the others. */
+  group?: string;
 }
 
 export interface EatingOutMeal {
@@ -27,8 +29,8 @@ export const SIZES = [
   { id: "generous", label: "Generous", factor: 1.25 },
 ] as const;
 
-const naan: EatingOutSide = { id: "naan", label: "Naan bread", parts: [["11-973", 160]] };
-const halfNaan: EatingOutSide = { id: "half-naan", label: "Half a naan", parts: [["11-973", 80]] };
+const naan: EatingOutSide = { id: "naan", label: "Naan bread", parts: [["11-973", 160]], group: "naan" };
+const halfNaan: EatingOutSide = { id: "half-naan", label: "Half a naan", parts: [["11-973", 80]], group: "naan" };
 const samosas: EatingOutSide = { id: "samosas", label: "2 vegetable samosas", parts: [["15-305", 100]] };
 const prawnCrackers: EatingOutSide = { id: "crackers", label: "Prawn crackers", parts: [["11-1023", 30]] };
 const springRolls: EatingOutSide = { id: "spring-rolls", label: "2 spring rolls", parts: [["19-327", 120]] };

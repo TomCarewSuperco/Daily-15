@@ -42,6 +42,30 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   ok("built workout saved, not logged", st.templates.length === 2 && st.workouts.length === 1 && st.templates[1].name === "Garage kettlebell");
   ok("listed under My workouts", (await p.getByText("Garage kettlebell").count()) === 1);
+  // Guided session from a ready-made workout.
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.getByRole("button", { name: "Dumbbells", exact: true }).click();
+  await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
+  ok("guided set shown", (await p.getByRole("heading", { name: "Goblet squat" }).count()) === 1);
+  await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("16");
+  await p.getByRole("button", { name: "Done set" }).click();
+  ok("rest timer starts", (await p.getByText("Rest", { exact: true }).count()) === 1);
+  await p.screenshot({ path: OUT + "/gym-rest.png" });
+  await p.getByRole("button", { name: "Skip" }).click();
+  ok("weight carried to next set", (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "16");
+  await p.screenshot({ path: OUT + "/gym-set.png" });
+  await p.getByRole("button", { name: "Done set" }).click();
+  await p.getByRole("button", { name: "Skip" }).click();
+  await p.getByRole("button", { name: "Finish early" }).click();
+  await p.getByRole("button", { name: "Save workout" }).click();
+  st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
+  const gw = st.workouts.find((w) => w.name === "Lower body, dumbbells");
+  ok("guided session logged with done sets only", !!gw && gw.exercises.length === 1 && gw.exercises[0].sets.length === 2 && gw.exercises[0].sets[0].weightKg === 16);
+  // Next time: last time shown and a heavier weight suggested.
+  await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
+  ok("last time and progression shown", (await p.getByText(/Last time: 2 × 10 at 16 kg/).count()) === 1 && (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "18");
+  await p.getByRole("button", { name: "Close" }).click();
+
   console.log(R.join("\n")); console.log("errors:", errs);
   if (R.some((r) => r.startsWith("FAIL")) || errs.length) process.exitCode = 1;
   await b.close();

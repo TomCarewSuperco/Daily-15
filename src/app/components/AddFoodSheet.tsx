@@ -701,7 +701,7 @@ function EatingOutStep({ onAdd }: { onAdd: (e: Omit<FoodEntry, "id" | "date" | "
           {meal.sides.map((x) => (
             <label key={x.id} className="flex items-center justify-between gap-3 rounded-xl border bg-card p-3 text-sm">
               <span className="flex items-center gap-2">
-                <Checkbox checked={sides.has(x.id)} onCheckedChange={(v) => setSides((cur) => { const next = new Set(cur); if (v) next.add(x.id); else next.delete(x.id); return next; })} />
+                <Checkbox checked={sides.has(x.id)} onCheckedChange={(v) => setSides((cur) => { const next = new Set(cur); if (v) { meal.sides.filter((o) => o.group && o.group === x.group).forEach((o) => next.delete(o.id)); next.add(x.id); } else next.delete(x.id); return next; })} />
                 {x.label}
               </span>
               <span className="tabular-nums text-muted-foreground">+{Math.round(sumComponents(rows, x.parts, factor).kcal)} kcal</span>

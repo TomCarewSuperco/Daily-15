@@ -52,6 +52,7 @@ const BASE = process.env.BASE_URL || "http://127.0.0.1:8092/";
   ok("lying-on-back exercise warned at 20 weeks", (await p.getByText(/avoid exercises lying flat on your back/).count()) === 1);
 
   await tab("Progress");
+  await p.getByText("Weekly review").first().waitFor();
   ok("pregnancy weekly review shown", (await p.getByText(/Week (19|20) of your pregnancy/).count()) === 1 && (await p.getByText("Suggested change").count()) === 0);
   ok("no weight target", (await p.getByText("To target").count()) === 0);
   await p.screenshot({ path: OUT + "/pregnancy-progress.png", fullPage: true });

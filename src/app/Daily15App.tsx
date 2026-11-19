@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Dumbbell, Home, LineChart, User, Utensils } from "lucide-react";
 import { AuthProvider, useAuth } from "./cloud/AuthProvider";
 import { cloudEnabled } from "./cloud/client";
@@ -11,7 +11,8 @@ import { HomeTab } from "./tabs/HomeTab";
 import { NutritionTab } from "./tabs/NutritionTab";
 import { Onboarding } from "./tabs/Onboarding";
 import { ProfileTab } from "./tabs/ProfileTab";
-import { ProgressTab } from "./tabs/ProgressTab";
+// Charts are heavy, so the Progress tab loads on first visit.
+const ProgressTab = lazy(() => import("./tabs/ProgressTab").then((m) => ({ default: m.ProgressTab })));
 import { WorkoutsTab } from "./tabs/WorkoutsTab";
 
 const TABS: { id: TabId; label: string; Icon: typeof Home }[] = [
@@ -57,7 +58,11 @@ function Shell() {
         {tab === "home" && <HomeTab onNavigate={navigate} />}
         {tab === "workouts" && <WorkoutsTab intent={intent} clearIntent={clearIntent} />}
         {tab === "nutrition" && <NutritionTab intent={intent} clearIntent={clearIntent} />}
-        {tab === "progress" && <ProgressTab intent={intent} clearIntent={clearIntent} />}
+        {tab === "progress" && (
+          <Suspense fallback={<p className="pt-8 text-center text-sm text-muted-foreground">Loading</p>}>
+            <ProgressTab intent={intent} clearIntent={clearIntent} />
+          </Suspense>
+        )}
         {tab === "profile" && <ProfileTab />}
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="Main">

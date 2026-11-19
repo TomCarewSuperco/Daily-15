@@ -9,6 +9,8 @@ import { NumField } from "../components/Field";
 import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlayer";
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
+import { GymPlayer, type GymSession } from "../components/GymPlayer";
+import { EQUIPMENT_LABELS, PREBUILT, type Equipment } from "../exercises";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
@@ -29,6 +31,9 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const log = state.routineLogs[today];
   const [mode, setMode] = useState<RoutineMode>(log?.mode ?? "standard");
   const [playing, setPlaying] = useState(false);
+  const [gym, setGym] = useState<GymSession | null>(null);
+  const [library, setLibrary] = useState<"mine" | "ready">("mine");
+  const [equipment, setEquipment] = useState<Equipment | "all">("all");
   const [formOpen, setFormOpen] = useState(false);
   const [seed, setSeed] = useState<WorkoutSeed | undefined>();
   const [editing, setEditing] = useState<RoutineExercise | null>(null);
@@ -193,23 +198,59 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </div>
 
       <Card>
-        <CardHeading action={<Button variant="outline" size="sm" className="h-8" onClick={() => { setSeed({ asTemplate: true }); setFormOpen(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Build</Button>}>My workouts</CardHeading>
-        {state.templates.length === 0 ? (
-          <Empty>Build your own workout to reuse, or tick 'Save to My workouts' when you log one.</Empty>
+        <CardHeading action={<Button variant="outline" size="sm" className="h-8" onClick={() => { setSeed({ asTemplate: true }); setFormOpen(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Build</Button>}>Gym and home workouts</CardHeading>
+        <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-sm">
+          {([
+            ["mine", `My workouts${state.templates.length ? ` (${state.templates.length})` : ""}`],
+            ["ready", "Ready-made"],
+          ] as const).map(([v, label]) => (
+            <button key={v} className={`rounded-lg py-1.5 ${library === v ? "bg-card font-medium shadow-sm" : "text-muted-foreground"}`} onClick={() => setLibrary(v)}>{label}</button>
+          ))}
+        </div>
+        {library === "mine" ? (
+          state.templates.length === 0 ? (
+            <Empty>Build your own workout, save a ready-made one, or tick 'Save to My workouts' when you log a session.</Empty>
+          ) : (
+            <ul className="divide-y">
+              {state.templates.map((t) => (
+                <li key={t.id} className="flex items-center gap-2 py-2">
+                  <button className="min-w-0 flex-1 text-left" onClick={() => { setSeed({ template: t }); setFormOpen(true); }}>
+                    <div className="flex items-center gap-1.5 font-medium"><Star className="h-3.5 w-3.5 fill-copper text-copper" />{t.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{t.exercises.map((e) => e.name).join(", ")}</div>
+                  </button>
+                  <Button size="sm" className="h-8" onClick={() => setGym({ name: t.name, category: t.category, intensity: t.intensity, exercises: t.exercises })}>
+                    <Play className="mr-1 h-3.5 w-3.5" />Start
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => update((s) => ({ ...s, templates: s.templates.filter((x) => x.id !== t.id) }))} aria-label={`Remove ${t.name}`}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )
         ) : (
-          <ul className="divide-y">
-            {state.templates.map((t) => (
-              <li key={t.id} className="flex items-center justify-between py-2">
-                <button className="flex-1 text-left" onClick={() => { setSeed({ template: t }); setFormOpen(true); }}>
-                  <div className="flex items-center gap-1.5 font-medium"><Star className="h-3.5 w-3.5 fill-copper text-copper" />{t.name}</div>
-                  <div className="text-xs text-muted-foreground">{t.category} · {t.exercises.map((e) => e.name).join(", ")}</div>
+          <>
+            <div className="no-scrollbar -mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1">
+              {(["all", "none", "dumbbells", "kettlebell", "barbell", "machine"] as const).map((e) => (
+                <button key={e} onClick={() => setEquipment(e)} className={`shrink-0 rounded-full border px-3 py-1 text-xs ${equipment === e ? "border-foreground bg-foreground text-background" : "bg-card"}`}>
+                  {e === "all" ? "All" : EQUIPMENT_LABELS[e]}
                 </button>
-                <Button variant="ghost" size="icon" onClick={() => update((s) => ({ ...s, templates: s.templates.filter((x) => x.id !== t.id) }))} aria-label={`Remove ${t.name}`}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+            <ul className="divide-y">
+              {PREBUILT.filter((w) => equipment === "all" || w.equipment === equipment).map((w) => (
+                <li key={w.id} className="flex items-center gap-2 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{w.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">About {w.minutes} min · {w.exercises.map((e) => e[0]).join(", ")}</div>
+                  </div>
+                  <Button size="sm" className="h-8" onClick={() => setGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
+                    <Play className="mr-1 h-3.5 w-3.5" />Start
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Card>
 
@@ -280,6 +321,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </Card>
 
       {playing && <RoutinePlayer mode={mode} onClose={() => setPlaying(false)} />}
+      {gym && <GymPlayer session={gym} onClose={() => setGym(null)} />}
       <WorkoutForm open={formOpen} onOpenChange={setFormOpen} seed={seed} />
       <AdjustDialog exercise={editing} onClose={() => setEditing(null)} onSave={(e) => saveRoutine(state.routine.map((r) => (r.id === e.id ? e : r)))} />
       <SwapDialog
