@@ -113,7 +113,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   const words = q.split(/\s+/).filter(Boolean);
   // Plural- and synonym-tolerant: 'eggs' finds 'Egg', 'ale' finds 'Beer, bitter'.
   const matches = (name: string) => matchesAll(name, q);
-  const dbResults = q ? FOOD_DB.filter((f) => matches(f.name)) : [];
+  const dbResults = useMemo(() => (q ? searchFoods(FOOD_DB, q, 20) : []), [q]);
   const [cofid, setCofid] = useState<FoodItem[] | null>(null);
   useEffect(() => {
     if (open && q.length >= 2 && !cofid) loadCofid().then(setCofid).catch(() => setCofid([]));

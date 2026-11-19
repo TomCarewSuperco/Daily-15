@@ -209,6 +209,10 @@ const SYNONYMS: Record<string, string[]> = {
   guinness: ["stout", "guinness"],
   bitter: ["bitter"],
   chocolate: ["chocolat"],
+  coffee: ["coffee", "latte", "flat", "cappuccino", "americano", "espresso", "mocha", "cortado", "macchiato"],
+  coffees: ["coffee", "latte", "flat", "cappuccino", "americano", "espresso", "mocha", "cortado", "macchiato"],
+  oatmilk: ["oat"],
+  semi: ["semi"],
   raisin: ["raisins"],
   croissant: ["croissants"],
   pastry: ["pastries", "croissants", "pain"],
@@ -275,6 +279,9 @@ function rank(foods: FoodItem[], words: string[], need: number): FoodItem[] {
     score -= name.length / 25;
     if (/\b(raw|dried|powder|weighed)\b/.test(name)) score -= 2;
     if (/\b(homemade|takeaway|retail)\b/.test(name)) score -= 0.5;
+    // Coffee-shop drinks: the common milks first.
+    if (/, semi-skimmed milk$|with semi-skimmed milk$/.test(name)) score += 1.2;
+    else if (/, whole milk$|with whole milk$/.test(name)) score += 1;
     scored.push({ f, score });
   }
   return scored.sort((a, b) => b.score - a.score).map((x) => x.f);

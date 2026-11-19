@@ -1,0 +1,31 @@
+{
+  "_comment": "Coffee-shop drinks built from CoFID 2021 parts, ml (powder in g). Recipes are typical UK chain recipes for a regular size and are estimates: chains vary. Caffeine is mg per drink, about 65 mg per espresso shot (estimate). 'oat' and 'almond' are not in CoFID 2021 and use typical UK barista-oat and unsweetened almond drink label values (estimates).",
+  "_custom": {
+    "oat": {"kcal": 60, "protein": 1.1, "carbs": 6.6, "fat": 3.0, "fibre": 0.8, "satFat": 0.3, "sugars": 3.4, "salt": 0.1},
+    "almond": {"kcal": 13, "protein": 0.4, "carbs": 0.0, "fat": 1.1, "fibre": 0.4, "satFat": 0.1, "sugars": 0.0, "salt": 0.13}
+  },
+  "_milks": {
+    "whole milk": "12-596",
+    "semi-skimmed milk": "12-313",
+    "skimmed milk": "12-307",
+    "oat milk": "oat",
+    "soya milk": "12-523",
+    "almond milk": "almond"
+  },
+  "with_milk": [
+    {"name": "Flat white, {milk}", "parts": [["17-833", 60]], "milk": 150, "caffeine": 130, "units": [["regular", 210]]},
+    {"name": "Latte, {milk}", "parts": [["17-833", 60]], "milk": 270, "caffeine": 130, "units": [["regular", 330], ["small", 230], ["large", 450]]},
+    {"name": "Cappuccino, {milk}", "parts": [["17-833", 60]], "milk": 190, "caffeine": 130, "units": [["regular", 250], ["small", 175], ["large", 350]]},
+    {"name": "Cortado, {milk}", "parts": [["17-833", 60]], "milk": 60, "caffeine": 130, "units": [["cup", 120]]},
+    {"name": "Macchiato, {milk}", "parts": [["17-833", 30]], "milk": 15, "caffeine": 65, "units": [["cup", 45]]},
+    {"name": "Mocha, {milk}", "parts": [["17-833", 60], ["17-498", 25]], "milk": 240, "caffeine": 135, "units": [["regular", 325], ["large", 450]]},
+    {"name": "Hot chocolate, {milk}", "parts": [["17-498", 25]], "milk": 300, "caffeine": 5, "units": [["regular", 325], ["large", 450]]},
+    {"name": "Americano with {milk}", "parts": [["17-833", 300]], "milk": 40, "caffeine": 130, "units": [["regular", 340]]},
+    {"name": "Tea with {milk}", "parts": [["17-165", 230]], "milk": 20, "caffeine": 75, "units": [["mug", 250]]},
+    {"name": "Coffee with {milk}", "parts": [["17-159", 220]], "milk": 30, "caffeine": 100, "units": [["mug", 250]]}
+  ],
+  "plain": [
+    {"name": "Espresso", "parts": [["17-833", 30]], "caffeine": 65, "units": [["single", 30], ["double", 60]]},
+    {"name": "Americano, black", "parts": [["17-833", 340]], "caffeine": 130, "units": [["regular", 340]]}
+  ]
+}
