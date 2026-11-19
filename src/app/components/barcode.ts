@@ -1,4 +1,19 @@
 import type { Nutrients } from "../types";
+import { supabase } from "../cloud/client";
+
+/**
+ * Calls the food-lookup function on Supabase, which asks Open Food Facts on the
+ * app's behalf. Returns undefined if the function isn't available, so the
+ * caller falls back to asking Open Food Facts directly.
+ */
+async function viaProxy<T>(body: Record<string, string>): Promise<T | undefined> {
+  if (!supabase) return undefined;
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) return undefined;
+  const { data, error } = await supabase.functions.invoke("food-lookup", { body });
+  if (error) throw error;
+  return data as T;
+}
 
 /*
  * Open Food Facts lookups. Product data is crowd-sourced, published under the
@@ -57,6 +72,12 @@ function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
 export async function lookupBarcode(code: string): Promise<OffProduct | null> {
   const clean = code.replace(/\D/g, "");
   if (clean.length < 8) return null;
+  try {
+    const proxied = await viaProxy<{ product: RawProduct | null }>({ code: clean });
+    if (proxied) return proxied.product ? parse(proxied.product, clean) : null;
+  } catch {
+    /* fall back to a direct request */
+  }
   const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${clean}.json?fields=${FIELDS}`);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Lookup failed: ${res.status}`);
@@ -73,6 +94,13 @@ export async function lookupBarcode(code: string): Promise<OffProduct | null> {
 export async function searchProducts(query: string, signal?: AbortSignal): Promise<OffProduct[]> {
   const q = query.trim();
   if (q.length < 2) return [];
+  const keep = (products: RawProduct[]) => products.map((p) => parse(p)).filter((p): p is OffProduct => !!p && p.kcal > 0);
+  try {
+    const proxied = await viaProxy<{ products: RawProduct[] }>({ q });
+    if (proxied) return keep(proxied.products ?? []);
+  } catch {
+    /* fall back to a direct request */
+  }
   const params = new URLSearchParams({
     search_terms: q,
     search_simple: "1",
@@ -88,8 +116,7 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`, { signal });
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   const json = await res.json();
-  const products: RawProduct[] = Array.isArray(json.products) ? json.products : [];
-  return products.map((p) => parse(p)).filter((p): p is OffProduct => !!p && p.kcal > 0);
+  return keep(Array.isArray(json.products) ? json.products : []);
 }
 
 /* ---------- Camera scanning ---------- */

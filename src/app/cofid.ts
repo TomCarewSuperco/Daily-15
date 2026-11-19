@@ -55,19 +55,65 @@ export function loadCofid(): Promise<FoodItem[]> {
   return cache;
 }
 
-/** Every query word (or its singular) must appear. Plain, short names rank first. */
+/** Everyday words that the food names don't use. */
+const SYNONYMS: Record<string, string[]> = {
+  ale: ["bitter", "beer"],
+  pint: ["beer", "lager"],
+  fizzy: ["cola", "carbonated"],
+  pop: ["cola", "carbonated"],
+  soda: ["cola", "carbonated"],
+  yoghurt: ["yogurt"],
+  yogurt: ["yoghurt"],
+  cuppa: ["tea"],
+  brew: ["tea"],
+  sarnie: ["sandwich"],
+  butty: ["sandwich"],
+  spuds: ["potatoes"],
+  tatties: ["potatoes"],
+  chips: ["chips", "fries"],
+  fries: ["chips"],
+  aubergine: ["aubergine", "eggplant"],
+  courgette: ["courgette", "zucchini"],
+  prawn: ["prawns", "shrimp"],
+};
+
+const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
+const forms = (w: string) => [...stems(w), ...(SYNONYMS[w] ?? [])];
+
+/** Matches the start of a word in the name, so 'ale' doesn't find 'Wensleydale'. */
+const wordsOf = (name: string) => name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.some((nw) => nw.startsWith(x)));
+
+/** True if every query word, its singular or a common synonym starts a word in the name. */
+export function matchesAll(name: string, query: string): boolean {
+  const nw = wordsOf(name);
+  return query.toLowerCase().split(/\s+/).filter(Boolean).every((w) => hit(nw, w));
+}
+
+/**
+ * Every query word (or its singular or a synonym) must appear. Plain, short
+ * names rank first. If nothing matches every word, falls back to foods that
+ * match most of them.
+ */
 export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodItem[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
-  const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
+  const strict = rank(foods, words, words.length);
+  if (strict.length || words.length === 1) return strict.slice(0, limit);
+  return rank(foods, words, Math.ceil(words.length / 2)).slice(0, limit);
+}
+
+function rank(foods: FoodItem[], words: string[], need: number): FoodItem[] {
   const scored: { f: FoodItem; score: number }[] = [];
   for (const f of foods) {
     const name = f.name.toLowerCase();
-    if (!words.every((w) => stems(w).some((x) => name.includes(x)))) continue;
+    const nw = wordsOf(name);
+    const hits = words.filter((w) => hit(nw, w)).length;
+    if (hits < need) continue;
     const first = name.split(/[,\s]/)[0];
     const segment = name.split(",")[0].trim();
-    let score = 0;
-    if (stems(words[0]).some((x) => first.startsWith(x))) score += 10;
+    let score = hits * 20;
+    if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;
     // 'Eggs, chicken, boiled' before 'Egg fu yung': the first part is just the food.
     if (segment.split(/\s+/).length === 1) score += 4;
     score -= (name.match(/,/g)?.length ?? 0) * 1.5;
@@ -76,5 +122,5 @@ export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodI
     if (/\b(homemade|takeaway|retail)\b/.test(name)) score -= 0.5;
     scored.push({ f, score });
   }
-  return scored.sort((a, b) => b.score - a.score).slice(0, limit).map((x) => x.f);
+  return scored.sort((a, b) => b.score - a.score).map((x) => x.f);
 }

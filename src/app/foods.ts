@@ -54,7 +54,7 @@ const BASE: FoodItem[] = [
   food("Burger bun", "g", 265, 9, 47, 4.5, 2.5, [u("bun", 60)]),
   food("Egg", "g", 143, 12.6, 0.7, 9.5, 0, [u("large egg", 60), u("medium egg", 50)]),
   food("Egg, fried", "g", 196, 13.6, 0.8, 15, 0, [u("egg", 60)]),
-  food("Scrambled eggs", "g", 160, 10, 1.5, 12, 0, [u("portion (2 eggs)", 120, "portions (2 eggs)")]),
+  food("Scrambled eggs", "g", 160, 10, 1.5, 12, 0, [u("2-egg portion", 120)]),
   food("Butter", "g", 717, 0.9, 0.1, 81, 0, [u("thin spread", 7), u("tablespoon", 15)]),
   food("Jam", "g", 250, 0.4, 61, 0, 0.8, [u("teaspoon", 10)]),
   food("Honey", "g", 304, 0.3, 82, 0, 0, [u("teaspoon", 7)]),
@@ -120,7 +120,7 @@ const BASE: FoodItem[] = [
   food("Tomato", "g", 18, 0.9, 3.9, 0.2, 1.2, [u("medium tomato", 85), u("cherry tomato", 15)]),
   food("Onion", "g", 40, 1.1, 9.3, 0.1, 1.7, [u("medium onion", 150)]),
   food("Mixed salad leaves", "g", 17, 1.3, 3, 0.2, 1.5, [u("handful", 30), u("bowl", 80)]),
-  food("Avocado", "g", 160, 2, 8.5, 15, 6.7, [u("half avocado", 70, "half avocados"), u("whole avocado", 140, "whole avocados")]),
+  food("Avocado", "g", 160, 2, 8.5, 15, 6.7, [u("half", 70, "halves"), u("whole avocado", 140, "whole avocados")]),
 
   // Fruit
   food("Banana", "g", 89, 1.1, 23, 0.3, 2.6, [u("medium banana", 110)]),
