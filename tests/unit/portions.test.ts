@@ -25,3 +25,8 @@ test("portion rules avoid known traps", () => {
   assert.equal(first("Vermouth, dry", "QG", null, "ml").g, 50);
   assert.equal(first("Chicken tikka masala, homemade", "MR").g, 350);
 });
+
+test("bakery: croissants and Danish pastries have a piece unit", () => {
+  assert.equal(first("Croissants", "AN").g, 60);
+  assert.equal(first("Pastries, Danish, retail", "AN").g, 90);
+});

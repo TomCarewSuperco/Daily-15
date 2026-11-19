@@ -47,6 +47,8 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/naan/.test(n)) return [u("naan", 160), u("half naan", 80, "half naans")];
   if (/pitta/.test(n)) return [u("pitta", 60)];
   if (/^pizza/.test(n) && !/base/.test(n)) return [u("slice", 80), u("whole pizza", 400, "whole pizzas")];
+  if (/^croissant/.test(n)) return [u("croissant", 60)];
+  if (/pastries, danish/.test(n)) return [u("pastry", 90, "pastries")];
   if (/samosa/.test(n)) return [u("samosa", 50)];
   if (/pakora|bhajia|fritter|croquette/.test(n)) return [u("piece", 50)];
   if (/^bhaji/.test(n)) return [u("side portion", 150), u("main portion", 300)];
@@ -204,6 +206,10 @@ const SYNONYMS: Record<string, string[]> = {
   smirnoff: ["vodka"],
   guinness: ["stout", "guinness"],
   bitter: ["bitter"],
+  chocolate: ["chocolat"],
+  raisin: ["raisins"],
+  croissant: ["croissants"],
+  pastry: ["pastries", "croissants", "pain"],
 };
 
 const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
