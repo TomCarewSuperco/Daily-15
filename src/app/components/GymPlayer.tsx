@@ -35,6 +35,10 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   const started = useRef(Date.now());
   const targets = useMemo(() => session.exercises.map((e) => e.sets.map((s) => s.reps)), [session]);
 
+  // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
+  useEffect(() => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, []);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";

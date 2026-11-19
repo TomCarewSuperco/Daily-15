@@ -45,6 +45,10 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   const lastStep = useRef(0);
 
   // Stop the page behind from scrolling while the workout is open, so it can't show through on iPhone.
+  // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
+  useEffect(() => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, []);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
