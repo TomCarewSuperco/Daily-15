@@ -50,3 +50,11 @@ test("noodles and common dishes missing from CoFID are found", () => {
   for (const [q, want] of [["udon", "Udon noodles, cooked"], ["udaan", "Udon noodles, cooked"], ["soba", "Soba noodles, cooked"], ["chicken nuggets", "Chicken nuggets"], ["shakshuka", "Shakshuka"], ["frozen yogurt", "Frozen yogurt"]])
     assert.equal(searchFoods(FOOD_DB, q, 3)[0]?.name, want, q);
 });
+
+test("alcohol-free drinks are found and count no alcohol units", () => {
+  for (const q of ["Naughty", "non alcoholic champagne", "0.0 beer", "alcohol free wine", "seedlip", "mocktail"]) {
+    const top = searchFoods(FOOD_DB, q, 1)[0];
+    assert.ok(top && (/alcohol-free/i.test(top.name) || /virgin/i.test(top.name)), q);
+    assert.ok(!top.abv, q);
+  }
+});

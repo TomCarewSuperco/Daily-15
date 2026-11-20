@@ -34,6 +34,8 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   }
   if (group.startsWith("H") && !/paste|sauce/.test(n)) return [u("teaspoon", 3)];
   if (/^(rice|pasta|noodles|couscous|bulgur|quinoa)\b.*\braw\b/.test(n) && !/flour|pudding|sauce mix/.test(n)) return [u("portion, uncooked", 75, "portions, uncooked")];
+  if (/^(beer|lager|cider|stout|shandy)/.test(n)) return [u("pint", 568), u("bottle", 330)];
+  if (/^tonic water/.test(n)) return [u("glass", 150), u("can", 150)];
   if (NOT_AS_EATEN.test(n) && !/made up|as served|diluted/.test(n)) return [];
   if (/undiluted/.test(n)) return [];
   if (/^rice.*pudding.*raw/.test(n)) return [];
@@ -317,6 +319,10 @@ const PHRASES: [RegExp, string][] = [
   [/\bvinaigrette\b/, "french dressing"],
   [/\bhot dogs?\b/, "frankfurter"],
   [/\bhot sauce\b/, "chilli sauce"],
+  [/\b(non[- ]?alcoholic|zero alcohol|no alcohol|alcohol[- ]free|0\.0%?)\b/, "alcohol free"],
+  [/\b(noughty|naughty)\b/, "alcohol free sparkling wine"],
+  [/\b(seedlip|lyre'?s|caleno)\b/, "alcohol free spirit"],
+  [/\bmocktails?\b/, "virgin mojito alcohol free"],
   [/\bshreddies\b/, "shredded wheat"],
   [/\brice (k|c)rispies\b/, "breakfast cereal rice toasted"],
   [/\bpot noodles?\b/, "pot savouries made up"],
