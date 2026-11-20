@@ -21,3 +21,8 @@ test("flat white is found with each milk, including a typo'd 'coffe'", () => {
   assert.ok(whole.kcal > almond.kcal * 3);
   assert.ok((whole.caffeine ?? 0) > 0);
 });
+
+test("newer foods missing from CoFID are in the everyday list", () => {
+  for (const q of ["Kimchi", "kombucha", "kefir", "skyr", "sourdough", "gyoza", "ramen"])
+    assert.ok(searchFoods(FOOD_DB, q, 3).length > 0, q);
+});
