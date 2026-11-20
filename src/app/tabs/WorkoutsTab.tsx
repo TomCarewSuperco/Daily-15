@@ -79,6 +79,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
 
   const saveRoutine = (r: RoutineExercise[]) => update((s) => ({ ...s, routine: r }));
 
+  // While a workout runs, show only the player: on iPhone the page behind can show under the status bar.
+  if (playing) return <RoutinePlayer mode={mode} onClose={() => setPlaying(false)} />;
+  if (gym) return <GymPlayer session={gym} onClose={() => setGym(null)} />;
+
   return (
     <div className="space-y-4">
       <header className="pt-2">
@@ -320,8 +324,6 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
         )}
       </Card>
 
-      {playing && <RoutinePlayer mode={mode} onClose={() => setPlaying(false)} />}
-      {gym && <GymPlayer session={gym} onClose={() => setGym(null)} />}
       <WorkoutForm open={formOpen} onOpenChange={setFormOpen} seed={seed} />
       <AdjustDialog exercise={editing} onClose={() => setEditing(null)} onSave={(e) => saveRoutine(state.routine.map((r) => (r.id === e.id ? e : r)))} />
       <SwapDialog

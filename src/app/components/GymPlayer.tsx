@@ -1,3 +1,4 @@
+import { fmtClock } from "./RoutinePlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -146,7 +147,9 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
         <Button variant="ghost" size="icon" onClick={() => (doneSets ? setFinished(true) : onClose())} aria-label={doneSets ? "Finish early" : "Close"}>
           <X className="h-5 w-5" />
         </Button>
-        <span className="text-sm text-muted-foreground">{session.name} · set {doneSets + 1} of {totalSets}</span>
+        <span className="text-sm text-muted-foreground">
+          {session.name} · set {doneSets + 1} of {totalSets} · <span className="tabular-nums" aria-label="Time so far">{fmtClock(Math.floor((now - started.current) / 1000))}</span>
+        </span>
         <span className="w-10" />
       </div>
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden>

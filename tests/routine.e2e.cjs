@@ -15,11 +15,14 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("home shows estimated minutes", (await p.getByText(/12 exercises, about 1[3-7] minutes/).count()) === 1);
   await p.getByRole("button", { name: "Start", exact: true }).click();
   ok("player shows rounds", (await p.getByText(/· 1 of 12/).count()) === 1);
+  ok("player shows time so far", (await p.getByLabel("Time so far").count()) === 1);
+  ok("page behind hidden while playing", (await p.getByRole("heading", { name: "Workouts" }).count()) === 0);
   for (let i = 0; i < 12; i++) {
     if (i === 6) await p.screenshot({ path: OUT + "/routine-round2.png" });
     await p.getByRole("button", { name: /Mark done|^Done$/ }).click();
   }
   await p.getByText("How did that feel?").waitFor();
+  ok("finish shows time taken", (await p.getByText(/^Time:/).count()) === 1);
   await p.screenshot({ path: OUT + "/routine-feeling.png" });
   await p.getByRole("button", { name: /Too easy/ }).click();
   ok("proposal shown", (await p.getByText("Step it up a little").count()) === 1);

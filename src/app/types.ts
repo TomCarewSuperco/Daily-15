@@ -70,6 +70,8 @@ export interface RoutineLog {
   finished: boolean;
   /** How the session felt, asked at the end. */
   feeling?: Feeling;
+  /** Time spent in the player today, in seconds, across sessions. */
+  seconds?: number;
 }
 
 export interface RoutineSettings {

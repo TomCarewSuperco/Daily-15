@@ -43,6 +43,14 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   const [reps, setReps] = useState(0);
   const tick = useRef<number>();
   const lastStep = useRef(0);
+  // Time spent in this session, shown at the top and saved on the day's log.
+  const started = useRef(Date.now());
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setElapsed(Math.floor((Date.now() - started.current) / 1000)), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const priorSeconds = useRef(log?.mode === mode ? log.seconds ?? 0 : 0);
 
   // Stop the page behind from scrolling while the workout is open, so it can't show through on iPhone.
   // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
@@ -88,7 +96,8 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     ids.add(ex.id);
     const finished = list.every((e) => ids.has(e.id));
     const finishedNow = finished && !prev?.finished;
-    const entry = { date: today, mode, completedIds: [...ids], finished: finished || !!prev?.finished };
+    const seconds = priorSeconds.current + Math.floor((Date.now() - started.current) / 1000);
+    const entry = { ...(prev?.mode === mode ? prev : {}), date: today, mode, completedIds: [...ids], finished: finished || !!prev?.finished, seconds };
     update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: entry } }));
     if (finishedNow) {
       setFinishedScreen(true);
@@ -100,6 +109,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   }
 
   if (finishedScreen) return <FinishScreen mode={mode} onClose={onClose} />;
+  const total = priorSeconds.current + elapsed;
 
   // Multi-move exercises (the stretches): split the time equally and show the current move.
   const steps = stepsFor(ex.name);
@@ -129,6 +139,8 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         <span className="text-sm text-muted-foreground">
           {MODE_INFO[mode].label} · {idx + 1} of {list.length}
           {ex.round ? ` · round ${ex.round}` : ""}
+          {" · "}
+          <span className="tabular-nums" aria-label="Time so far">{fmtClock(total)}</span>
         </span>
         <span className="w-10" />
       </div>
@@ -199,6 +211,17 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   );
 }
 
+export function fmtClock(sec: number): string {
+  const m = Math.floor(sec / 60);
+  return `${m}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+export function fmtDuration(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m ? `${m} min ${s} s` : `${s} s`;
+}
+
 /** Shown when the routine is finished: how did it feel, and what to change next time. */
 function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => void }) {
   const { state, update } = useDaily15();
@@ -229,6 +252,9 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
     <div className="fixed inset-0 z-50 mx-auto flex max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
       <p className="text-sm font-semibold uppercase tracking-widest text-copper">Done</p>
       <h2 className="mt-2 text-4xl leading-tight">That's another day banked.</h2>
+      {state.routineLogs[today]?.seconds != null ? (
+        <p className="mt-2 text-muted-foreground">Time: <span className="tabular-nums text-foreground">{fmtDuration(state.routineLogs[today].seconds!)}</span></p>
+      ) : null}
 
       {!feeling ? (
         <>
