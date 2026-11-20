@@ -65,5 +65,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const opened = await p.getByRole("dialog").count();
   console.log(opened === 1 ? "PASS tap still opens entry" : "FAIL tap still opens entry");
   if (opened !== 1) process.exitCode = 1;
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(400);
+  // Press and hold, then drag to dinner.
+  const db = await p.locator("li", { hasText: first }).first().boundingBox();
+  const dinner = await p.locator('[data-meal="dinner"]').boundingBox();
+  await p.mouse.move(db.x + 40, db.y + db.height / 2);
+  await p.mouse.down();
+  await p.waitForTimeout(700);
+  for (let i = 1; i <= 10; i++) await p.mouse.move(db.x + 40, db.y + db.height / 2 + ((dinner.y + 30 - db.y - db.height / 2) * i) / 10);
+  await p.mouse.up();
+  await p.waitForTimeout(300);
+  const moved = await p.evaluate((n) => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === n).meal, first);
+  console.log(moved === "dinner" ? "PASS hold and drag moves entry to dinner" : `FAIL hold and drag moves entry to dinner (${moved})`);
+  if (moved !== "dinner") process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.split("\n")[0]); process.exit(1); });

@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 
 const REVEAL = 88; // width of the Delete button, px
@@ -6,26 +6,73 @@ const REVEAL = 88; // width of the Delete button, px
 /**
  * Swipe left to reveal Delete; swipe most of the way across to delete at once.
  * Vertical scrolling is left alone, and a tap after a swipe doesn't open the row.
+ * With onDrag, pressing and holding picks the row up to drag it elsewhere.
  */
-export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card" }: { children: ReactNode; onDelete: () => void; label?: string; bg?: string }) {
+export interface DragHandlers {
+  start: (x: number, y: number) => void;
+  move: (x: number, y: number) => void;
+  end: (x: number, y: number) => void;
+}
+
+export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card", onDrag }: { children: ReactNode; onDelete: () => void; label?: string; bg?: string; onDrag?: DragHandlers }) {
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; base: number; horizontal: boolean | null } | null>(null);
   const moved = useRef(false);
   const width = useRef(320);
   const row = useRef<HTMLDivElement>(null);
+  const hold = useRef<number>();
+  const lifted = useRef(false);
+  const last = useRef({ x: 0, y: 0 });
+
+  // While an item is lifted, stop the page scrolling under the finger (needs a non-passive listener on iOS).
+  useEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (lifted.current) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, []);
 
   const down = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     start.current = { x: e.clientX, y: e.clientY, base: x, horizontal: null };
     moved.current = false;
     width.current = row.current?.offsetWidth ?? 320;
+    last.current = { x: e.clientX, y: e.clientY };
+    if (onDrag && x === 0) {
+      const target = e.currentTarget as HTMLElement;
+      const id = e.pointerId;
+      hold.current = window.setTimeout(() => {
+        lifted.current = true;
+        moved.current = true;
+        try {
+          target.setPointerCapture(id);
+        } catch {
+          /* pointer already gone */
+        }
+        try {
+          navigator.vibrate?.(30);
+        } catch {
+          /* unsupported */
+        }
+        onDrag.start(last.current.x, last.current.y);
+      }, 450);
+    }
   };
   const move = (e: React.PointerEvent) => {
+    last.current = { x: e.clientX, y: e.clientY };
+    if (lifted.current) {
+      onDrag?.move(e.clientX, e.clientY);
+      return;
+    }
     const s = start.current;
     if (!s) return;
     const dx = e.clientX - s.x;
     const dy = e.clientY - s.y;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) window.clearTimeout(hold.current);
     if (s.horizontal === null) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       s.horizontal = Math.abs(dx) > Math.abs(dy);
@@ -38,7 +85,14 @@ export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card" 
     moved.current = true;
     setX(Math.min(0, Math.max(-width.current, s.base + dx)));
   };
-  const up = () => {
+  const up = (e: React.PointerEvent) => {
+    window.clearTimeout(hold.current);
+    if (lifted.current) {
+      lifted.current = false;
+      start.current = null;
+      onDrag?.end(e.clientX, e.clientY);
+      return;
+    }
     const s = start.current;
     start.current = null;
     setDragging(false);
@@ -64,7 +118,8 @@ export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card" 
       </button>
       <div
         className={`relative ${bg}`}
-        style={{ transform: `translateX(${x}px)`, transition: dragging ? "none" : "transform 0.2s ease", touchAction: "pan-y" }}
+        style={{ transform: `translateX(${x}px)`, transition: dragging ? "none" : "transform 0.2s ease", touchAction: "pan-y", WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" } as React.CSSProperties}
+        onContextMenu={(e) => onDrag && e.preventDefault()}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}

@@ -25,6 +25,26 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
   const [date, setDate] = useState(todayKey());
   const [sheet, setSheet] = useState<{ open: boolean; meal?: Meal }>({ open: false });
   const [editing, setEditing] = useState<FoodEntry | null>(null);
+  // Press and hold an entry, then drag it onto another meal.
+  const [drag, setDrag] = useState<{ entry: FoodEntry; x: number; y: number; over: Meal | null } | null>(null);
+  const mealAt = (x: number, y: number) => ((document.elementFromPoint(x, y)?.closest("[data-meal]") as HTMLElement | null)?.dataset.meal as Meal | undefined) ?? null;
+  const dragFor = (f: FoodEntry) => ({
+    start: (x: number, y: number) => setDrag({ entry: f, x, y, over: f.meal }),
+    move: (x: number, y: number) => {
+      setDrag((d) => (d ? { ...d, x, y, over: mealAt(x, y) } : d));
+      // Scroll the page when the finger nears the top or bottom edge.
+      if (y < 80) window.scrollBy(0, -12);
+      else if (y > window.innerHeight - 120) window.scrollBy(0, 12);
+    },
+    end: (x: number, y: number) => {
+      const to = mealAt(x, y);
+      setDrag(null);
+      if (to && to !== f.meal) {
+        update((s) => ({ ...s, foods: s.foods.map((e) => (e.id === f.id ? { ...e, meal: to } : e)) }));
+        toast.undo(`Moved to ${MEALS.find((m) => m.value === to)?.label.toLowerCase()}`, () => update((s) => ({ ...s, foods: s.foods.map((e) => (e.id === f.id ? { ...e, meal: f.meal } : e)) })));
+      }
+    },
+  });
   const deleteEntry = (f: FoodEntry) => {
     update((s) => ({ ...s, foods: s.foods.filter((x) => x.id !== f.id) }));
     toast.undo(`${f.name} deleted`, () => update((s) => (s.foods.some((x) => x.id === f.id) ? s : { ...s, foods: [...s.foods, f] })));
@@ -152,7 +172,8 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
         const items = foods.filter((f) => f.meal === meal);
         const n = sumNutrients(items);
         return (
-          <Card key={meal}>
+          <div key={meal} data-meal={meal} className={`rounded-2xl transition-shadow ${drag && drag.over === meal && drag.entry.meal !== meal ? "ring-2 ring-foreground" : ""}`}>
+          <Card>
             <CardHeading
               action={
                 <div className="flex items-center gap-1">
@@ -171,7 +192,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <ul className="mb-2 divide-y">
                 {items.map((f) => (
                   <li key={f.id}>
-                    <SwipeRow label={`Delete ${f.name}`} onDelete={() => deleteEntry(f)}>
+                    <SwipeRow label={`Delete ${f.name}`} onDelete={() => deleteEntry(f)} onDrag={dragFor(f)}>
                     <button className="flex w-full items-center justify-between py-2 text-left" onClick={() => setEditing(f)}>
                       <div>
                         <div className="text-sm">
@@ -191,11 +212,18 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <Plus className="mr-1 h-3.5 w-3.5" />Add to {label.toLowerCase()}
             </Button>
           </Card>
+          </div>
         );
       })}
 
+      {drag && (
+        <div className="pointer-events-none fixed z-50 max-w-[70vw] -translate-x-1/2 -translate-y-1/2 truncate rounded-full bg-foreground px-4 py-2 text-sm text-background shadow-lg" style={{ left: drag.x, top: drag.y }}>
+          {drag.entry.name}
+        </div>
+      )}
+
       <p className="px-1 text-[11px] text-muted-foreground">
-        Values marked Est. come from the built-in list or Open Food Facts and may differ from your product. Tap any item to correct it.
+        Values marked Est. come from the built-in list or Open Food Facts and may differ from your product. Tap any item to correct it. Press and hold an item to drag it to another meal; swipe left to delete.
       </p>
 
       <AddFoodSheet open={sheet.open} onOpenChange={(o) => setSheet((s) => ({ ...s, open: o }))} date={date} meal={sheet.meal} />
