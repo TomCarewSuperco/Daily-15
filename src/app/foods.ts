@@ -238,6 +238,13 @@ const BASE: FoodItem[] = [
   food("Beans on toast", "g", 105, 4.8, 18, 1.3, 3.6, [u("slice with half a tin", 240, "slices with half a tin")]),
   food("Avocado toast", "g", 193, 5, 21, 10, 4.7, [u("slice", 120)]),
 
+  // Coated nuts and fruit, not in CoFID 2021: typical UK label values (estimates).
+  food("Chocolate almonds, milk chocolate", "g", 540, 11, 40, 37, 5, [u("handful", 30), u("small bag", 40)]),
+  food("Chocolate almonds, dark chocolate", "g", 560, 11, 32, 42, 8, [u("handful", 30), u("small bag", 40)]),
+  food("Chocolate peanuts", "g", 520, 13, 44, 33, 3.5, [u("handful", 30), u("small bag", 40)]),
+  food("Chocolate raisins", "g", 420, 4.5, 64, 16, 2.5, [u("handful", 30), u("small bag", 40)]),
+  food("Yogurt-coated raisins", "g", 440, 3, 70, 17, 1.5, [u("handful", 30), u("small bag", 40)]),
+
   // Drinks
   food("Tea with semi-skimmed milk", "ml", 7, 0.5, 0.7, 0.2, 0, [u("mug", 250)]),
   food("Coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
@@ -401,6 +408,11 @@ const EXTRA: Record<string, Extra> = {
   "Olive oil": [14, 0, 0],
   Mayonnaise: [6, 1.3, 1.5],
   "Caesar dressing": [4, 2.5, 2.2],
+  "Chocolate almonds, milk chocolate": [12, 35, 0.1],
+  "Chocolate almonds, dark chocolate": [13, 25, 0.02],
+  "Chocolate peanuts": [13, 38, 0.1],
+  "Chocolate raisins": [9.5, 62, 0.1],
+  "Yogurt-coated raisins": [15, 65, 0.15],
   "Sweet chilli sauce": [0.1, 48, 1.9],
   "Sriracha": [0.1, 20, 5.3],
   "Udon noodles, cooked": [0.1, 0.4, 0.5],

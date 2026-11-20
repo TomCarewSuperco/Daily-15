@@ -58,3 +58,8 @@ test("alcohol-free drinks are found and count no alcohol units", () => {
     assert.ok(!top.abv, q);
   }
 });
+
+test("chocolate-coated nuts and raisins are found", () => {
+  assert.equal(searchFoods(FOOD_DB, "Chocolate almonds", 1)[0].name, "Chocolate almonds, milk chocolate");
+  assert.equal(searchFoods(FOOD_DB, "yoghurt covered raisins", 1)[0].name, "Yogurt-coated raisins");
+});
