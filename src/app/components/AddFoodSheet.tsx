@@ -1,3 +1,4 @@
+import { SwipeRow } from "./SwipeRow";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "../notify";
@@ -618,7 +619,8 @@ function RecipeStep({ onSaved }: { onSaved: () => void }) {
         </ul>
       )}
       {items.map((it, i) => (
-        <div key={i} className="flex items-center gap-2">
+        <SwipeRow key={`${i}-${it.food.name}`} bg="bg-background" label={`Remove ${it.food.name}`} onDelete={() => setItems((x) => x.filter((_, j) => j !== i))}>
+        <div className="flex items-center gap-2">
           <span className="flex-1 truncate text-sm">{it.food.name}</span>
           <div className="relative w-28">
             <Input type="number" inputMode="decimal" value={it.amount} onChange={(e) => setItems((x) => x.map((y, j) => (j === i ? { ...y, amount: Number(e.target.value) || 0 } : y)))} className="h-9 pr-8" />
@@ -626,6 +628,7 @@ function RecipeStep({ onSaved }: { onSaved: () => void }) {
           </div>
           <Button variant="ghost" size="icon" onClick={() => setItems((x) => x.filter((_, j) => j !== i))} aria-label="Remove ingredient"><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
+        </SwipeRow>
       ))}
       {items.length > 0 && (
         <>

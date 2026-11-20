@@ -42,5 +42,28 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   await p.screenshot({ path: OUT + "/f3-diary.png", fullPage: true });
   console.log({ requests: log, zeroKcalShown: zeroShown, saved: state, errors: errs });
   if (state.length !== 2 || zeroShown !== 0 || errs.length) process.exitCode = 1;
+  // Swipe left to delete, then undo.
+  const first = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods[0].name);
+  const row = p.locator("li", { hasText: first }).first();
+  const rb = await row.boundingBox();
+  await p.mouse.move(rb.x + rb.width - 20, rb.y + rb.height / 2);
+  await p.mouse.down();
+  for (let i = 1; i <= 10; i++) await p.mouse.move(rb.x + rb.width - 20 - i * 30, rb.y + rb.height / 2);
+  await p.mouse.up();
+  await p.waitForTimeout(400);
+  const afterSwipe = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.length);
+  await p.getByRole("button", { name: "Undo" }).click();
+  await p.waitForTimeout(300);
+  const afterUndo = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.length);
+  console.log(afterSwipe === 1 ? "PASS swipe left deletes entry" : `FAIL swipe left deletes entry (${afterSwipe})`);
+  console.log(afterUndo === 2 ? "PASS undo restores entry" : `FAIL undo restores entry (${afterUndo})`);
+  if (afterSwipe !== 1 || afterUndo !== 2) process.exitCode = 1;
+  await p.waitForTimeout(5500); // let the toast clear
+  await p.locator("li", { hasText: first }).first().locator("button").last().click();
+  await p.waitForTimeout(400);
+  await p.screenshot({ path: OUT + "/f4-tap.png" });
+  const opened = await p.getByRole("dialog").count();
+  console.log(opened === 1 ? "PASS tap still opens entry" : "FAIL tap still opens entry");
+  if (opened !== 1) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.split("\n")[0]); process.exit(1); });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "../notify";
+import { SwipeRow } from "../components/SwipeRow";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,10 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
   const [date, setDate] = useState(todayKey());
   const [sheet, setSheet] = useState<{ open: boolean; meal?: Meal }>({ open: false });
   const [editing, setEditing] = useState<FoodEntry | null>(null);
+  const deleteEntry = (f: FoodEntry) => {
+    update((s) => ({ ...s, foods: s.foods.filter((x) => x.id !== f.id) }));
+    toast.undo(`${f.name} deleted`, () => update((s) => (s.foods.some((x) => x.id === f.id) ? s : { ...s, foods: [...s.foods, f] })));
+  };
 
   useEffect(() => {
     if (intent === "add-food") setSheet({ open: true });
@@ -166,6 +171,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <ul className="mb-2 divide-y">
                 {items.map((f) => (
                   <li key={f.id}>
+                    <SwipeRow label={`Delete ${f.name}`} onDelete={() => deleteEntry(f)}>
                     <button className="flex w-full items-center justify-between py-2 text-left" onClick={() => setEditing(f)}>
                       <div>
                         <div className="text-sm">
@@ -176,6 +182,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
                       </div>
                       <span className="text-sm tabular-nums">{f.kcal}</span>
                     </button>
+                    </SwipeRow>
                   </li>
                 ))}
               </ul>
