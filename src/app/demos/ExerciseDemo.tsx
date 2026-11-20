@@ -71,13 +71,22 @@ function Figure({ pose, front }: { pose: Pose; front?: boolean }) {
   const spine = pose.c ? `M${pose.s[0]},${pose.s[1]} Q${pose.c[0]},${pose.c[1]} ${pose.p[0]},${pose.p[1]}` : `M${pose.s[0]},${pose.s[1]} L${pose.p[0]},${pose.p[1]}`;
   // In a front view both sides are equally visible.
   const far = front ? fore : back;
+  // Upright front views get shoulder and hip width, so they read as facing the viewer:
+  // the 'f' limbs are on the figure's left (viewer's right), the 'b' limbs on the other side.
+  const upright = front && Math.abs(pose.s[0] - pose.p[0]) < 8 && pose.p[1] - pose.s[1] > 15;
+  const sf: Pt = upright ? [pose.s[0] + 7, pose.s[1]] : pose.s;
+  const sb: Pt = upright ? [pose.s[0] - 7, pose.s[1]] : pose.s;
+  const pf: Pt = upright ? [pose.p[0] + 3, pose.p[1]] : pose.p;
+  const pb: Pt = upright ? [pose.p[0] - 3, pose.p[1]] : pose.p;
   return (
     <g fill="none" strokeWidth={4.5} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points={pts(pose.s, pose.be, pose.bh)} className={far} />
-      <polyline points={pts(pose.p, pose.bk, pose.bf)} className={far} />
+      <polyline points={pts(sb, pose.be, pose.bh)} className={far} />
+      <polyline points={pts(pb, pose.bk, pose.bf)} className={far} />
       <path d={spine} className={fore} />
-      <polyline points={pts(pose.p, pose.fk, pose.ff)} className={fore} />
-      <polyline points={pts(pose.s, pose.fe, pose.fh)} className={fore} />
+      {upright && <line x1={sb[0]} y1={sb[1]} x2={sf[0]} y2={sf[1]} className={fore} />}
+      {upright && <line x1={pb[0]} y1={pb[1]} x2={pf[0]} y2={pf[1]} className={fore} />}
+      <polyline points={pts(pf, pose.fk, pose.ff)} className={fore} />
+      <polyline points={pts(sf, pose.fe, pose.fh)} className={fore} />
       <circle cx={pose.h[0]} cy={pose.h[1]} r={6.5} className="fill-[hsl(var(--foreground))] stroke-none" />
     </g>
   );

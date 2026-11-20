@@ -193,10 +193,11 @@ export const DEMOS: Record<string, Demo> = {
     b: { h: [64, 13], s: [62, 24], p: [59, 52], fe: [50, 31], fh: [40, 37], be: [51, 32], bh: [41, 38], fk: [60, 72], ff: [60, 92], bk: [59, 72], bf: [59, 92] },
   },
   shoulderStretch: {
+    // Front view: the left arm straight across the chest, the right hand pulling it in just above the elbow.
     period: 5,
     front: true,
-    a: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [52, 28], fh: [41, 29], be: [66, 38], bh: [55, 31], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
-    b: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [51, 27], fh: [39, 27], be: [66, 37], bh: [54, 29], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
+    a: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [53, 27], fh: [39, 29], be: [45, 39], bh: [51, 30], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
+    b: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [51, 26], fh: [36, 26], be: [44, 38], bh: [49, 29], fk: [63, 72], ff: [65, 92], bk: [57, 72], bf: [55, 92] },
   },
   childsPose: {
     period: 5,
