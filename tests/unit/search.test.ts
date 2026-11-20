@@ -26,3 +26,14 @@ test("newer foods missing from CoFID are in the everyday list", () => {
   for (const q of ["Kimchi", "kombucha", "kefir", "skyr", "sourdough", "gyoza", "ramen"])
     assert.ok(searchFoods(FOOD_DB, q, 3).length > 0, q);
 });
+
+test("small spelling mistakes still find the food", () => {
+  const foods = [
+    { name: "Cheese, Brie, with outer rind removed" }, { name: "Cheese, Brie, rind only" }, { name: "Breadsticks, plain" },
+    { name: "Lager, alcohol-free" }, { name: "Broccoli, green, boiled" },
+  ] as any;
+  assert.equal(searchFoods(foods, "Bree", 3)[0].name, "Cheese, Brie, with outer rind removed");
+  assert.ok(!searchFoods(foods, "Bree", 5).some((f) => f.name.startsWith("Lager")));
+  assert.equal(searchFoods(foods, "brocoli", 3)[0].name, "Broccoli, green, boiled");
+  assert.equal(searchFoods(FOOD_DB, "bannana", 3)[0].name, "Banana");
+});

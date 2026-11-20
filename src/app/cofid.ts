@@ -21,7 +21,7 @@ const MEAL: FoodUnit[] = [u("regular portion", 350), u("small portion", 250), u(
 const DISH: FoodUnit[] = [u("portion", 200), u("large portion", 300)];
 
 /** Foods not eaten as listed (dry mixes, raw dried pulses, fat only, weighed with peel): grams only. */
-const NOT_AS_EATEN = /weighed whole|weighed as whole|as purchased|\bpowder\b|granules|uncooked|undiluted|concentrate|\bdry\b(?![- ]?(fried|cured|roasted))|fat only|fat, average|^dripping|^lard|^suet|dried, raw/;
+const NOT_AS_EATEN = /weighed whole|weighed as whole|as purchased|\bpowder\b|granules|uncooked|undiluted|concentrate|\bdry\b(?![- ]?(fried|cured|roasted))|fat only|rind only|fat, average|^dripping|^lard|^suet|dried, raw/;
 
 export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null, group = ""): FoodUnit[] {
   const n = name.toLowerCase();
@@ -326,20 +326,65 @@ export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodI
   const words = queryWords(query);
   if (!words.length) return [];
   const strict = rank(foods, words, words.length);
-  if (strict.length || words.length === 1) return strict.slice(0, limit);
-  return rank(foods, words, Math.ceil(words.length / 2)).slice(0, limit);
+  if (strict.length) return strict.slice(0, limit);
+  if (words.length > 1) {
+    const most = rank(foods, words, Math.ceil(words.length / 2));
+    if (most.length) return most.slice(0, limit);
+  }
+  // Nothing matched: allow small spelling mistakes ('bree' for brie, 'brocoli').
+  return rank(foods, words, words.length, true).slice(0, limit);
 }
 
-function rank(foods: FoodItem[], words: string[], need: number): FoodItem[] {
+/** Edit distance, stopping early once it passes max. */
+function distance(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      best = Math.min(best, cur[j]);
+    }
+    if (best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+/** A word of four letters or more, one letter out (two for longer words), or matching the start of a longer word. */
+function nearness(nameWords: string[], w: string): number {
+  if (hit(nameWords, w)) return 0;
+  if (w.length < 4) return 99;
+  const max = w.length >= 7 ? 2 : 1;
+  let best = 99;
+  for (const nw of nameWords) {
+    // People rarely mistype the first letter, so require it to match.
+    if (nw[0] !== w[0]) continue;
+    const whole = distance(w, nw, max);
+    if (whole <= max) best = Math.min(best, whole);
+    // Typo in the start of a longer word counts, but less than a whole-word match.
+    if (w.length >= 6 && nw.length > w.length + 1) {
+      const start = distance(w, nw.slice(0, w.length), max);
+      if (start <= max) best = Math.min(best, start + 1);
+    }
+  }
+  return best;
+}
+const nearHit = (nameWords: string[], w: string) => nearness(nameWords, w) < 99;
+
+function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): FoodItem[] {
   const scored: { f: FoodItem; score: number }[] = [];
+  const match = fuzzy ? nearHit : hit;
   for (const f of foods) {
     const name = fold(f.name);
     const nw = wordsOf(name);
-    const hits = words.filter((w) => hit(nw, w)).length;
+    const hits = words.filter((w) => match(nw, w)).length;
     if (hits < need) continue;
     const first = nw[0] ?? "";
     const segment = name.split(",")[0].trim();
     let score = hits * 20;
+    if (fuzzy) score -= words.reduce((t, w) => t + Math.min(5, nearness(nw, w)), 0) * 15;
     // Whole-word matches beat prefixes: 'rose' finds rosé wine before rosemary.
     score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;
     if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;
@@ -348,6 +393,7 @@ function rank(foods: FoodItem[], words: string[], need: number): FoodItem[] {
     score -= (name.match(/,/g)?.length ?? 0) * 1.5;
     score -= name.length / 25;
     if (/\b(raw|dried|powder|weighed)\b/.test(name)) score -= 2;
+    if (/rind only|skin only|fat only/.test(name)) score -= 4;
     if (/\b(homemade|takeaway|retail)\b/.test(name)) score -= 0.5;
     // Coffee-shop drinks: the common milks first.
     if (/, semi-skimmed milk$|with semi-skimmed milk$/.test(name)) score += 1.2;
