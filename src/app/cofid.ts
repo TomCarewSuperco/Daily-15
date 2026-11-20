@@ -109,7 +109,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^porridge, made|^porridge oats.*(cooked|made up)|^breakfast cereal, oat, instant.*made up/.test(n)) return [u("bowl", 200), u("large bowl", 300)];
   if (/condensed(?!.*as served)/.test(n)) return [u("half can", 150, "half cans")];
   if (/\bsoup\b/.test(n)) return [u("bowl", 300), u("cup", 200)];
-  if (/^sandwich/.test(n)) return [u("sandwich", 180)];
+  if (/^sandwich/.test(n)) return [u("sandwich", 180, "sandwiches")];
   if (/frankfurter with bun|hot dog/.test(n)) return [u("hot dog", 150)];
   if (/naan/.test(n)) return [u("naan", 160), u("half naan", 80, "half naans")];
   if (/pitta/.test(n)) return [u("pitta", 60)];
@@ -121,7 +121,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/samosa/.test(n)) return [u("samosa", 50)];
   if (/pakora|bhajia|fritter|croquette/.test(n)) return [u("piece", 50)];
   if (/^bhaji/.test(n)) return [u("side portion", 150), u("main portion", 300)];
-  if (/pasty|pasties/.test(n)) return [u("pasty", 230)];
+  if (/pasty|pasties/.test(n)) return [u("pasty", 230, "pasties")];
   if (/^flan|quiche|nut roast|nut and .* roast|bean loaf/.test(n)) return [u("slice", 150)];
   if (/^pie,|, pie\b|pies?,/.test(n) && !/fruit|pastry, raw/.test(n)) return [u("individual pie", 200), u("portion", 250)];
   if (/spring roll/.test(n)) return [u("spring roll", 60)];

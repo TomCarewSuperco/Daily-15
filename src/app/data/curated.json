@@ -767,6 +767,18 @@
   "salt": 0.01,
   "abv": null
  },
+ "Cherry tomatoes": {
+  "code": "13-519",
+  "kcal": 22,
+  "protein": 1.1,
+  "carbs": 3.6,
+  "fat": 0.5,
+  "fibre": 1.3,
+  "satFat": 0.1,
+  "sugars": 3.6,
+  "salt": 0.01,
+  "abv": null
+ },
  "Onion": {
   "code": "13-499",
   "kcal": 35,

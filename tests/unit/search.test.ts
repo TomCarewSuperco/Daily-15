@@ -37,3 +37,11 @@ test("small spelling mistakes still find the food", () => {
   assert.equal(searchFoods(foods, "brocoli", 3)[0].name, "Broccoli, green, boiled");
   assert.equal(searchFoods(FOOD_DB, "bannana", 3)[0].name, "Banana");
 });
+
+test("unit plurals are spelled correctly", async () => {
+  const { loadCofid } = await import("../../src/app/cofid");
+  const all = [...FOOD_DB, ...(await loadCofid())];
+  const bad = new Set<string>();
+  for (const f of all) for (const u of f.units ?? []) if (/(o|ch|sh|x|[^aeiou]y)s$/.test(u.plural) && !/(avocados|burritos|espressos)$/.test(u.plural)) bad.add(u.plural);
+  assert.deepEqual([...bad], []);
+});
