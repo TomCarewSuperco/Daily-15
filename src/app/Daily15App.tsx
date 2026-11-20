@@ -54,6 +54,8 @@ function Shell() {
 
   return (
     <>
+      {/* Covers the strip under the iPhone status bar so scrolled content doesn't show behind the clock. */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       <main className="px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
         {tab === "home" && <HomeTab onNavigate={navigate} />}
         {tab === "workouts" && <WorkoutsTab intent={intent} clearIntent={clearIntent} />}
