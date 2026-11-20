@@ -45,3 +45,8 @@ test("unit plurals are spelled correctly", async () => {
   for (const f of all) for (const u of f.units ?? []) if (/(o|ch|sh|x|[^aeiou]y)s$/.test(u.plural) && !/(avocados|burritos|espressos)$/.test(u.plural)) bad.add(u.plural);
   assert.deepEqual([...bad], []);
 });
+
+test("noodles and common dishes missing from CoFID are found", () => {
+  for (const [q, want] of [["udon", "Udon noodles, cooked"], ["udaan", "Udon noodles, cooked"], ["soba", "Soba noodles, cooked"], ["chicken nuggets", "Chicken nuggets"], ["shakshuka", "Shakshuka"], ["frozen yogurt", "Frozen yogurt"]])
+    assert.equal(searchFoods(FOOD_DB, q, 3)[0]?.name, want, q);
+});
