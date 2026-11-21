@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Dumbbell, Home, LineChart, User, Utensils } from "lucide-react";
 import { AuthProvider, useAuth } from "./cloud/AuthProvider";
+import { ErrorBoundary, importWithReload } from "./components/ErrorBoundary";
 import { cloudEnabled } from "./cloud/client";
 import { useReminders } from "./components/useReminders";
 import { useHealthSync } from "./native/useHealthSync";
@@ -12,7 +13,7 @@ import { NutritionTab } from "./tabs/NutritionTab";
 import { Onboarding } from "./tabs/Onboarding";
 import { ProfileTab } from "./tabs/ProfileTab";
 // Charts are heavy, so the Progress tab loads on first visit.
-const ProgressTab = lazy(() => import("./tabs/ProgressTab").then((m) => ({ default: m.ProgressTab })));
+const ProgressTab = lazy(importWithReload(() => import("./tabs/ProgressTab").then((m) => ({ default: m.ProgressTab }))));
 import { WorkoutsTab } from "./tabs/WorkoutsTab";
 
 const TABS: { id: TabId; label: string; Icon: typeof Home }[] = [
@@ -57,6 +58,7 @@ function Shell() {
       {/* Covers the strip under the iPhone status bar so scrolled content doesn't show behind the clock. */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       <main className="px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
+        <ErrorBoundary resetKey={tab}>
         {tab === "home" && <HomeTab onNavigate={navigate} />}
         {tab === "workouts" && <WorkoutsTab intent={intent} clearIntent={clearIntent} />}
         {tab === "nutrition" && <NutritionTab intent={intent} clearIntent={clearIntent} />}
@@ -66,6 +68,7 @@ function Shell() {
           </Suspense>
         )}
         {tab === "profile" && <ProfileTab />}
+        </ErrorBoundary>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="Main">
         <ul className="grid grid-cols-5">
