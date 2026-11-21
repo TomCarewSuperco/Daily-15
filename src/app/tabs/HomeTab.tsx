@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   currentStreak,
   foodsOn,
+  addDays,
   formatDay,
   isActiveDay,
   isRestDay,
@@ -21,6 +22,7 @@ import { Card, CardHeading, Estimate } from "../components/Section";
 import type { Navigate } from "../nav";
 import { useDaily15 } from "../store";
 import { PregnancyCard } from "../components/PregnancyCard";
+import { RoughDay } from "../components/RoughDay";
 import { lifeStageOf } from "../pregnancy";
 import { buildRoutine, estimateMinutes, settingsOf } from "../routine";
 
@@ -52,6 +54,26 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const restToday = isRestDay(state, today);
   const week = lastNDays(7);
   const remaining = t.calories - food.kcal;
+
+  // Yesterday not logged at all: one question to fill the gap.
+  const yesterday = addDays(today, -1);
+  const skipKey = `daily15:rough-skip:${yesterday}`;
+  const [skipped, setSkipped] = useState(() => {
+    try {
+      return localStorage.getItem(skipKey) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const askYesterday = !skipped && !!state.profile && foodsOn(state, yesterday).length === 0 && !(state.foodDiaryDone ?? []).includes(yesterday) && state.foods.length > 0;
+  const skipYesterday = () => {
+    try {
+      localStorage.setItem(skipKey, "1");
+    } catch {
+      /* storage unavailable */
+    }
+    setSkipped(true);
+  };
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -137,6 +159,14 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
       </Card>
 
       <PregnancyCard />
+
+      {askYesterday && (
+        <Card>
+          <CardHeading action={<Button variant="ghost" size="sm" className="h-8 text-xs" onClick={skipYesterday}>Skip</Button>}>Yesterday wasn't logged</CardHeading>
+          <p className="mb-3 text-sm text-muted-foreground">How did it go? A rough answer keeps your week's picture complete.</p>
+          <RoughDay date={yesterday} scope="day" compact onDone={skipYesterday} />
+        </Card>
+      )}
 
       {advice && !routine?.finished && (
         <Card className="border-copper/40 text-sm">

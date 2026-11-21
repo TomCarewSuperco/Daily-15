@@ -224,6 +224,11 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         <Card>
           <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(review.start, { day: "numeric", month: "short" })} to {formatDay(review.end, { day: "numeric", month: "short" })}</span>}>Weekly review</CardHeading>
           <p className="text-lg leading-snug">{review.headline}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Food: {review.foodCoverage.logged} {review.foodCoverage.logged === 1 ? "day" : "days"} logged
+            {review.foodCoverage.estimated > 0 && `, ${review.foodCoverage.estimated} estimated`}
+            {review.foodCoverage.missing > 0 && `, ${review.foodCoverage.missing} missing`}
+          </p>
 
           {review.adjustment && (
             <div className="mt-4 rounded-xl border border-copper/40 bg-copper/5 p-3">

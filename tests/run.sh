@@ -22,5 +22,6 @@ OUT="$OUT" node tests/portions.e2e.cjs
 OUT="$OUT" node tests/pregnancy.e2e.cjs
 OUT="$OUT" node tests/routine.e2e.cjs
 OUT="$OUT" node tests/workouts.e2e.cjs
+OUT="$OUT" node tests/rough.e2e.cjs
 OUT="$OUT" node tests/update.e2e.cjs
 OUT="$OUT" node tests/auth.e2e.cjs

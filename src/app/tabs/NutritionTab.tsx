@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { BookmarkPlus, CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "../notify";
 import { SwipeRow } from "../components/SwipeRow";
+import { HIGH_LABEL, highIn } from "../flags";
+import { RoughDay } from "../components/RoughDay";
+import { emptyMeals, hasRough } from "../rough";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -65,6 +68,11 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
 
   const foods = foodsOn(state, date);
   const total = sumNutrients(foods);
+  // Missed or half-logged days: offer an estimate (today only from the evening).
+  const [restOpen, setRestOpen] = useState(false);
+  const pastOrEvening = date < todayKey() || new Date().getHours() >= 18;
+  const offerDay = !locked && foods.length === 0 && date <= todayKey() && pastOrEvening;
+  const offerRest = !locked && foods.length > 0 && !hasRough(state, date) && emptyMeals(state, date).length > 0 && date <= todayKey() && pastOrEvening;
   const remaining = t.calories - total.kcal;
   const water = state.water[date] ?? 0;
   const isToday = date === todayKey();
@@ -176,6 +184,14 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
         {total.kcal > 0 && <MacroSplit n={total} />}
       </Card>
 
+      {offerDay && (
+        <Card>
+          <CardHeading>{date === todayKey() ? "Not logged today?" : "Didn't log this day?"}</CardHeading>
+          <p className="mb-3 text-sm text-muted-foreground">Tell us roughly how it went and we'll fill in an estimate, so your week isn't left with a gap.</p>
+          <RoughDay date={date} scope="day" />
+        </Card>
+      )}
+
       {MEALS.map(({ value: meal, label }) => {
         const items = foods.filter((f) => f.meal === meal);
         const n = sumNutrients(items);
@@ -205,8 +221,17 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
                       <div>
                         <div className="text-sm">
                           {flagsForFood(stage, f).length > 0 && <TriangleAlert className="mr-1 inline h-3.5 w-3.5 text-destructive" aria-label="Not usually advised" />}
-                          {f.name}{f.estimated && <Estimate />}
+                          {f.rough ? <span className="italic">{f.name}</span> : f.name}
+                          {f.estimated && !f.rough && <Estimate />}
+                          {f.rough && <span className="ml-1.5 rounded bg-muted px-1 py-px text-[10px] uppercase tracking-wide text-muted-foreground">estimate</span>}
                         </div>
+                        {highIn(f, state.profile!.focus).length > 0 && (
+                          <div className="mt-0.5 flex flex-wrap gap-1">
+                            {highIn(f, state.profile!.focus).map((n) => (
+                              <span key={n} className="rounded-full bg-copper/10 px-1.5 py-px text-[10px] font-medium text-copper">{HIGH_LABEL[n]}</span>
+                            ))}
+                          </div>
+                        )}
                         <div className="text-xs text-muted-foreground">{f.portion} · P {Math.round(f.protein)} g</div>
                       </div>
                       <span className="text-sm tabular-nums">{f.kcal}</span>
@@ -231,6 +256,17 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
           {drag.entry.name}
         </div>
       )}
+
+      {offerRest &&
+        (restOpen ? (
+          <Card>
+            <CardHeading>Rest of the day not logged?</CardHeading>
+            <p className="mb-3 text-sm text-muted-foreground">We'll estimate the meals with nothing logged ({emptyMeals(state, date).join(", ")}) from your usual day.</p>
+            <RoughDay date={date} scope="rest" onDone={() => setRestOpen(false)} />
+          </Card>
+        ) : (
+          <Button variant="outline" className="w-full" onClick={() => setRestOpen(true)}>Rest of the day not logged? Estimate it</Button>
+        ))}
 
       {foods.length > 0 &&
         (locked ? (

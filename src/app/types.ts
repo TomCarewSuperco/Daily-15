@@ -135,6 +135,8 @@ export interface Nutrients {
 /** 'dried' is dried fruit: 30 g a portion rather than 80 g. */
 export type FiveADayKind = "fv" | "juice" | "pulses" | "dried";
 
+export type RoughLevel = "lighter" | "typical" | "heavier" | "blowout";
+
 export interface FoodEntry extends Nutrients {
   id: string;
   date: string;
@@ -148,6 +150,10 @@ export interface FoodEntry extends Nutrients {
   fiveADayKind?: FiveADayKind;
   alcoholUnits?: number;
   caffeineMg?: number;
+  /** An estimate for a day, or the rest of a day, that wasn't logged: how it compared with a typical day. */
+  rough?: RoughLevel;
+  /** Whether the estimate covers the whole day or only the meals not logged. */
+  roughScope?: "day" | "rest";
   /** How the portion was chosen, so the amount can be changed later. Absent on older entries. */
   source?: {
     name: string;

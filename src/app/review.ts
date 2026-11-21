@@ -51,6 +51,8 @@ export interface WeeklyReview {
   lessOf: ReviewPoint[];
   adjustment: Adjustment | null;
   notes: string[];
+  /** Days of the week with food logged, estimated (a rough-day entry) or missing. */
+  foodCoverage: { logged: number; estimated: number; missing: number };
 }
 
 const STEP_KCAL = 150;
@@ -89,9 +91,13 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
 
   // Food
   const foodDays = days.filter((d) => foodsOn(state, d).length > 0);
+  // Estimated days fill the picture; changing the calorie target needs days actually logged.
+  const estimatedDays = foodDays.filter((d) => foodsOn(state, d).some((f) => f.rough));
+  const loggedDays = foodDays.filter((d) => !estimatedDays.includes(d));
+  const realDays = foodDays.filter((d) => foodsOn(state, d).some((f) => !f.rough));
   // Days marked complete give a truer average: half-logged days drag it down.
   const doneSet = new Set(state.foodDiaryDone ?? []);
-  const completeDays = foodDays.filter((d) => doneSet.has(d));
+  const completeDays = loggedDays.filter((d) => doneSet.has(d));
   const basisDays = completeDays.length >= MIN_FOOD_DAYS ? completeDays : foodDays;
   const totals = basisDays.map((d) => ({ d, n: sumNutrients(foodsOn(state, d)), entries: foodsOn(state, d) }));
   const avg = (f: (x: (typeof totals)[number]) => number) => (totals.length ? totals.reduce((s, x) => s + f(x), 0) / totals.length : 0);
@@ -147,7 +153,9 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
     to.push({ id: pt.id, text: pt.text, detail: pt.detail, focus: isFocus, priority: pt.priority + (isFocus ? FOCUS_BOOST : 0) });
   };
 
-  const enoughFood = foodDays.length >= MIN_FOOD_DAYS;
+  const enoughFood = foodDays.length >= MIN_FOOD_DAYS && realDays.length >= 2;
+  const enoughForTarget = realDays.length >= MIN_FOOD_DAYS;
+  if (estimatedDays.length) notes.push(`${estimatedDays.length} of 7 days ${estimatedDays.length === 1 ? "was" : "were"} estimated rather than logged, so treat the food advice as approximate.`);
 
   /* ---------- Weight and the calorie target ---------- */
   if (losing || p.goal === "build-muscle" || p.goal === "maintain") {
@@ -170,7 +178,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
         status = "on-track";
         headline = `On track. Trend weight down ${kg(change7!)} this week.`;
       } else if (pct14 !== null && pct14 > -0.4) {
-        if (!enoughFood) {
+        if (!enoughForTarget) {
           status = "stalled";
           headline = "Weight has been steady for two weeks.";
           notes.push(`Log food on at least ${MIN_FOOD_DAYS} days so the review can tell whether to change your target.`);
@@ -203,7 +211,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
         status = "too-fast";
         headline = `You gained ${kg(change7!)} this week, faster than muscle can be built.`;
         if (!recentlyAdjusted) adjustment = { text: `Lower your target to ${fmt(t.calories - STEP_KCAL)} kcal`, reason: "Gaining more than about 0.5% of body weight a week is mostly fat.", change: { calories: t.calories - STEP_KCAL } };
-      } else if (pct14 !== null && pct14 <= 0 && enoughFood && avgKcal >= t.calories - 100) {
+      } else if (pct14 !== null && pct14 <= 0 && enoughForTarget && avgKcal >= t.calories - 100) {
         status = "stalled";
         headline = "No weight gain for two weeks.";
         if (!recentlyAdjusted) adjustment = { text: `Raise your target to ${fmt(t.calories + STEP_KCAL)} kcal`, reason: "Building muscle needs a small, steady surplus.", change: { calories: t.calories + STEP_KCAL } };
@@ -212,7 +220,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
         headline = "Steady progress this week.";
       }
     } else {
-      if (change14 !== null && Math.abs(change14) > 1 && enoughFood) {
+      if (change14 !== null && Math.abs(change14) > 1 && enoughForTarget) {
         status = change14 > 0 ? "gaining" : "too-fast";
         headline = `Weight has moved ${change14 > 0 ? "up" : "down"} ${kg(change14)} in two weeks.`;
         if (!recentlyAdjusted) {
@@ -319,5 +327,16 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   if (foodDays.length >= 6) wins.push("Food logged on almost every day.");
 
   const order = (xs: ReviewPoint[]) => xs.sort((a, b) => b.priority - a.priority).slice(0, 3);
-  return { start, end, headline: headline || `Week of ${formatDay(start, { day: "numeric", month: "short" })}`, status, wins: wins.slice(0, 3), moreOf: order(moreOf), lessOf: order(lessOf), adjustment, notes };
+  return {
+    start,
+    end,
+    headline: headline || `Week of ${formatDay(start, { day: "numeric", month: "short" })}`,
+    status,
+    wins: wins.slice(0, 3),
+    moreOf: order(moreOf),
+    lessOf: order(lessOf),
+    adjustment,
+    notes,
+    foodCoverage: { logged: loggedDays.length, estimated: estimatedDays.length, missing: days.length - foodDays.length },
+  };
 }

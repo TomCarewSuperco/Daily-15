@@ -112,3 +112,13 @@ test("eating over target isn't flagged while weight comes off steadily", () => {
   assert.equal(r.status, "on-track");
   assert.ok(!r.lessOf.some((p) => p.id === "calories"));
 });
+
+test("estimated days count in the picture, are reported, and don't unlock target changes", () => {
+  // Weight flat, so the review would suggest eating less if it trusted the food data.
+  const s = make({ kgPerWeek: 0, foodDays: 3 });
+  for (let n = 3; n < 7; n++) s.foods.push({ id: `r${n}`, date: day(n), meal: "dinner", name: "Estimated day: typical", portion: "share", kcal: 2000, protein: 120, carbs: 200, fat: 70, fibre: 20, estimated: true, rough: "typical", roughScope: "day" });
+  const r = weeklyReview(s, END);
+  assert.deepEqual(r.foodCoverage, { logged: 3, estimated: 4, missing: 0 });
+  assert.ok(r.notes.some((n) => n.includes("4 of 7 days were estimated")));
+  assert.equal(r.adjustment, null);
+});
