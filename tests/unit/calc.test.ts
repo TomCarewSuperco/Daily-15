@@ -72,3 +72,14 @@ test("active minutes count the daily routine and workouts, not double with Healt
   const noTime = { ...empty(), routineLogs: { [d]: { date: d, mode: "standard", completedIds: [], finished: true } } } as AppState;
   assert.equal(activeMinutesOn(noTime, d), 15);
 });
+
+test("without Health or entered minutes, steps give an estimate of active minutes", async () => {
+  const { activeMinutesOn, stepsActiveEstimate } = await import("../../src/app/calc");
+  assert.equal(stepsActiveEstimate(11000), 30);
+  assert.equal(stepsActiveEstimate(4000), 0);
+  const d = "2026-11-21";
+  const s = { ...empty(), activity: { [d]: { date: d, steps: 11000 } as any }, routineLogs: { [d]: { date: d, mode: "standard", completedIds: [], finished: true, seconds: 790 } } } as AppState;
+  assert.equal(activeMinutesOn(s, d), 43);
+  const typed = { ...s, activity: { [d]: { date: d, steps: 11000, activeMinutes: 20 } as any } };
+  assert.equal(activeMinutesOn(typed, d), 33);
+});

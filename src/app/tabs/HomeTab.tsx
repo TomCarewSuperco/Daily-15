@@ -13,7 +13,7 @@ import {
   sumNutrients,
   todayKey,
   workoutsOn,
-  activeMinutesOn,
+  activeMinutesBreakdown,
 } from "../calc";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { Bar, Ring } from "../components/Ring";
@@ -35,7 +35,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const food = sumNutrients(foodsOn(state, today));
   const activity = state.activity[today];
   const steps = activity?.steps ?? 0;
-  const activeMin = activeMinutesOn(state, today);
+  const { total: activeMin, fromSteps: activeFromSteps } = activeMinutesBreakdown(state, today);
   const routine = state.routineLogs[today];
   const workoutsToday = workoutsOn(state, today).length + (routine?.finished ? 1 : 0);
   const streak = currentStreak(state);
@@ -164,6 +164,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           <div>
             <div className="mb-1 flex justify-between"><span>Active minutes</span><span className="tabular-nums text-muted-foreground">{activeMin} / {t.activeMinutes} min</span></div>
             <Bar value={activeMin} max={t.activeMinutes} />
+            {activeFromSteps > 0 && <p className="mt-1 text-[11px] text-muted-foreground">Includes about {activeFromSteps} min estimated from your steps. Add your own figure under Update steps.</p>}
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between">

@@ -247,11 +247,27 @@ export function workoutsOn(state: AppState, date: string): Workout[] {
  * with a watch, so with Health connected the larger figure is used, not the sum.
  */
 export function activeMinutesOn(state: AppState, date: string): number {
-  const extra = state.activity[date]?.activeMinutes ?? 0;
+  return activeMinutesBreakdown(state, date).total;
+}
+
+/**
+ * Active minutes estimated from steps, when no minutes were entered or synced.
+ * Rough rule: everyday pottering covers about 5,000 steps; walking above that at
+ * about 100 steps a minute, with half of it counted as brisk. So about 5 minutes
+ * per 1,000 steps over 5,000 (11,000 steps: about 30 minutes). An estimate.
+ */
+export function stepsActiveEstimate(steps: number): number {
+  return Math.max(0, Math.round(((steps - 5000) / 100) * 0.5));
+}
+
+export function activeMinutesBreakdown(state: AppState, date: string): { total: number; fromSteps: number } {
+  const a = state.activity[date];
+  const fromSteps = !state.health?.connected && !a?.activeMinutes ? stepsActiveEstimate(a?.steps ?? 0) : 0;
+  const extra = (a?.activeMinutes ?? 0) + fromSteps;
   const r = state.routineLogs[date];
   const routine = r?.seconds ? Math.round(r.seconds / 60) : r?.finished ? 15 : 0;
   const sessions = routine + workoutsOn(state, date).reduce((s, w) => s + (w.durationMin || 0), 0);
-  return state.health?.connected ? Math.max(extra, sessions) : extra + sessions;
+  return { total: state.health?.connected ? Math.max(extra, sessions) : extra + sessions, fromSteps };
 }
 
 /** A day counts as active if the daily routine was finished or any workout was logged. */
