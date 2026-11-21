@@ -24,9 +24,17 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   await p.getByRole("button", { name: "Nutrition" }).click();
   await p.getByRole("button", { name: "Add to lunch" }).click();
   const box = p.getByPlaceholder(/Search foods/);
+  // 'beans' matches built-in foods, so branded search waits for the button.
+  await box.fill("beans");
+  await p.waitForTimeout(1200);
+  const autoForCommon = log.filter((l) => l.startsWith("/cgi/search.pl")).length;
+  console.log(autoForCommon === 0 ? "PASS no automatic branded search when built-in foods match" : "FAIL no automatic branded search when built-in foods match");
+  if (autoForCommon !== 0) process.exitCode = 1;
+  await p.getByRole("button", { name: /Search branded products/ }).waitFor();
+  // A brand name matches nothing built in, so branded products load by themselves.
   await box.fill("heinz beans");
-  await p.getByRole("button", { name: /Search branded products/ }).click();
-  await p.getByText("Heinz Baked Beanz").waitFor();
+  await p.getByText("Heinz Baked Beanz").waitFor({ timeout: 5000 });
+  console.log("PASS brand name searches branded products automatically");
   const zeroShown = await p.getByText("X Beans no kcal").count();
   await p.screenshot({ path: OUT + "/f1-search.png" });
   await p.getByText("Heinz Baked Beanz").click();

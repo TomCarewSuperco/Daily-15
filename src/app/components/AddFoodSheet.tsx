@@ -147,6 +147,49 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
 
   const pickDb = (f: FoodItem) => setPending(fromItem(f, true));
 
+  // No food in the built-in lists contains every word typed (likely a brand, such as 'Caramac'):
+  // search branded products automatically and show those first.
+  const exact = useMemo(
+    () => q.length < 2 || FOOD_DB.some((f) => matchesAll(f.name, q)) || (cofid ?? []).some((f) => matchesAll(f.name, q)) || myFoods.some((f) => matchesAll(f.name, q)),
+    [q, cofid, myFoods],
+  );
+  useEffect(() => {
+    const term = query.trim();
+    if (!open || exact || term.length < 3 || !cofid || online.query === term) return;
+    const t = window.setTimeout(searchOnline, 700);
+    return () => window.clearTimeout(t);
+  }, [open, exact, query, cofid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const brandedBlock = (
+    <>
+      {q.length >= 2 && (
+        online.query === query.trim() && online.status !== "idle" ? (
+          <ResultGroup title="Branded products (UK)">
+            {online.status === "loading" && <p className="px-3 py-2.5 text-sm text-muted-foreground">Searching Open Food Facts</p>}
+            {online.status === "error" && <p className="px-3 py-2.5 text-sm text-destructive">Couldn't reach Open Food Facts. Check your connection and try again.</p>}
+            {online.status === "done" && online.results.length === 0 && (
+              <p className="px-3 py-2.5 text-sm text-muted-foreground">
+                No products found. <button className="underline" onClick={() => setMode("manual")}>Enter it manually</button>.
+              </p>
+            )}
+            {online.results.map((p) => (
+              <ResultRow key={p.code || p.name} name={p.name} detail={`${p.kcal} kcal per 100 g${p.quantity ? ` · pack ${p.quantity}` : ""}`} onClick={() => setPending(fromOff(p))} />
+            ))}
+          </ResultGroup>
+        ) : (
+          <Button variant="outline" className="w-full" onClick={searchOnline}>
+            <Globe className="mr-1.5 h-4 w-4" />Search branded products for '{query.trim()}'
+          </Button>
+        )
+      )}
+      {online.status === "done" && online.results.length > 0 && online.query === query.trim() && (
+        <p className="text-[11px] text-muted-foreground">
+          Product data from <a className="underline" href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">Open Food Facts</a> under the Open Database Licence. Check values against the label.
+        </p>
+      )}
+    </>
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="mx-auto h-[92dvh] max-w-md overflow-y-auto overscroll-contain rounded-t-2xl">
@@ -235,8 +278,9 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                       ))}
                     </ResultGroup>
                   )}
+                  {!exact && brandedBlock}
                   {q && dbResults.length > 0 && (
-                    <ResultGroup title="Common foods">
+                    <ResultGroup title={exact ? "Common foods" : "Similar common foods"}>
                       {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
                     </ResultGroup>
                   )}
@@ -251,37 +295,13 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                   )}
                   {cofidResults.length > 0 && (
                     <div>
-                      <ResultGroup title="UK food database">
+                      <ResultGroup title={exact ? "UK food database" : "Similar foods in the UK food database"}>
                         {cofidResults.map((f) => <ResultRow key={f.cofid} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
                       </ResultGroup>
                       <p className="mt-1 text-[11px] text-muted-foreground">{COFID_CREDIT}</p>
                     </div>
                   )}
-                  {q.length >= 2 && (
-                    online.query === query.trim() && online.status !== "idle" ? (
-                      <ResultGroup title="Branded products (UK)">
-                        {online.status === "loading" && <p className="px-3 py-2.5 text-sm text-muted-foreground">Searching Open Food Facts</p>}
-                        {online.status === "error" && <p className="px-3 py-2.5 text-sm text-destructive">Couldn't reach Open Food Facts. Check your connection and try again.</p>}
-                        {online.status === "done" && online.results.length === 0 && (
-                          <p className="px-3 py-2.5 text-sm text-muted-foreground">
-                            No products found. <button className="underline" onClick={() => setMode("manual")}>Enter it manually</button>.
-                          </p>
-                        )}
-                        {online.results.map((p) => (
-                          <ResultRow key={p.code || p.name} name={p.name} detail={`${p.kcal} kcal per 100 g${p.quantity ? ` · pack ${p.quantity}` : ""}`} onClick={() => setPending(fromOff(p))} />
-                        ))}
-                      </ResultGroup>
-                    ) : (
-                      <Button variant="outline" className="w-full" onClick={searchOnline}>
-                        <Globe className="mr-1.5 h-4 w-4" />Search branded products for '{query.trim()}'
-                      </Button>
-                    )
-                  )}
-                  {online.status === "done" && online.results.length > 0 && online.query === query.trim() && (
-                    <p className="text-[11px] text-muted-foreground">
-                      Product data from <a className="underline" href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer">Open Food Facts</a> under the Open Database Licence. Check values against the label.
-                    </p>
-                  )}
+                  {exact && brandedBlock}
                   {!q && !savedResults.length && !recentResults.length && !myFoods.length && <p className="text-sm text-muted-foreground">Start typing, e.g. 'eggs', 'sausage' or 'banana'.</p>}
                 </div>
               )}
