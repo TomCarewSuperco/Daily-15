@@ -15,8 +15,15 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
     if (u.pathname.includes("/product/5000159484695")) return route.fulfill({ json: { status: 1, product: product("5000159484695", "Twix", "Mars", 495) } });
     return route.fulfill({ status: 404, json: { status: 0 } });
   });
+  const siteCalls = [];
+  await ctx.route("**/api/food-lookup**", (route) => {
+    const u = new URL(route.request().url());
+    if (u.searchParams.get("q") !== "sitebrand") return route.fulfill({ status: 404, contentType: "text/html", body: "not found" });
+    siteCalls.push(u.search);
+    return route.fulfill({ json: { products: [product("9", "Site Bar", "Acme", 500)] } });
+  });
   const p = await ctx.newPage();
-  const errs = []; p.on("pageerror", (e) => errs.push(e.message)); p.on("console", (m) => m.type() === "error" && errs.push(m.text()));
+  const errs = []; p.on("pageerror", (e) => errs.push(e.message)); p.on("console", (m) => m.type() === "error" && !m.text().includes("status of 404") && errs.push(m.text()));
   // Force the ZXing path, as on iPhone Safari.
   await p.addInitScript(() => { delete window.BarcodeDetector; });
   await p.addInitScript((s) => { if (!localStorage.getItem("daily15:v1")) localStorage.setItem("daily15:v1", JSON.stringify(s)); }, seed);
@@ -35,6 +42,12 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   await box.fill("heinz beans");
   await p.getByText("Heinz Baked Beanz").waitFor({ timeout: 5000 });
   console.log("PASS brand name searches branded products automatically");
+  await box.fill("sitebrand");
+  await p.getByText("Acme Site Bar").waitFor({ timeout: 5000 });
+  console.log(siteCalls.length > 0 ? "PASS branded search uses the app's own lookup first" : "FAIL branded search uses the app's own lookup first");
+  if (!siteCalls.length) process.exitCode = 1;
+  await box.fill("heinz beans");
+  await p.getByText("Heinz Baked Beanz").waitFor({ timeout: 5000 });
   const zeroShown = await p.getByText("X Beans no kcal").count();
   await p.screenshot({ path: OUT + "/f1-search.png" });
   await p.getByText("Heinz Baked Beanz").click();

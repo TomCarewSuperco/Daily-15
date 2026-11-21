@@ -15,6 +15,22 @@ async function viaProxy<T>(body: Record<string, string>): Promise<T | undefined>
   return data as T;
 }
 
+/**
+ * The app's own lookup endpoint on Vercel (api/food-lookup.js). Same origin as
+ * the web app; the native app calls the deployed site. Returns undefined if the
+ * endpoint isn't there (local builds), so the caller tries the next route.
+ */
+const LOOKUP_URL =
+  (import.meta.env.VITE_LOOKUP_URL as string | undefined) ||
+  (typeof window !== "undefined" && window.location.protocol.startsWith("http") ? "/api/food-lookup" : "https://daily-15-tomcarewsupercos-projects.vercel.app/api/food-lookup");
+
+async function viaSite<T>(params: Record<string, string>, signal?: AbortSignal): Promise<T | undefined> {
+  const res = await fetch(`${LOOKUP_URL}?${new URLSearchParams(params)}`, { signal });
+  if (res.status === 404 || !(res.headers.get("content-type") ?? "").includes("json")) return undefined;
+  if (!res.ok) throw new Error(`Lookup failed: ${res.status}`);
+  return (await res.json()) as T;
+}
+
 /*
  * Open Food Facts lookups. Product data is crowd-sourced, published under the
  * Open Database Licence (attribution shown in the UI) and treated as estimates.
@@ -73,6 +89,12 @@ export async function lookupBarcode(code: string): Promise<OffProduct | null> {
   const clean = code.replace(/\D/g, "");
   if (clean.length < 8) return null;
   try {
+    const site = await viaSite<{ product: RawProduct | null }>({ code: clean });
+    if (site) return site.product ? parse(site.product, clean) : null;
+  } catch {
+    /* try the next route */
+  }
+  try {
     const proxied = await viaProxy<{ product: RawProduct | null }>({ code: clean });
     if (proxied) return proxied.product ? parse(proxied.product, clean) : null;
   } catch {
@@ -95,6 +117,13 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   const q = query.trim();
   if (q.length < 2) return [];
   const keep = (products: RawProduct[]) => products.map((p) => parse(p)).filter((p): p is OffProduct => !!p && p.kcal > 0);
+  try {
+    const site = await viaSite<{ products: RawProduct[] }>({ q }, signal);
+    if (site) return keep(site.products ?? []);
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    /* try the next route */
+  }
   try {
     const proxied = await viaProxy<{ products: RawProduct[] }>({ q });
     if (proxied) return keep(proxied.products ?? []);

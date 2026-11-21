@@ -18,6 +18,7 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+  const proxyCalls = []; const directCalls = [];
   const handler = async (route) => {
     const req = route.request(); const u = new URL(req.url()); const m = req.method(); const body = req.postDataJSON?.() ?? null;
     calls.push(`${m} ${u.pathname}${u.search.includes('grant_type') ? u.search : ''}`);
@@ -59,10 +60,12 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
         return json(200, [{ updated_at: rows[id].updated_at }]);
       }
     }
+    if (u.pathname === '/functions/v1/food-lookup') { proxyCalls.push(body); return json(200, { products: [{ code: '1', product_name: 'Caramac', brands: 'Nestle', nutriments: { 'energy-kcal_100g': 560, proteins_100g: 6, carbohydrates_100g: 60, fat_100g: 33 } }] }); }
     if (u.pathname === '/functions/v1/delete-account') { const id = who(req); delete rows[id]; for (const k in users) if (users[k].id === id) delete users[k]; return json(200, { deleted: true }); }
     return json(404, { message: 'unhandled ' + u.pathname });
   };
   await ctx.route('https://fake-d15.supabase.co/**', handler);
+  await ctx.route('https://world.openfoodfacts.org/**', (r) => { directCalls.push(r.request().url()); return r.abort(); });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && !m.text().includes('status of 4') && errs.push(m.text()));
   const R = [];
@@ -123,6 +126,13 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
   await p.waitForTimeout(2500);
   const saved = rows['u0']?.data;
   ok('data synced to account', saved?.profile?.heightCm === 178 && Object.values(saved.water)[0] === 250);
+  // Branded search goes through the food-lookup function when signed in.
+  await p.getByRole('button', { name: 'Nutrition' }).click();
+  await p.getByRole('button', { name: 'Add to snacks' }).click();
+  await p.getByPlaceholder(/Search foods/).fill('Caramac');
+  await p.getByText('Nestle Caramac').waitFor({ timeout: 6000 }).catch(() => {});
+  ok(`branded search uses the food-lookup function (proxy ${proxyCalls.length}, direct ${directCalls.length})`, proxyCalls.length > 0 && (await p.getByText('Nestle Caramac').count()) > 0);
+  await p.keyboard.press('Escape');
   // Profile: change password, sign out
   await p.getByRole('button', { name: 'Profile' }).click();
   await p.getByText('All changes saved to your account').waitFor();
