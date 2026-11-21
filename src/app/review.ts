@@ -89,7 +89,11 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
 
   // Food
   const foodDays = days.filter((d) => foodsOn(state, d).length > 0);
-  const totals = foodDays.map((d) => ({ d, n: sumNutrients(foodsOn(state, d)), entries: foodsOn(state, d) }));
+  // Days marked complete give a truer average: half-logged days drag it down.
+  const doneSet = new Set(state.foodDiaryDone ?? []);
+  const completeDays = foodDays.filter((d) => doneSet.has(d));
+  const basisDays = completeDays.length >= MIN_FOOD_DAYS ? completeDays : foodDays;
+  const totals = basisDays.map((d) => ({ d, n: sumNutrients(foodsOn(state, d)), entries: foodsOn(state, d) }));
   const avg = (f: (x: (typeof totals)[number]) => number) => (totals.length ? totals.reduce((s, x) => s + f(x), 0) / totals.length : 0);
   const avgKcal = avg((x) => x.n.kcal);
   const avgProtein = avg((x) => x.n.protein);

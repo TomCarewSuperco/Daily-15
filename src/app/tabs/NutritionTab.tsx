@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookmarkPlus, ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { BookmarkPlus, CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "../notify";
 import { SwipeRow } from "../components/SwipeRow";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,13 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
   const [date, setDate] = useState(todayKey());
   const [sheet, setSheet] = useState<{ open: boolean; meal?: Meal }>({ open: false });
   const [editing, setEditing] = useState<FoodEntry | null>(null);
+  // A completed day is locked: no adding, editing, moving or deleting until it's unlocked.
+  const locked = (state.foodDiaryDone ?? []).includes(date);
+  const setLocked = (on: boolean) =>
+    update((s) => {
+      const rest = (s.foodDiaryDone ?? []).filter((d) => d !== date);
+      return { ...s, foodDiaryDone: on ? [...rest, date].sort() : rest };
+    });
   // Press and hold an entry, then drag it onto another meal.
   const [drag, setDrag] = useState<{ entry: FoodEntry; x: number; y: number; over: Meal | null } | null>(null);
   const mealAt = (x: number, y: number) => ((document.elementFromPoint(x, y)?.closest("[data-meal]") as HTMLElement | null)?.dataset.meal as Meal | undefined) ?? null;
@@ -192,8 +199,8 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <ul className="mb-2 divide-y">
                 {items.map((f) => (
                   <li key={f.id}>
-                    <SwipeRow label={`Delete ${f.name}`} onDelete={() => deleteEntry(f)} onDrag={dragFor(f)}>
-                    <button className="flex w-full items-center justify-between py-2 text-left" onClick={() => setEditing(f)}>
+                    <SwipeRow label={`Delete ${f.name}`} onDelete={() => deleteEntry(f)} onDrag={dragFor(f)} disabled={locked}>
+                    <button className="flex w-full items-center justify-between py-2 text-left disabled:opacity-100" disabled={locked} onClick={() => setEditing(f)}>
                       <div>
                         <div className="text-sm">
                           {flagsForFood(stage, f).length > 0 && <TriangleAlert className="mr-1 inline h-3.5 w-3.5 text-destructive" aria-label="Not usually advised" />}
@@ -208,9 +215,11 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
                 ))}
               </ul>
             )}
-            <Button variant="outline" size="sm" className="w-full" onClick={() => setSheet({ open: true, meal })}>
-              <Plus className="mr-1 h-3.5 w-3.5" />Add to {label.toLowerCase()}
-            </Button>
+            {!locked && (
+              <Button variant="outline" size="sm" className="w-full" onClick={() => setSheet({ open: true, meal })}>
+                <Plus className="mr-1 h-3.5 w-3.5" />Add to {label.toLowerCase()}
+              </Button>
+            )}
           </Card>
           </div>
         );
@@ -221,6 +230,22 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
           {drag.entry.name}
         </div>
       )}
+
+      {foods.length > 0 &&
+        (locked ? (
+          <Card className="flex items-center gap-3">
+            <Lock className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Diary complete</p>
+              <p className="text-xs text-muted-foreground">{total.kcal.toLocaleString("en-GB")} kcal logged. Locked so nothing changes by accident; the weekly review treats this day as complete.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setLocked(false)}>Unlock</Button>
+          </Card>
+        ) : (
+          <Button className="w-full" onClick={() => { setLocked(true); toast.success("Diary complete and locked"); }}>
+            <CheckCircle2 className="mr-1.5 h-4 w-4" />{date === todayKey() ? "That's everything for today" : "That's everything for this day"}
+          </Button>
+        ))}
 
       <p className="px-1 text-[11px] text-muted-foreground">
         Values marked Est. come from the built-in list or Open Food Facts and may differ from your product. Tap any item to correct it. Press and hold an item to drag it to another meal; swipe left to delete.

@@ -230,6 +230,8 @@ export interface AppState {
   foods: FoodEntry[];
   savedMeals: SavedMeal[];
   customFoods: CustomFood[];
+  /** Days whose food diary the user marked complete (locked), as dates. */
+  foodDiaryDone?: string[];
   /** Supplements ticked off per day, keyed by date. */
   supplements?: Record<string, string[]>;
   water: Record<string, number>;

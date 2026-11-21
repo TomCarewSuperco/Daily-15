@@ -100,5 +100,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const moved = await p.evaluate((n) => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === n).meal, first);
   console.log(moved === "dinner" ? "PASS hold and drag moves entry to dinner" : `FAIL hold and drag moves entry to dinner (${moved})`);
   if (moved !== "dinner") process.exitCode = 1;
+  // Mark the day complete: it locks, then unlocks.
+  await p.waitForTimeout(5500);
+  await p.getByRole("button", { name: "That's everything for today" }).click();
+  await p.waitForTimeout(300);
+  const lockedNow = await p.evaluate(() => (JSON.parse(localStorage.getItem("daily15:v1")).foodDiaryDone ?? []).length === 1);
+  const addHidden = (await p.getByRole("button", { name: "Add to lunch" }).count()) === 0;
+  await p.screenshot({ path: OUT + "/f5-locked.png", fullPage: true });
+  await p.getByRole("button", { name: "Unlock" }).click();
+  await p.waitForTimeout(300);
+  const unlocked = await p.evaluate(() => (JSON.parse(localStorage.getItem("daily15:v1")).foodDiaryDone ?? []).length === 0);
+  const addBack = (await p.getByRole("button", { name: "Add to lunch" }).count()) === 1;
+  console.log(lockedNow && addHidden ? "PASS day locks when marked complete" : `FAIL day locks when marked complete (${lockedNow}, ${addHidden})`);
+  console.log(unlocked && addBack ? "PASS unlock reopens the day" : "FAIL unlock reopens the day");
+  if (!(lockedNow && addHidden && unlocked && addBack)) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.split("\n")[0]); process.exit(1); });

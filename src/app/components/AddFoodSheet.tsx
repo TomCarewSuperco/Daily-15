@@ -125,8 +125,10 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
 
   const add = (entry: Omit<FoodEntry, "id" | "date" | "meal">) => {
-    update((s) => ({ ...s, foods: [...s.foods, { ...entry, id: uid(), date, meal }] }));
-    toast.success(`Added to ${meal}`);
+    const wasDone = (state.foodDiaryDone ?? []).includes(date);
+    // Adding to a completed day reopens it.
+    update((s) => ({ ...s, foods: [...s.foods, { ...entry, id: uid(), date, meal }], foodDiaryDone: (s.foodDiaryDone ?? []).filter((d) => d !== date) }));
+    toast.success(wasDone ? `Added to ${meal}. Diary reopened.` : `Added to ${meal}`);
     onOpenChange(false);
   };
 

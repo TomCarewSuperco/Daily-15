@@ -14,7 +14,7 @@ export interface DragHandlers {
   end: (x: number, y: number) => void;
 }
 
-export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card", onDrag }: { children: ReactNode; onDelete: () => void; label?: string; bg?: string; onDrag?: DragHandlers }) {
+export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card", onDrag, disabled = false }: { children: ReactNode; onDelete: () => void; label?: string; bg?: string; onDrag?: DragHandlers; disabled?: boolean }) {
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; base: number; horizontal: boolean | null } | null>(null);
@@ -37,6 +37,7 @@ export function SwipeRow({ children, onDelete, label = "Delete", bg = "bg-card",
   }, []);
 
   const down = (e: React.PointerEvent) => {
+    if (disabled) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     start.current = { x: e.clientX, y: e.clientY, base: x, horizontal: null };
     moved.current = false;

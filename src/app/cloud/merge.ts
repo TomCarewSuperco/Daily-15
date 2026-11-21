@@ -8,7 +8,7 @@ import type { AppState } from "../types";
  *   Additions on either side are kept. A deletion wins unless the other side
  *   edited that item. If both sides edited the same item, `local` wins.
  * - Day-keyed records (routine logs, water, activity) merge day by day, same rules.
- * - Rest days merge as a set.
+ * - Rest days and completed food-diary days merge as sets.
  * - Single values (profile, routine, reminders, Health link) take whichever side
  *   changed, preferring `local` if both did.
  */
@@ -72,6 +72,7 @@ export function mergeStates(base: AppState, local: AppState, remote: AppState): 
     foods: mergeById(base.foods, local.foods, remote.foods),
     savedMeals: mergeById(base.savedMeals, local.savedMeals, remote.savedMeals),
     customFoods: mergeById(base.customFoods, local.customFoods, remote.customFoods),
+    foodDiaryDone: mergeSet(base.foodDiaryDone, local.foodDiaryDone, remote.foodDiaryDone),
     supplements: mergeRecord(base.supplements, local.supplements, remote.supplements),
     water: mergeRecord(base.water, local.water, remote.water),
     activity: mergeRecord(base.activity, local.activity, remote.activity),
