@@ -144,7 +144,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => setStepsOpen(true)}>Update steps</Button>
         </Card>
         <Card className="flex flex-col items-center">
-          <Ring value={stage ? 0 : food.kcal} max={t.calories} label={stage ? "Calories eaten" : "Calories progress"}>
+          <Ring kind="budget" value={stage ? 0 : food.kcal} max={t.calories} label={stage ? "Calories eaten" : "Calories progress"}>
             <Utensils className="h-4 w-4 text-muted-foreground" />
             <div className="text-lg font-semibold tabular-nums">{food.kcal.toLocaleString("en-GB")}</div>
             <div className="text-[10px] text-muted-foreground">{stage ? "kcal eaten" : remaining >= 0 ? `${remaining.toLocaleString("en-GB")} left` : `${Math.abs(remaining).toLocaleString("en-GB")} over`}</div>

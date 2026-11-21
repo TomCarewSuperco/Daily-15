@@ -1,5 +1,23 @@
 import type { ReactNode } from "react";
 
+/*
+ * One meaning per colour, everywhere:
+ *   dark grey = in progress   green = target met   copper = over a budget or limit
+ * A target (steps, protein, water) turns green when reached and stays green.
+ * A budget (calories, carbs, fat) turns green from 90% of it and copper once over.
+ * A limit (saturated fat, salt, sugars, caffeine) stays grey and turns copper once over.
+ */
+const IN_PROGRESS = "hsl(var(--foreground) / 0.72)";
+const MET = "hsl(var(--d15-done))";
+const OVER = "hsl(var(--copper))";
+
+export function progressColour(value: number, max: number, kind: "target" | "budget" | "limit" = "target"): string {
+  const r = max > 0 ? value / max : 0;
+  if (kind === "limit") return value > max ? OVER : "hsl(var(--muted-foreground) / 0.55)";
+  if (kind === "budget") return value > max ? OVER : r >= 0.9 ? MET : IN_PROGRESS;
+  return r >= 1 ? MET : IN_PROGRESS;
+}
+
 interface RingProps {
   value: number;
   max: number;
@@ -8,10 +26,12 @@ interface RingProps {
   children?: ReactNode;
   className?: string;
   label?: string;
+  /** 'budget' for calories: over the target shows as over, not as met. */
+  kind?: "target" | "budget";
 }
 
 /** Circular progress. Fills to 100% and stays full beyond the target. */
-export function Ring({ value, max, size = 120, stroke = 10, children, className = "", label }: RingProps) {
+export function Ring({ value, max, size = 120, stroke = 10, children, className = "", label, kind = "target" }: RingProps) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;
@@ -24,7 +44,7 @@ export function Ring({ value, max, size = 120, stroke = 10, children, className 
           cy={size / 2}
           r={r}
           fill="none"
-          stroke={pct >= 1 ? "hsl(var(--d15-done))" : "hsl(var(--copper))"}
+          stroke={progressColour(value, max, kind)}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
@@ -37,10 +57,10 @@ export function Ring({ value, max, size = 120, stroke = 10, children, className 
   );
 }
 
-/** Progress bar. A target turns green when met. A limit stays grey and turns red when exceeded. */
-export function Bar({ value, max, className = "", limit = false }: { value: number; max: number; className?: string; limit?: boolean }) {
+/** Progress bar, coloured by progressColour: targets, budgets and limits. */
+export function Bar({ value, max, className = "", limit = false, budget = false }: { value: number; max: number; className?: string; limit?: boolean; budget?: boolean }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  const colour = limit ? (value > max ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground) / 0.55)") : pct >= 100 ? "hsl(var(--d15-done))" : "hsl(var(--copper))";
+  const colour = progressColour(value, max, limit ? "limit" : budget ? "budget" : "target");
   return (
     <div className={`h-2 w-full overflow-hidden rounded-full bg-muted ${className}`}>
       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: colour }} />

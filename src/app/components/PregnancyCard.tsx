@@ -52,7 +52,7 @@ export function PregnancyCard() {
       <div className="mt-3 text-sm">
         <div className="mb-1 flex justify-between">
           <span>Caffeine today</span>
-          <span className={`tabular-nums ${caffeine > CAFFEINE_LIMIT_MG ? "text-destructive" : "text-muted-foreground"}`}>{caffeine} / {CAFFEINE_LIMIT_MG} mg</span>
+          <span className={`tabular-nums ${caffeine > CAFFEINE_LIMIT_MG ? "text-copper" : "text-muted-foreground"}`}>{caffeine} / {CAFFEINE_LIMIT_MG} mg</span>
         </div>
         <Bar value={caffeine} max={CAFFEINE_LIMIT_MG} limit />
       </div>

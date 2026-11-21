@@ -90,7 +90,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
 
       <Card>
         <div className="flex items-center gap-4">
-          <Ring value={stage ? 0 : total.kcal} max={t.calories} size={128} label={stage ? "Calories eaten" : "Calories eaten against target"}>
+          <Ring kind="budget" value={stage ? 0 : total.kcal} max={t.calories} size={128} label={stage ? "Calories eaten" : "Calories eaten against target"}>
             <div className="text-2xl font-semibold tabular-nums">{(stage ? total.kcal : Math.abs(remaining)).toLocaleString("en-GB")}</div>
             <div className="text-[11px] text-muted-foreground">{stage ? "kcal eaten" : remaining >= 0 ? "kcal left" : "kcal over"}</div>
           </Ring>
@@ -116,7 +116,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
             ) : (
               <div key={label}>
                 <div className="mb-1 flex justify-between"><span>{label}</span><span className="tabular-nums text-muted-foreground">{Math.round(v)} / {max} g</span></div>
-                <Bar value={v} max={max} />
+                <Bar value={v} max={max} budget={label === "Carbohydrate" || label === "Fat"} />
               </div>
             ),
           )}
@@ -149,7 +149,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
               <div>
                 <div className="mb-1 flex justify-between">
                   <span className="font-medium">Caffeine</span>
-                  <span className={`tabular-nums ${caffeineOn(state, date) > CAFFEINE_LIMIT_MG ? "text-destructive" : "text-muted-foreground"}`}>{caffeineOn(state, date)} / {CAFFEINE_LIMIT_MG} mg limit</span>
+                  <span className={`tabular-nums ${caffeineOn(state, date) > CAFFEINE_LIMIT_MG ? "text-copper" : "text-muted-foreground"}`}>{caffeineOn(state, date)} / {CAFFEINE_LIMIT_MG} mg limit</span>
                 </div>
                 <Bar value={caffeineOn(state, date)} max={CAFFEINE_LIMIT_MG} limit />
               </div>
@@ -157,7 +157,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
             {(weekUnits > 0 || focus.has("alcohol")) && (
               <div className="flex justify-between">
                 <span className={focus.has("alcohol") ? "font-medium" : ""}>Alcohol, last seven days</span>
-                <span className={`tabular-nums ${weekUnits > ALCOHOL_UNITS_PER_WEEK ? "text-destructive" : "text-muted-foreground"}`}>{weekUnits} / {ALCOHOL_UNITS_PER_WEEK} units</span>
+                <span className={`tabular-nums ${weekUnits > ALCOHOL_UNITS_PER_WEEK ? "text-copper" : "text-muted-foreground"}`}>{weekUnits} / {ALCOHOL_UNITS_PER_WEEK} units</span>
               </div>
             )}
           </div>
