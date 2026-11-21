@@ -59,3 +59,16 @@ test("weekly report counts goals and stays within 0 to 100%", () => {
   assert.ok(r.goalCompletion >= 0 && r.goalCompletion <= 100);
   assert.ok(r.achievements.some((a) => a.includes("5 of seven")));
 });
+
+test("active minutes count the daily routine and workouts, not double with Health", async () => {
+  const { activeMinutesOn } = await import("../../src/app/calc");
+  const d = "2026-11-21";
+  const s = { ...empty(), routineLogs: { [d]: { date: d, mode: "standard", completedIds: [], finished: true, seconds: 790 } } } as AppState;
+  assert.equal(activeMinutesOn(s, d), 13);
+  const withWorkout = { ...s, workouts: [{ id: "w", date: d, durationMin: 30 } as any] };
+  assert.equal(activeMinutesOn(withWorkout, d), 43);
+  const health = { ...withWorkout, health: { connected: true }, activity: { [d]: { date: d, steps: 9000, activeMinutes: 50 } as any } };
+  assert.equal(activeMinutesOn(health, d), 50);
+  const noTime = { ...empty(), routineLogs: { [d]: { date: d, mode: "standard", completedIds: [], finished: true } } } as AppState;
+  assert.equal(activeMinutesOn(noTime, d), 15);
+});

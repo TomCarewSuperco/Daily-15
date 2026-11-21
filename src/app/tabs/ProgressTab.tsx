@@ -19,6 +19,7 @@ import {
   uid,
   weeklyReport,
   weightSeries,
+  activeMinutesOn,
 } from "../calc";
 import { Field, NumField } from "../components/Field";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
@@ -72,7 +73,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const weekSteps = stepsData.reduce((s, d) => s + d.steps, 0);
   const loggedDays = stepsData.filter((d) => d.steps > 0).length;
   const weekDistance = week.reduce((s, d) => s + (state.activity[d]?.distanceKm ?? 0), 0);
-  const weekActive = week.reduce((s, d) => s + (state.activity[d]?.activeMinutes ?? 0), 0);
+  const weekActive = week.reduce((s, d) => s + activeMinutesOn(state, d), 0);
   const stepGoalDays = stepsData.filter((d) => d.steps >= p.targets.steps).length;
 
   const report = useMemo(() => weeklyReport(state, addDays(todayKey(), -1)), [state]);

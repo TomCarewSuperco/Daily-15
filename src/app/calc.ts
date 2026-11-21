@@ -240,6 +240,20 @@ export function workoutsOn(state: AppState, date: string): Workout[] {
   return state.workouts.filter((w) => w.date === date);
 }
 
+/**
+ * Active minutes for a day: the daily routine (its timed length, or 15 minutes
+ * if finished without a time), logged workouts, and minutes entered by hand or
+ * from Apple Health. Health's exercise minutes already include workouts done
+ * with a watch, so with Health connected the larger figure is used, not the sum.
+ */
+export function activeMinutesOn(state: AppState, date: string): number {
+  const extra = state.activity[date]?.activeMinutes ?? 0;
+  const r = state.routineLogs[date];
+  const routine = r?.seconds ? Math.round(r.seconds / 60) : r?.finished ? 15 : 0;
+  const sessions = routine + workoutsOn(state, date).reduce((s, w) => s + (w.durationMin || 0), 0);
+  return state.health?.connected ? Math.max(extra, sessions) : extra + sessions;
+}
+
 /** A day counts as active if the daily routine was finished or any workout was logged. */
 export function isActiveDay(state: AppState, date: string): boolean {
   return !!state.routineLogs[date]?.finished || state.workouts.some((w) => w.date === date);

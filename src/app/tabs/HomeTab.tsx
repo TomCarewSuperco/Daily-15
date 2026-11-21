@@ -13,6 +13,7 @@ import {
   sumNutrients,
   todayKey,
   workoutsOn,
+  activeMinutesOn,
 } from "../calc";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { Bar, Ring } from "../components/Ring";
@@ -34,7 +35,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const food = sumNutrients(foodsOn(state, today));
   const activity = state.activity[today];
   const steps = activity?.steps ?? 0;
-  const activeMin = (activity?.activeMinutes ?? 0) + workoutsOn(state, today).reduce((s, w) => s + w.durationMin, 0);
+  const activeMin = activeMinutesOn(state, today);
   const routine = state.routineLogs[today];
   const workoutsToday = workoutsOn(state, today).length + (routine?.finished ? 1 : 0);
   const streak = currentStreak(state);
