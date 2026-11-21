@@ -59,6 +59,7 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
 
   useEffect(() => {
     if (intent === "add-food") setSheet({ open: true });
+    if (intent?.startsWith("show-day:")) setDate(intent.slice(9));
     if (intent) clearIntent();
   }, [intent, clearIntent]);
 

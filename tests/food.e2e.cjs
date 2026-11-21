@@ -114,5 +114,14 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   console.log(lockedNow && addHidden ? "PASS day locks when marked complete" : `FAIL day locks when marked complete (${lockedNow}, ${addHidden})`);
   console.log(unlocked && addBack ? "PASS unlock reopens the day" : "FAIL unlock reopens the day");
   if (!(lockedNow && addHidden && unlocked && addBack)) process.exitCode = 1;
+  // Home: tapping yesterday in the week strip shows yesterday's numbers.
+  await p.getByRole("button", { name: "Home" }).click();
+  await p.locator('button[aria-label^="Show "]').nth(5).click();
+  const showing = await p.getByText(/^Showing /).count();
+  const diaryBtn = await p.getByRole("button", { name: "Open food diary" }).count();
+  await p.getByRole("button", { name: "Back to today" }).click();
+  const backToday = (await p.getByText(/^Showing /).count()) === 0;
+  console.log(showing && diaryBtn && backToday ? "PASS week strip day shows that day" : `FAIL week strip day shows that day (${showing}, ${diaryBtn}, ${backToday})`);
+  if (!(showing && diaryBtn && backToday)) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.split("\n")[0]); process.exit(1); });

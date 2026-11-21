@@ -31,11 +31,14 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const p = state.profile!;
   const t = p.targets;
   const today = todayKey();
+  // Tapping a day in the week strip shows that day's numbers below.
+  const [view, setView] = useState(today);
+  const viewing = view !== today;
 
-  const food = sumNutrients(foodsOn(state, today));
-  const activity = state.activity[today];
+  const food = sumNutrients(foodsOn(state, view));
+  const activity = state.activity[view];
   const steps = activity?.steps ?? 0;
-  const { total: activeMin, fromSteps: activeFromSteps } = activeMinutesBreakdown(state, today);
+  const { total: activeMin, fromSteps: activeFromSteps } = activeMinutesBreakdown(state, view);
   const routine = state.routineLogs[today];
   const workoutsToday = workoutsOn(state, today).length + (routine?.finished ? 1 : 0);
   const streak = currentStreak(state);
@@ -44,7 +47,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const stage = lifeStageOf(p);
   const todayRoutine = buildRoutine(state.routine, "standard", settingsOf(state));
   const toGo = weight !== null ? Math.round(Math.abs(weight - p.targetWeightKg) * 10) / 10 : null;
-  const water = state.water[today] ?? 0;
+  const water = state.water[view] ?? 0;
   const advice = restAdvice(state);
   const restToday = isRestDay(state, today);
   const week = lastNDays(7);
@@ -53,7 +56,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const addWater = (ml: number) => update((s) => ({ ...s, water: { ...s.water, [today]: Math.max(0, (s.water[today] ?? 0) + ml) } }));
+  const addWater = (ml: number) => update((s) => ({ ...s, water: { ...s.water, [view]: Math.max(0, (s.water[view] ?? 0) + ml) } }));
   const toggleRest = () =>
     update((s) => ({ ...s, restDays: s.restDays.includes(today) ? s.restDays.filter((d) => d !== today) : [...s.restDays, today] }));
 
@@ -113,13 +116,21 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           {week.map((d) => {
             const active = isActiveDay(state, d);
             const rest = isRestDay(state, d);
+            const selected = d === view;
             return (
-              <div key={d} className="flex flex-col items-center gap-1">
-                <div className={`h-7 w-7 rounded-full border text-[10px] leading-7 text-center ${active ? "border-transparent bg-[hsl(var(--d15-done))] text-white" : rest ? "border-background/40 bg-background/10" : "border-background/30"}`}>
+              <button
+                key={d}
+                type="button"
+                onClick={() => setView(selected ? today : d)}
+                aria-pressed={selected}
+                aria-label={`Show ${formatDay(d, { weekday: "long", day: "numeric", month: "long" })}`}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className={`h-7 w-7 rounded-full border text-[10px] leading-7 text-center ${active ? "border-transparent bg-[hsl(var(--d15-done))] text-white" : rest ? "border-background/40 bg-background/10" : "border-background/30"} ${selected && viewing ? "ring-2 ring-background ring-offset-2 ring-offset-foreground" : ""}`}>
                   {active ? "✓" : rest ? "R" : ""}
                 </div>
-                <span className="text-[10px] opacity-60">{formatDay(d, { weekday: "narrow" })}</span>
-              </div>
+                <span className={`text-[10px] ${selected && viewing ? "font-semibold opacity-100" : "opacity-60"}`}>{formatDay(d, { weekday: "narrow" })}</span>
+              </button>
             );
           })}
         </div>
@@ -134,22 +145,32 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
       )}
 
       {/* Rings */}
+      {viewing && (
+        <div className="flex items-center justify-between rounded-xl bg-muted px-3 py-2 text-sm">
+          <span>Showing {formatDay(view, { weekday: "long", day: "numeric", month: "long" })}</span>
+          <button className="font-medium underline" onClick={() => setView(today)}>Back to today</button>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <Card className="flex flex-col items-center">
+          <button type="button" onClick={() => setStepsOpen(true)} aria-label="Update steps" className="rounded-full">
           <Ring value={steps} max={t.steps} label="Steps progress">
             <Footprints className="h-4 w-4 text-muted-foreground" />
             <div className="text-lg font-semibold tabular-nums">{steps.toLocaleString("en-GB")}</div>
             <div className="text-[10px] text-muted-foreground">of {t.steps.toLocaleString("en-GB")}</div>
           </Ring>
+          </button>
           <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => setStepsOpen(true)}>Update steps</Button>
         </Card>
         <Card className="flex flex-col items-center">
+          <button type="button" onClick={() => (viewing ? onNavigate("nutrition", `show-day:${view}`) : onNavigate("nutrition", "add-food"))} aria-label={viewing ? "Open this day's food diary" : "Log food"} className="rounded-full">
           <Ring kind="budget" value={stage ? 0 : food.kcal} max={t.calories} label={stage ? "Calories eaten" : "Calories progress"}>
             <Utensils className="h-4 w-4 text-muted-foreground" />
             <div className="text-lg font-semibold tabular-nums">{food.kcal.toLocaleString("en-GB")}</div>
             <div className="text-[10px] text-muted-foreground">{stage ? "kcal eaten" : remaining >= 0 ? `${remaining.toLocaleString("en-GB")} left` : `${Math.abs(remaining).toLocaleString("en-GB")} over`}</div>
           </Ring>
-          <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => onNavigate("nutrition", "add-food")}>Log food</Button>
+          </button>
+          <Button variant="ghost" size="sm" className="mt-2 h-8 text-xs" onClick={() => (viewing ? onNavigate("nutrition", `show-day:${view}`) : onNavigate("nutrition", "add-food"))}>{viewing ? "Open food diary" : "Log food"}</Button>
         </Card>
       </div>
 
@@ -200,7 +221,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
 
       <Card>
         <CardHeading action={<Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => onNavigate("progress", "weekly-report")}>Weekly review</Button>}>
-          Macros today
+          {viewing ? `Macros, ${formatDay(view, { weekday: "long" })}` : "Macros today"}
         </CardHeading>
         <div className="grid grid-cols-4 gap-2 text-center text-sm tabular-nums">
           {[
@@ -220,7 +241,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
       </Card>
 
       <WeightDialog open={weightOpen} onOpenChange={setWeightOpen} />
-      <StepsDialog open={stepsOpen} onOpenChange={setStepsOpen} />
+      <StepsDialog open={stepsOpen} onOpenChange={setStepsOpen} initialDate={view} />
     </div>
   );
 }

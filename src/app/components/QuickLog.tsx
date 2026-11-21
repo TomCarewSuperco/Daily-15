@@ -56,9 +56,12 @@ export function WeightDialog({ open, onOpenChange }: DialogProps) {
   );
 }
 
-export function StepsDialog({ open, onOpenChange }: DialogProps) {
+export function StepsDialog({ open, onOpenChange, initialDate }: DialogProps & { initialDate?: string }) {
   const { state, update } = useDaily15();
-  const [date, setDate] = useState(todayKey());
+  const [date, setDate] = useState(initialDate ?? todayKey());
+  useEffect(() => {
+    if (open) setDate(initialDate ?? todayKey());
+  }, [open, initialDate]);
   const [steps, setSteps] = useState<number | "">("");
   const [distanceKm, setDistance] = useState<number | "">("");
   const [activeMinutes, setActive] = useState<number | "">("");
