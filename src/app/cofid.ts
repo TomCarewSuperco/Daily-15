@@ -279,6 +279,7 @@ const SYNONYMS: Record<string, string[]> = {
   bitter: ["bitter"],
   chocolate: ["chocolat"],
   kimchee: ["kimchi"],
+  natural: ["natural", "plain", "greek"],
   udaan: ["udon"],
   fishcake: ["fishcakes", "fish"],
   fishcakes: ["fishcakes", "fish"],
@@ -336,7 +337,8 @@ const PHRASES: [RegExp, string][] = [
 const queryWords = (q: string) => {
   let text = fold(q);
   for (const [re, to] of PHRASES) text = text.replace(re, to);
-  const all = text.split(/\s+/).filter(Boolean);
+  // Numbers such as '10' or '10%' (usually fat content) don't have to appear in the name; they rank results instead.
+  const all = text.split(/\s+/).filter((w) => w && !/^\d+(\.\d+)?%?$/.test(w));
   const kept = all.filter((w) => !FILLER.has(w));
   return kept.length ? kept : all;
 };
@@ -352,7 +354,14 @@ export function matchesAll(name: string, query: string): boolean {
  * names rank first. If nothing matches every word, falls back to foods that
  * match most of them.
  */
+/** A number in the query, read as a fat percentage ('yogurt 10%', 'milk 1%', 'mince 5%'). */
+const percentHint = (q: string): number | null => {
+  const m = fold(q).match(/(?:^|\s)(\d+(?:\.\d+)?)%?(?=\s|$)/);
+  return m ? Number(m[1]) : null;
+};
+
 export function searchFoods(foods: FoodItem[], query: string, limit = 15): FoodItem[] {
+  hint = percentHint(query);
   const words = queryWords(query);
   if (!words.length) return [];
   const strict = rank(foods, words, words.length);
@@ -403,6 +412,8 @@ function nearness(nameWords: string[], w: string): number {
 }
 const nearHit = (nameWords: string[], w: string) => nearness(nameWords, w) < 99;
 
+let hint: number | null = null;
+
 function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): FoodItem[] {
   const scored: { f: FoodItem; score: number }[] = [];
   const match = fuzzy ? nearHit : hit;
@@ -415,6 +426,16 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     const segment = name.split(",")[0].trim();
     let score = hits * 20;
     if (fuzzy) score -= words.reduce((t, w) => t + Math.min(5, nearness(nw, w)), 0) * 15;
+    // Drinks and coated snacks that merely contain the word ('milk', 'yogurt') rank below the food itself.
+    const qtext = words.join(" ");
+    if (/\b(latte|cappuccino|cortado|macchiato|mocha|flat white|americano|hot chocolate|tea with|coffee with|chai|matcha)\b/.test(name) && !/latte|cappuccino|cortado|macchiato|mocha|flat|americano|chocolate|tea|coffee|chai|matcha/.test(qtext)) score -= 8;
+    if (/coated|covered/.test(name) && !/coated|covered|chocolate|raisin|nut|almond|peanut/.test(qtext)) score -= 15;
+    if (/\b(chocolate|kefir|shake)\b/.test(name) && !/chocolate|kefir|shake/.test(qtext)) score -= 10;
+    // 'Yogurt 10%': prefer foods whose fat per 100 g is close to the number, or whose name states it.
+    if (hint !== null && hint <= 100) {
+      if (name.includes(`${hint}%`)) score += 10;
+      else if (typeof f.fat === "number") score += Math.max(0, 6 - Math.abs(f.fat - hint) * 2);
+    }
     // Whole-word matches beat prefixes: 'rose' finds rosé wine before rosemary.
     score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;
     if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;

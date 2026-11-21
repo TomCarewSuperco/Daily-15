@@ -21,7 +21,7 @@ async function viaProxy<T>(body: Record<string, string>): Promise<T | undefined>
  * endpoint isn't there (local builds), so the caller tries the next route.
  */
 const LOOKUP_URL =
-  (import.meta.env.VITE_LOOKUP_URL as string | undefined) ||
+  ((import.meta.env ?? {}) as Record<string, string | undefined>).VITE_LOOKUP_URL ||
   (typeof window !== "undefined" && window.location.protocol.startsWith("http") ? "/api/food-lookup" : "https://daily-15-tomcarewsupercos-projects.vercel.app/api/food-lookup");
 
 async function viaSite<T>(params: Record<string, string>, signal?: AbortSignal): Promise<T | undefined> {
@@ -50,9 +50,10 @@ const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quan
 
 interface RawProduct {
   code?: string;
-  product_name?: string;
+  product_name?: string | Record<string, string>;
   product_name_en?: string;
-  brands?: string;
+  /** Text from the classic search; a list from the newer search service. */
+  brands?: string | string[];
   nutriments?: Record<string, unknown>;
   serving_quantity?: number | string;
   quantity?: string;
@@ -65,9 +66,10 @@ const opt = (v: unknown) => (v === undefined || v === null || v === "" || Number
 function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
   const n = p.nutriments ?? {};
   const kcal = num(n["energy-kcal_100g"]) || Math.round(num(n["energy_100g"]) / 4.184);
-  const title = (p.product_name_en || p.product_name || "").trim();
+  const rawName = p.product_name_en || p.product_name || "";
+  const title = (typeof rawName === "string" ? rawName : rawName.en ?? Object.values(rawName)[0] ?? "").trim();
   if (!title && !kcal) return null;
-  const brand = p.brands?.split(",")[0]?.trim();
+  const brand = (Array.isArray(p.brands) ? p.brands[0] : typeof p.brands === "string" ? p.brands.split(",")[0] : undefined)?.trim();
   const name = brand && !title.toLowerCase().startsWith(brand.toLowerCase()) ? `${brand} ${title}`.trim() : title;
   return {
     code: p.code ?? fallbackCode,
@@ -116,7 +118,15 @@ export async function lookupBarcode(code: string): Promise<OffProduct | null> {
 export async function searchProducts(query: string, signal?: AbortSignal): Promise<OffProduct[]> {
   const q = query.trim();
   if (q.length < 2) return [];
-  const keep = (products: RawProduct[]) => products.map((p) => parse(p)).filter((p): p is OffProduct => !!p && p.kcal > 0);
+  // One oddly shaped product shouldn't lose the whole list.
+  const safeParse = (p: RawProduct) => {
+    try {
+      return parse(p);
+    } catch {
+      return null;
+    }
+  };
+  const keep = (products: RawProduct[]) => products.map(safeParse).filter((p): p is OffProduct => !!p && p.kcal > 0);
   try {
     const site = await viaSite<{ products: RawProduct[] }>({ q }, signal);
     if (site) return keep(site.products ?? []);

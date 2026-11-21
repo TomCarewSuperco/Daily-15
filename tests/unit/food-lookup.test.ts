@@ -49,3 +49,19 @@ test("barcode lookup returns null for unknown products", async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test("app reads products from the newer search service, where brands is a list", async () => {
+  const { searchProducts } = await import("../../src/app/components/barcode");
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify({ products: [
+      { code: "1", product_name: "Natural Yogurt", brands: ["Yeo Valley"], nutriments: { "energy-kcal_100g": 82, proteins_100g: 4.7, carbohydrates_100g: 6, fat_100g: 4.2 } },
+      { code: "2", product_name: { en: "Odd" }, brands: 7, nutriments: { "energy-kcal_100g": 50 } },
+    ] }), { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch;
+  try {
+    const r = await searchProducts("natural yogurt");
+    assert.equal(r[0].name, "Yeo Valley Natural Yogurt");
+    assert.equal(r.length, 2);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

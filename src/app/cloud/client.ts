@@ -9,8 +9,10 @@ const nativeStorage = {
   removeItem: (key: string) => Preferences.remove({ key }),
 };
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+// import.meta.env is undefined outside Vite (unit tests), which then run without Supabase.
+const env = (import.meta.env ?? {}) as Record<string, string | undefined>;
+const url = env.VITE_SUPABASE_URL;
+const key = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /**
  * Null when the app is built without Supabase settings. The app then runs

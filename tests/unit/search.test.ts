@@ -63,3 +63,10 @@ test("chocolate-coated nuts and raisins are found", () => {
   assert.equal(searchFoods(FOOD_DB, "Chocolate almonds", 1)[0].name, "Chocolate almonds, milk chocolate");
   assert.equal(searchFoods(FOOD_DB, "yoghurt covered raisins", 1)[0].name, "Yogurt-coated raisins");
 });
+
+test("'natural yogurt 10%' finds full-fat Greek-style yoghurt; numbers read as fat", () => {
+  assert.equal(searchFoods(FOOD_DB, "Natural yogurt 10", 1)[0].name, "Greek-style yoghurt, full fat");
+  assert.equal(searchFoods(FOOD_DB, "natural yogurt 0%", 1)[0].name, "Greek yoghurt, 0% fat");
+  assert.equal(searchFoods(FOOD_DB, "milk", 1)[0].name, "Whole milk");
+  assert.notEqual(searchFoods(FOOD_DB, "yogurt", 1)[0].name, "Yogurt-coated raisins");
+});
