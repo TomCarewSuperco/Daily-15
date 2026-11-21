@@ -49,3 +49,13 @@ test("countable foods: new potatoes, eggs, bacon, crisps, nuts", () => {
   assert.equal(first("Drinking chocolate powder, made up with whole milk", "PAA").name, "mug");
   assert.equal(first("Breakfast cereal, oat, instant, plain, fortified, cooked, made up with semi-skimmed milk", "AI").g, 200);
 });
+
+test("branded products get spoon measures from their name", async () => {
+  const { householdUnitsFor } = await import("../../src/app/cofid");
+  assert.equal(householdUnitsFor("Brooklea Greek 10% fat authentic yogurt")[0].name, "heaped tablespoon");
+  assert.equal(householdUnitsFor("Sun-Pat Crunchy Peanut Butter")[0].name, "teaspoon");
+  assert.equal(householdUnitsFor("Lurpak Spreadable")[0].name, "thin spread");
+  assert.equal(householdUnitsFor("Heinz Tomato Ketchup")[0].g, 15);
+  assert.equal(householdUnitsFor("Ben & Jerry's ice cream").length, 0);
+  assert.deepEqual(householdUnitsFor("Mars bar"), []);
+});

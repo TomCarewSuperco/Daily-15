@@ -23,6 +23,27 @@ const DISH: FoodUnit[] = [u("portion", 200), u("large portion", 300)];
 /** Foods not eaten as listed (dry mixes, raw dried pulses, fat only, weighed with peel): grams only. */
 const NOT_AS_EATEN = /weighed whole|weighed as whole|as purchased|\bpowder\b|granules|uncooked|undiluted|concentrate|\bdry\b(?![- ]?(fried|cured|roasted))|fat only|rind only|fat, average|^dripping|^lard|^suet|dried, raw/;
 
+/**
+ * Spoons and other kitchen measures for branded products, guessed from the
+ * product name (Open Food Facts gives only a serving and pack size).
+ * Typical UK amounts; estimates.
+ */
+export function householdUnitsFor(name: string): FoodUnit[] {
+  const n = fold(name);
+  if (/yog(h)?urt|skyr|quark|fromage frais|cottage cheese|creme fraiche|soured cream|labneh/.test(n)) return [u("heaped tablespoon", 30), u("level tablespoon", 15)];
+  if (/hummus|houmous|guacamole|tzatziki|taramasalata|\bdip\b|salsa|pesto/.test(n)) return [u("tablespoon", 30)];
+  if (/(peanut|nut|almond|cashew|hazelnut|chocolate) (butter|spread)|nutella|biscoff spread|\bjam\b|marmalade|honey|syrup|lemon curd/.test(n)) return [u("teaspoon", 7), u("tablespoon", 20)];
+  if (/\bmustard\b/.test(n)) return [u("teaspoon", 5)];
+  if (/mayonnaise|\bmayo\b|ketchup|sauce|dressing|relish|chutney|vinaigrette/.test(n)) return [u("tablespoon", 15)];
+  if (/\boil\b/.test(n)) return [u("teaspoon", 5), u("tablespoon", 14)];
+  if (/butter|spread|margarine|ghee/.test(n)) return [u("thin spread", 7, "thin spreads"), u("teaspoon", 5)];
+  if (/\bcream\b/.test(n) && !/ice cream|cream cracker|cream egg/.test(n)) return [u("tablespoon", 15)];
+  if (/protein powder|whey|\bprotein\b.*powder/.test(n)) return [u("scoop", 30)];
+  if (/\boats\b|porridge|granola|muesli|cereal|flakes|bran/.test(n)) return [u("bowl", 40), u("tablespoon", 10)];
+  if (/\bsugar\b/.test(n)) return [u("teaspoon", 4)];
+  return [];
+}
+
 export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null, group = ""): FoodUnit[] {
   const n = name.toLowerCase();
   if (unit === "ml") {

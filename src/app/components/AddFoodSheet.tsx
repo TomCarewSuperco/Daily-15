@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
-import { COFID_CREDIT, loadCofid, loadCofidByCode, matchesAll, searchFoods, sumComponents, type Row } from "../cofid";
+import { COFID_CREDIT, householdUnitsFor, loadCofid, loadCofidByCode, matchesAll, searchFoods, sumComponents, type Row } from "../cofid";
 import { CUISINES, MEALS_OUT, SIZES, type EatingOutMeal } from "../eatingOut";
 import { flagsForFood, lifeStageOf } from "../pregnancy";
 import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
@@ -54,6 +54,7 @@ function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
 function fromOff(p: OffProduct): Pending {
   const units: FoodUnit[] = [];
   if (p.servingG) units.push({ name: "serving", plural: "servings", g: p.servingG });
+  units.push(...householdUnitsFor(p.name));
   const pack = p.quantity?.match(/^(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
   if (pack && Number(pack[1]) > 0) units.push({ name: `pack (${p.quantity})`, plural: `packs (${p.quantity})`, g: Number(pack[1]) });
   return { name: p.name, base: p, per: 100, baseUnit: "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true };
