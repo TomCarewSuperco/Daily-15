@@ -44,3 +44,26 @@
     @apply font-normal tracking-tight;
   }
 }
+
+/*
+ * iPhone Safari draws date fields with their own width, height and centred text,
+ * so they overflow their column and stand taller than the fields beside them.
+ * Make them behave like the other inputs.
+ */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  min-height: 1.25em;
+}
+input[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+}
