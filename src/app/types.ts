@@ -81,6 +81,8 @@ export interface RoutineSettings {
   rounds: number;
   /** Rotate similar exercises day to day. */
   variety: boolean;
+  /** Extra difficulty steps for individual exercises, by slot id (e.g. push-ups harder than the rest). */
+  bias?: Record<string, number>;
 }
 
 export type Intensity = "light" | "moderate" | "intense";

@@ -73,3 +73,26 @@ test("three 'about right' sessions in a row suggest a small step up", () => {
 test("the preview lists each main exercise once", () => {
   assert.equal(mainOnce(buildRoutine(DEFAULT_ROUTINE, "standard", fixed, DAY)).length, 5);
 });
+
+test("with today's time, the step-up option closest to 15 minutes comes first", () => {
+  // 13 min 10 s at two rounds: more reps lands near 15, another round overshoots.
+  const p = proposeAfter("easy", fixed, [], 790)!;
+  assert.equal(p.options?.length, 2);
+  assert.equal(p.options![0].label, "More reps");
+  assert.ok(p.options![1].minutes! > 15);
+  assert.match(p.detail, /13 min 10 s/);
+  // A 9-minute session: another round gets closer to 15.
+  assert.equal(proposeAfter("easy", fixed, [], 540)!.options![0].label, "Another round");
+});
+
+test("'about right' but well under 15 minutes suggests a little more", () => {
+  assert.equal(proposeAfter("right", fixed, [], 600)?.headline, "Room for a little more");
+  assert.equal(proposeAfter("right", fixed, [], 860), null);
+});
+
+test("one exercise can be set harder than the rest", () => {
+  const r = buildRoutine(DEFAULT_ROUTINE, "standard", { ...fixed, bias: { pushup: 2 } }, DAY);
+  const base = buildRoutine(DEFAULT_ROUTINE, "standard", fixed, DAY);
+  assert.ok(r.find((e) => e.id === "pushup")!.amount > base.find((e) => e.id === "pushup")!.amount);
+  assert.equal(r.find((e) => e.id === "squat")!.amount, base.find((e) => e.id === "squat")!.amount);
+});

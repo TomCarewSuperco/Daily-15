@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "luc
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
-import { buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
+import { TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
@@ -229,12 +229,17 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
   const settings = settingsOf(state);
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [choice, setChoice] = useState(0);
+  // Per-exercise tweaks on top of the proposal, e.g. push-ups up faster than the rest.
+  const [bias, setBias] = useState<Record<string, number>>(settings.bias ?? {});
+  const seconds = state.routineLogs[today]?.seconds;
 
   const rate = (f: Feeling) => {
     setFeeling(f);
     const logs = Object.values({ ...state.routineLogs, [today]: { ...state.routineLogs[today], feeling: f } }).sort((a, b) => a.date.localeCompare(b.date));
     update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: { ...s.routineLogs[today], feeling: f } } }));
-    setProposal(mode === "standard" ? proposeAfter(f, settings, logs) : null);
+    setProposal(mode === "standard" ? proposeAfter(f, settings, logs, seconds || undefined) : null);
+    setChoice(0);
   };
 
   const apply = (next: RoutineSettings, message: string) => {
@@ -245,7 +250,16 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
 
   // Preview tomorrow's actual exercises, since variety may rotate them.
   const tomorrow = addDays(today, 1);
-  const preview = proposal ? mainOnce(buildRoutine(state.routine, "standard", proposal.settings, tomorrow)) : [];
+  const chosen = proposal ? proposal.options?.[choice] ?? proposal : null;
+  const next: RoutineSettings | null = chosen ? { ...chosen.settings, bias } : null;
+  const preview = next ? mainOnce(buildRoutine(state.routine, "standard", next, tomorrow)) : [];
+  const nudge = (id: string, by: number) =>
+    setBias((b) => {
+      const v = Math.max(-3, Math.min(3, (b[id] ?? 0) + by));
+      const out = { ...b, [id]: v };
+      if (!v) delete out[id];
+      return out;
+    });
   const current = mainOnce(buildRoutine(state.routine, "standard", settings, tomorrow));
 
   return (
@@ -253,7 +267,10 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
       <p className="text-sm font-semibold uppercase tracking-widest text-copper">Done</p>
       <h2 className="mt-2 text-4xl leading-tight">That's another day banked.</h2>
       {state.routineLogs[today]?.seconds != null ? (
-        <p className="mt-2 text-muted-foreground">Time: <span className="tabular-nums text-foreground">{fmtDuration(state.routineLogs[today].seconds!)}</span></p>
+        <p className="mt-2 text-muted-foreground">
+          Time: <span className="tabular-nums text-foreground">{fmtDuration(state.routineLogs[today].seconds!)}</span>
+          {mode === "standard" && <span> · aiming for {TARGET_MINUTES} min a day</span>}
+        </p>
       ) : null}
 
       {!feeling ? (
@@ -273,27 +290,42 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
           </div>
           <Button variant="ghost" className="mt-4" onClick={onClose}>Skip</Button>
         </>
-      ) : proposal ? (
-        <div className="mt-6 flex flex-1 flex-col">
+      ) : proposal && chosen && next ? (
+        <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-y-auto">
           <p className="text-lg font-medium">{proposal.headline}</p>
           <p className="mt-1 text-muted-foreground">{proposal.detail}</p>
+          {proposal.options && proposal.options.length > 1 && (
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {proposal.options.map((o, i) => (
+                <button key={o.label} onClick={() => setChoice(i)} className={`rounded-2xl border p-3 text-left ${i === choice ? "border-foreground bg-foreground text-background" : "bg-card"}`}>
+                  <div className="text-sm font-medium">{o.label}</div>
+                  {o.minutes !== undefined && <div className={`text-xs ${i === choice ? "opacity-80" : "text-muted-foreground"}`}>About {o.minutes} min</div>}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="mt-4 rounded-2xl border bg-card p-4 text-sm">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tomorrow</p>
-            {proposal.settings.rounds !== settings.rounds && <p className="mb-2">{proposal.settings.rounds} rounds instead of {settings.rounds}</p>}
-            <ul className="space-y-1">
+            {next.rounds !== settings.rounds && <p className="mb-2">{next.rounds} rounds instead of {settings.rounds}</p>}
+            <ul className="space-y-1.5">
               {preview.map((e, i) => (
-                <li key={e.id} className="flex justify-between">
-                  <span>{e.name}</span>
+                <li key={e.id} className="flex items-center justify-between gap-2">
+                  <span className="flex-1">{e.name}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {current[i] && current[i].amount !== e.amount && <span className="mr-1 line-through opacity-60">{fmtAmount(current[i])}</span>}
-                    {fmtAmount(e)}
+                    <span className="text-foreground">{fmtAmount(e)}</span>
+                  </span>
+                  <span className="flex gap-1">
+                    <button className="h-7 w-7 rounded-full border text-sm leading-none" onClick={() => nudge(e.id, -1)} aria-label={`Less ${e.name}`}>−</button>
+                    <button className="h-7 w-7 rounded-full border text-sm leading-none" onClick={() => nudge(e.id, 1)} aria-label={`More ${e.name}`}>+</button>
                   </span>
                 </li>
               ))}
             </ul>
+            <p className="mt-3 text-xs text-muted-foreground">Use − and + to move one exercise faster or slower than the rest.</p>
           </div>
           <div className="mt-auto grid gap-2 pt-6">
-            <Button size="lg" onClick={() => apply(proposal.settings, "Next session updated")}>Sounds good</Button>
+            <Button size="lg" onClick={() => apply(next, "Next session updated")}>Sounds good</Button>
             <Button size="lg" variant="outline" onClick={onClose}>Keep it the same</Button>
           </div>
         </div>

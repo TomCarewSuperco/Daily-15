@@ -59,7 +59,7 @@ export function buildRoutine(base: RoutineExercise[], mode: RoutineMode, setting
   const cool = base.filter((e) => e.id === COOL_DOWN);
   let main = base.filter((e) => e.id !== WARM_UP && e.id !== COOL_DOWN);
   if (settings.variety) main = main.map((e) => vary(e, date));
-  main = main.map((e) => scale(e, settings.level));
+  main = main.map((e) => scale(e, Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, settings.level + (settings.bias?.[e.id] ?? 0)))));
   let rounds = settings.rounds;
   if (mode === "light") {
     main = main.map((e) => ({ ...e, amount: Math.max(e.kind === "time" ? 10 : 3, Math.round(e.amount / 2)) }));
@@ -85,23 +85,57 @@ export interface Proposal {
   settings: RoutineSettings;
   headline: string;
   detail: string;
+  /** Short name for this choice when there are alternatives, e.g. 'More reps'. */
+  label?: string;
+  /** Projected session length in minutes, when today's time is known. */
+  minutes?: number;
+  /** Other ways to get there; the first entry is this proposal. */
+  options?: Proposal[];
+}
+
+/** The daily routine aims for about this many minutes. */
+export const TARGET_MINUTES = 15;
+
+const fmtMin = (sec: number) => `${Math.floor(sec / 60)} min${sec % 60 ? ` ${sec % 60} s` : ""}`;
+
+/**
+ * Ways to do a bit more tomorrow. With today's time, the option that lands
+ * closest to 15 minutes comes first; without it, extra reps until level 3, then a round.
+ */
+function stepUpOptions(current: RoutineSettings, seconds?: number): Proposal[] {
+  const opts: Proposal[] = [];
+  if (current.level < MAX_LEVEL)
+    opts.push({ settings: { ...current, level: current.level + 1 }, label: "More reps", headline: "Step it up a little", detail: "About 15% more reps and time on the main exercises.", minutes: seconds ? Math.round((seconds * 1.12) / 60) : undefined });
+  if (current.rounds < MAX_ROUNDS)
+    opts.push({ settings: { ...current, rounds: current.rounds + 1 }, label: "Another round", headline: "Add a round", detail: "One more time through the main exercises.", minutes: seconds ? Math.round((seconds * (1 + 0.85 / current.rounds)) / 60) : undefined });
+  if (seconds) opts.sort((a, b) => Math.abs(a.minutes! - TARGET_MINUTES) - Math.abs(b.minutes! - TARGET_MINUTES));
+  else if (current.level >= 3) opts.reverse();
+  return opts;
 }
 
 /**
  * What to change after a session. Never changes anything by itself: the app
  * shows the proposal and the user accepts or keeps things as they are.
  */
-export function proposeAfter(feeling: Feeling, current: RoutineSettings, recentLogs: RoutineLog[]): Proposal | null {
+export function proposeAfter(feeling: Feeling, current: RoutineSettings, recentLogs: RoutineLog[], seconds?: number): Proposal | null {
+  const short = seconds !== undefined && seconds > 0 && seconds < (TARGET_MINUTES - 1) * 60;
+  const timeNote = seconds ? `You took ${fmtMin(seconds)}, against the ${TARGET_MINUTES} minutes a day you're aiming for. ` : "";
+  const withOptions = (opts: Proposal[], headline: string, detail: string): Proposal | null =>
+    opts.length ? { ...opts[0], headline, detail: `${detail} ${opts.length > 1 ? "Choose more reps or another round." : opts[0].detail}`.trim(), options: opts } : null;
+
   if (feeling === "easy") {
-    if (current.level >= 3 && current.rounds < MAX_ROUNDS) return { settings: { ...current, rounds: current.rounds + 1 }, headline: "Add a round", detail: "You're well past the starting level, so an extra round will challenge you more than extra reps." };
-    if (current.level >= MAX_LEVEL) return null;
-    return { settings: { ...current, level: current.level + 1 }, headline: "Step it up a little", detail: "About 15% more reps and time on the main exercises." };
+    const opts = stepUpOptions(current, seconds);
+    if (!opts.length) return null;
+    if (!seconds) return { ...opts[0], options: opts.length > 1 ? opts : undefined, detail: current.level >= 3 && opts[0].label === "Another round" ? "You're well past the starting level, so an extra round will challenge you more than extra reps." : opts[0].detail };
+    return withOptions(opts, "Step it up a little", timeNote);
   }
   if (feeling === "hard") {
     if (current.level > MIN_LEVEL) return { settings: { ...current, level: current.level - 1 }, headline: "Ease off a little", detail: "About 15% fewer reps and less time on the main exercises. Build back up when it feels comfortable." };
     if (current.rounds > 1) return { settings: { ...current, rounds: current.rounds - 1 }, headline: "Drop a round", detail: "One fewer time through the main exercises." };
     return null;
   }
+  // About right, but well under 15 minutes: there's room for a little more.
+  if (short && seconds! < (TARGET_MINUTES - 3) * 60) return withOptions(stepUpOptions(current, seconds), "Room for a little more", timeNote);
   // Three 'about right' sessions in a row: suggest a small step up so progress continues.
   const lastThree = recentLogs.filter((l) => l.finished && l.mode === "standard").slice(-3);
   if (lastThree.length === 3 && lastThree.every((l) => l.feeling === "right") && current.level < MAX_LEVEL) {
