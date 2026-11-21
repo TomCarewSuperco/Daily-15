@@ -264,8 +264,8 @@ function MacroSplit({ n }: { n: Nutrients }) {
   const sum = p + c + f || 1;
   const parts = [
     { label: "Protein", v: p, cls: "bg-foreground" },
-    { label: "Carbs", v: c, cls: "bg-copper" },
-    { label: "Fat", v: f, cls: "bg-muted-foreground/50" },
+    { label: "Carbs", v: c, cls: "bg-foreground/45" },
+    { label: "Fat", v: f, cls: "bg-foreground/15" },
   ];
   return (
     <div className="mt-4">
