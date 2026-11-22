@@ -155,7 +155,7 @@
   "salt": 0.43,
   "abv": null
  },
- "Scrambled eggs": {
+ "Scrambled eggs, with butter and milk": {
   "code": "12-945",
   "kcal": 237,
   "protein": 11.0,
@@ -165,6 +165,18 @@
   "satFat": 10.8,
   "sugars": 0.7,
   "salt": 0.63,
+  "abv": null
+ },
+ "Scrambled eggs, no butter or milk": {
+  "code": "12-963",
+  "kcal": 152,
+  "protein": 14.6,
+  "carbs": 0.0,
+  "fat": 10.4,
+  "fibre": 0.0,
+  "satFat": 2.9,
+  "sugars": 0.0,
+  "salt": 0.45,
   "abv": null
  },
  "Butter": {
