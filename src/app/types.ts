@@ -145,6 +145,17 @@ export interface Nutrients {
 /** 'dried' is dried fruit: 30 g a portion rather than 80 g. */
 export type FiveADayKind = "fv" | "juice" | "pulses" | "dried";
 
+export interface Commitment {
+  id: string;
+  text: string;
+  /** The weekly review point it came from. */
+  sourceId?: string;
+  /** First day of its seven days. */
+  start: string;
+  /** Days it was kept. */
+  ticks: string[];
+}
+
 export interface DayIntention {
   id: string;
   text: string;
@@ -255,6 +266,8 @@ export interface AppState {
   foods: FoodEntry[];
   savedMeals: SavedMeal[];
   customFoods: CustomFood[];
+  /** Weekly commitments chosen from the weekly review. */
+  commitments?: Commitment[];
   /** One food choice per day, picked after the daily 15; done is set when the user answers in the evening. */
   intentions?: Record<string, DayIntention>;
   /** Days whose food diary the user marked complete (locked), as dates. */

@@ -25,6 +25,7 @@ import { PregnancyCard } from "../components/PregnancyCard";
 import { RoughDay } from "../components/RoughDay";
 import { ANCHORS, anchorPhrase, withAnchor } from "../anchor";
 import { toast } from "../notify";
+import { activeCommitments, toggleTick } from "../commitments";
 import { lifeStageOf } from "../pregnancy";
 import { buildRoutine, estimateMinutes, settingsOf } from "../routine";
 
@@ -203,6 +204,34 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
             ))}
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">Change it, or set your own, in Profile under Reminders.</p>
+        </Card>
+      )}
+
+      {activeCommitments(state).length > 0 && (
+        <Card className="text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">This week's commitments</p>
+          <ul className="mt-2 space-y-2">
+            {activeCommitments(state).map((c) => {
+              const ticked = c.ticks.includes(today);
+              const day = Math.min(7, Math.round((Date.parse(today) - Date.parse(c.start)) / 86_400_000) + 1);
+              return (
+                <li key={c.id} className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={ticked}
+                    aria-label={`${c.text}: done today`}
+                    onClick={() => update((s) => toggleTick(s, c.id, today))}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${ticked ? "border-transparent bg-[hsl(var(--d15-done))] text-white" : ""}`}
+                  >
+                    {ticked ? "✓" : ""}
+                  </button>
+                  <span className="flex-1">{c.text}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">{c.ticks.length} of {day} days</span>
+                </li>
+              );
+            })}
+          </ul>
         </Card>
       )}
 

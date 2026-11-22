@@ -72,6 +72,7 @@ export function mergeStates(base: AppState, local: AppState, remote: AppState): 
     foods: mergeById(base.foods, local.foods, remote.foods),
     savedMeals: mergeById(base.savedMeals, local.savedMeals, remote.savedMeals),
     customFoods: mergeById(base.customFoods, local.customFoods, remote.customFoods),
+    commitments: mergeById(base.commitments, local.commitments, remote.commitments),
     intentions: mergeRecord(base.intentions, local.intentions, remote.intentions),
     foodDiaryDone: mergeSet(base.foodDiaryDone, local.foodDiaryDone, remote.foodDiaryDone),
     supplements: mergeRecord(base.supplements, local.supplements, remote.supplements),

@@ -28,6 +28,7 @@ import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { evidence, evidenceHeadline } from "../evidence";
 import { PremiumGate } from "../premium/Paywall";
+import { activeCommitments, addCommitment, finishedCommitments, MAX_COMMITMENTS } from "../commitments";
 import type { MeasurementEntry } from "../types";
 import { weeklyReview, type ReviewPoint } from "../review";
 import { lifeStageOf, pregnancyReview } from "../pregnancy";
@@ -247,8 +248,16 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             </div>
           )}
 
-          {review.moreOf.length > 0 && <ReviewList title="Do more of" items={review.moreOf} />}
-          {review.lessOf.length > 0 && <ReviewList title="Do less of" items={review.lessOf} />}
+          {review.moreOf.length > 0 && <ReviewList title="Do more of" items={review.moreOf} commit />}
+          {review.lessOf.length > 0 && <ReviewList title="Do less of" items={review.lessOf} commit />}
+          {finishedCommitments(state).length > 0 && (
+            <div className="mt-4 rounded-xl bg-muted p-3 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Last commitments</p>
+              {finishedCommitments(state).slice(0, 2).map((c) => (
+                <p key={c.id} className="mt-1">{c.text}: kept {c.ticks.length} of 7 days</p>
+              ))}
+            </div>
+          )}
           </PremiumGate>
           </div>
           {review.notes.map((n) => <p key={n} className="mt-3 text-sm text-muted-foreground">{n}</p>)}
@@ -438,7 +447,9 @@ function PhotosCard() {
   );
 }
 
-function ReviewList({ title, items }: { title: string; items: ReviewPoint[] }) {
+function ReviewList({ title, items, commit }: { title: string; items: ReviewPoint[]; commit?: boolean }) {
+  const { state, update } = useDaily15();
+  const active = activeCommitments(state);
   return (
     <div className="mt-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
@@ -448,6 +459,11 @@ function ReviewList({ title, items }: { title: string; items: ReviewPoint[] }) {
             <span className="font-medium">{it.text}</span>
             {it.focus && <span className="ml-1.5 rounded bg-copper/15 px-1.5 py-0.5 align-middle text-[10px] uppercase tracking-wide text-copper">Focus</span>}
             {it.detail && <p className="mt-0.5 text-muted-foreground">{it.detail}</p>}
+            {commit && (active.some((c) => c.text === it.text) ? (
+              <span className="mt-1 inline-block text-xs font-medium text-[hsl(var(--d15-done))]">Committed for this week</span>
+            ) : active.length < MAX_COMMITMENTS ? (
+              <button className="mt-1 text-xs font-medium underline" onClick={() => { update((s) => addCommitment(s, it.text, it.id)); toast.success("Added to this week's commitments on Home"); }}>Commit to this for a week</button>
+            ) : null)}
           </li>
         ))}
       </ul>
