@@ -100,6 +100,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const moved = await p.evaluate((n) => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name === n).meal, first);
   console.log(moved === "dinner" ? "PASS hold and drag moves entry to dinner" : `FAIL hold and drag moves entry to dinner (${moved})`);
   if (moved !== "dinner") process.exitCode = 1;
+  // Mash: choosing how it was made changes the calories at the same amount.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("mashed potato");
+  await p.getByText("Mashed potato", { exact: true }).first().click();
+  await p.getByRole("radiogroup", { name: "How was it made?" }).waitFor();
+  await p.getByRole("radio", { name: /Butter and cream/ }).click();
+  await p.screenshot({ path: OUT + "/f6-mash.png" });
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const mash = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name.startsWith("Mashed potato")));
+  const mashOk = mash && mash.name === "Mashed potato, with butter and cream" && /heaped tablespoon \(45 g\)/.test(mash.portion) && Math.round(mash.kcal) === 86;
+  console.log(mashOk ? "PASS mash version changes calories, not the amount" : `FAIL mash version changes calories, not the amount (${mash && mash.name} ${mash && mash.portion} ${mash && mash.kcal})`);
+  if (!mashOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

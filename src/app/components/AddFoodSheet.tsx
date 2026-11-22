@@ -16,6 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
+import { amountOf, switchTo, variantsFor } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
@@ -377,6 +378,7 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
 
   return (
     <div className="space-y-4">
+      <VariantPicker pending={pending} setPending={setPending} />
       {(pending.units.length > 1 || pending.baseUnit !== "serving") && (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Measure">
           {pending.units.map((u, i) => (
@@ -430,6 +432,35 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
             {countable ? (q === 0.5 ? "½" : q) : `${q} ${pending.baseUnit}`}
           </Button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Versions of the same food that differ in calories, each shown at the amount chosen. */
+function VariantPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
+  const v = variantsFor(pending.name);
+  if (!v) return null;
+  const amount = amountOf(pending);
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium">{v.question}</p>
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={v.question}>
+        {v.options.map((o, i) => {
+          const on = i === v.current;
+          return (
+            <button
+              key={o.food.name}
+              role="radio"
+              aria-checked={on}
+              onClick={() => !on && setPending(switchTo(pending, o.food))}
+              className={`flex items-baseline justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+            >
+              <span>{o.label}</span>
+              <span className={`shrink-0 tabular-nums ${on ? "" : "text-muted-foreground"}`}>{Math.round((o.food.kcal * amount) / o.food.per)} kcal</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
