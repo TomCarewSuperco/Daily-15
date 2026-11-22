@@ -68,7 +68,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^potatoes, new/.test(n) && !/\braw\b/.test(n)) return /roast/.test(n) ? [u("roast potato", 40, "roast potatoes"), u("portion", 160)] : [u("new potato", 40, "new potatoes"), u("portion", 175)];
   if (/^potatoes, old, (baked|microwaved)/.test(n)) return [u("jacket potato", 180, "jacket potatoes"), u("large jacket potato", 250, "large jacket potatoes")];
   if (/^potatoes, old, boiled/.test(n)) return [u("medium potato", 150, "medium potatoes"), u("portion", 175)];
-  if (/^potatoes, old, mashed|^potato powder.*made up|mashed potato/.test(n)) return [u("portion", 150), u("large portion", 220)];
+  if (/^potatoes, old, mashed|^potato powder.*made up|mashed potato/.test(n)) return [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)];
   if (/^potatoes, old, roast/.test(n)) return [u("roast potato", 60, "roast potatoes"), u("portion", 200)];
   if (/wedges/.test(n)) return [u("portion", 150)];
   if (/potato products, shaped|potato waffles/.test(n)) return [u("portion", 100)];
@@ -191,7 +191,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^gravy.*made up/.test(n)) return [u("portion", 80)];
   if (group.startsWith("H")) return [u("teaspoon", 3)];
 
-  if (/^(red )?rice/.test(n) && !/raw|flour|uncooked/.test(n)) return [u("portion", 180), u("takeaway portion", 300)];
+  if (/^(red )?rice/.test(n) && !/raw|flour|uncooked|pudding/.test(n)) return [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)];
   if (/^(pasta|noodles)/.test(n) && /boiled|cooked|fried/.test(n)) return [u("portion", 180), u("large portion", 250)];
   if (/chips|fries|wedges/.test(n) && group.startsWith("DA")) return [u("portion", 150), u("takeaway portion", 250)];
   if (/in batter|in breadcrumbs|coated/.test(n) && group.startsWith("J")) return [u("fillet", 140), u("takeaway portion", 220)];
@@ -216,7 +216,10 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/lemon juice|lime juice/.test(n)) return [u("tablespoon", 15)];
   if (fiveADay === "juice") return [u("glass", 150)];
   if (fiveADay === "dried") return [u("handful", 30)];
-  if (fiveADay === "fv" || fiveADay === "pulses") return [u("5-a-day portion", 80)];
+  if (fiveADay === "fv" || fiveADay === "pulses")
+    return /boiled|steamed|canned|cooked|frozen|microwaved|roast|fried|stir|baked|mashed/.test(n)
+      ? [u("heaped tablespoon", 27), u("5-a-day portion (3 heaped tbsp)", 80, "5-a-day portions")]
+      : [u("5-a-day portion", 80)];
   return [];
 }
 
