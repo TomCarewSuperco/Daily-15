@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "../notify";
 import { todayKey } from "../calc";
-import { REMINDER_MESSAGES } from "../data";
+import { reminderBody } from "../anchor";
 import type { AppState } from "../types";
 import { scheduleReminders } from "../native/notifications";
 import { isNative } from "../native/platform";
@@ -16,9 +16,9 @@ export function useReminders(state: AppState) {
   latest.current = state;
 
   // Native: hand the schedule to the phone whenever reminders change.
-  const schedule = JSON.stringify(state.reminders);
+  const schedule = JSON.stringify([state.reminders, state.profile?.anchor ?? null]);
   useEffect(() => {
-    if (isNative) scheduleReminders(JSON.parse(schedule)).catch(() => {});
+    if (isNative) scheduleReminders(latest.current.reminders, (r) => reminderBody(latest.current, r)).catch(() => {});
   }, [schedule]);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function useReminders(state: AppState) {
         if (r.type === "food" && s.foods.some((f) => f.date === today)) continue;
         if (r.type === "steps" && s.profile && (s.activity[today]?.steps ?? 0) >= s.profile.targets.steps) continue;
         fired.current.add(key);
-        const body = REMINDER_MESSAGES[r.type];
+        const body = reminderBody(s, r);
         if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.visibilityState !== "visible") {
           try {
             new Notification("DAILY 15", { body });

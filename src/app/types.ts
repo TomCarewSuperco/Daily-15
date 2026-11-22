@@ -27,6 +27,14 @@ export interface Targets {
 
 export type FocusGoal = "cholesterol" | "sugar" | "salt" | "fibre" | "fruit-veg" | "alcohol" | "protein";
 
+export interface HabitAnchor {
+  id: string;
+  /** In the user's own words, completing 'I'll do my 15 …'. */
+  text: string;
+  /** HH:MM, when the reminder fires. */
+  time: string;
+}
+
 export interface Profile {
   name: string;
   age: number;
@@ -39,6 +47,8 @@ export interface Profile {
   goal: Goal;
   /** Extra areas to focus on in the weekly review. */
   focus?: FocusGoal[];
+  /** The everyday moment the 15 is tied to, e.g. 'after my morning coffee'. */
+  anchor?: HabitAnchor;
   targets: Targets;
   /** True once the user has edited targets by hand, so goal changes don't overwrite them. */
   targetsCustomised: boolean;

@@ -24,7 +24,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return display === "granted";
 }
 
-export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
+export async function scheduleReminders(reminders: Reminder[], bodyFor: (r: Reminder) => string = (r) => REMINDER_MESSAGES[r.type]): Promise<void> {
   if (!isNative) return;
   await LocalNotifications.cancel({ notifications: Object.values(IDS).map((id) => ({ id })) }).catch(() => {});
   const enabled = reminders.filter((r) => r.enabled);
@@ -36,7 +36,7 @@ export async function scheduleReminders(reminders: Reminder[]): Promise<void> {
       return {
         id: IDS[r.type],
         title: REMINDER_LABELS[r.type],
-        body: REMINDER_MESSAGES[r.type],
+        body: bodyFor(r),
         // Capacitor's Weekday runs 1 (Sunday) to 7. The app stores 0 (Sunday) to 6.
         schedule: { on: r.weekday !== undefined ? { weekday: r.weekday + 1, hour, minute } : { hour, minute }, repeats: true, allowWhileIdle: true },
       };

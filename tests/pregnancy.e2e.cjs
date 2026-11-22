@@ -18,7 +18,7 @@ const BASE = process.env.BASE_URL || "http://127.0.0.1:8092/";
   await p.getByRole("button", { name: "Pregnant", exact: true }).click();
   await p.getByRole("button", { name: "Continue" }).click(); await p.getByRole("button", { name: "Continue" }).click();
   ok("goal step explains no calorie targets", (await p.getByText(/no calorie targets or weight-loss goals/).count()) === 1);
-  await p.getByRole("button", { name: "Start DAILY 15" }).click();
+  await p.getByRole("button", { name: "Continue" }).click(); await p.getByRole("button", { name: "Start DAILY 15" }).click();
   await p.getByText(/Good (morning|afternoon|evening)/).waitFor();
   ok("home shows pregnancy card", (await p.getByText("Pregnancy", { exact: false }).first().count()) > 0 && (await p.getByRole("checkbox", { name: /Folic acid/ }).count()) === 1);
   ok("calorie ring shows eaten, not left", (await p.getByText("kcal eaten").count()) === 1 && (await p.getByText(/left$/).count()) === 0);

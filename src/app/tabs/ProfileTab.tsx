@@ -25,6 +25,7 @@ import { useAuth } from "../cloud/AuthProvider";
 import { supabase } from "../cloud/client";
 import { NewPasswordForm } from "./Auth";
 import { healthName } from "../native/health";
+import { ANCHORS, anchorPhrase, reminderBody, withAnchor } from "../anchor";
 import { notificationPermission, requestNotificationPermission, scheduleReminders } from "../native/notifications";
 import { isNative } from "../native/platform";
 import { useHealthSync } from "../native/useHealthSync";
@@ -124,7 +125,7 @@ export function ProfileTab() {
     if (isNative) {
       const ok = await requestNotificationPermission();
       setNotifPerm(ok ? "granted" : "denied");
-      if (ok) await scheduleReminders(state.reminders);
+      if (ok) await scheduleReminders(state.reminders, (r) => reminderBody(state, r));
       return;
     }
     if (typeof Notification === "undefined") return;
@@ -263,7 +264,26 @@ export function ProfileTab() {
 
       <Card>
         <CardHeading>Reminders</CardHeading>
-        <ul className="divide-y">
+        <Field label="I'll do my 15…" hint={p.anchor ? `Your daily workout reminder says: '${anchorPhrase(p.anchor)}: your 15 is ready.'` : "Tie it to something you already do; the workout reminder moves to that time."}>
+          <Select
+            value={p.anchor?.id ?? ""}
+            onValueChange={(v) => {
+              if (v === "custom") return update((s) => withAnchor(s, { id: "custom", text: p.anchor?.text ?? "after walking the dog", time: p.anchor?.time ?? "07:30" }));
+              const a = ANCHORS.find((x) => x.id === v);
+              if (a) update((s) => withAnchor(s, a));
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Choose a moment" /></SelectTrigger>
+            <SelectContent>
+              {ANCHORS.map((a) => <SelectItem key={a.id} value={a.id}>{a.text.charAt(0).toUpperCase() + a.text.slice(1)}</SelectItem>)}
+              <SelectItem value="custom">In my own words</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        {p.anchor?.id === "custom" && (
+          <Input className="mt-2" maxLength={60} value={p.anchor.text} onChange={(e) => update((s) => withAnchor(s, { ...p.anchor!, text: e.target.value }))} aria-label="When you'll do your 15, in your own words" />
+        )}
+        <ul className="mt-3 divide-y">
           {state.reminders.map((r, i) => (
             <li key={r.type} className="flex items-center gap-3 py-2">
               <Switch checked={r.enabled} onCheckedChange={(v) => update((s) => ({ ...s, reminders: s.reminders.map((x, j) => (j === i ? { ...x, enabled: v } : x)) }))} aria-label={`${REMINDER_LABELS[r.type]} reminder`} />

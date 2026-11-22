@@ -1,3 +1,4 @@
+import { ANCHORS, withAnchor } from "../anchor";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,9 @@ type Draft = {
   activityLevel: ActivityLevel;
   goal: Goal;
   lifeStage: "none" | "pregnant" | "breastfeeding";
+  anchorId: string;
+  customText: string;
+  customTime: string;
 };
 
 export function Onboarding() {
@@ -35,6 +39,9 @@ export function Onboarding() {
     activityLevel: "light",
     goal: "lose-fat",
     lifeStage: "none",
+    anchorId: "coffee",
+    customText: "",
+    customTime: "07:30",
   });
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
@@ -58,11 +65,20 @@ export function Onboarding() {
     const lifeStage = d.lifeStage === "none" ? undefined : { kind: d.lifeStage };
     const finalBase = lifeStage ? { ...base, goal: "health" as Goal } : base;
     const profile: Profile = { ...finalBase, name: d.name.trim(), experience: d.experience, targets: suggestTargets(finalBase), targetsCustomised: false, lifeStage };
-    update((s) => ({
-      ...s,
-      profile,
-      weights: s.weights.length ? s.weights : [{ id: uid(), date: todayKey(), kg: profile.startWeightKg }],
-    }));
+    const anchor =
+      d.anchorId === "custom" && d.customText.trim()
+        ? { id: "custom", text: d.customText.trim(), time: d.customTime || "07:30" }
+        : ANCHORS.find((a) => a.id === d.anchorId) ?? ANCHORS[1];
+    update((s) =>
+      withAnchor(
+        {
+          ...s,
+          profile,
+          weights: s.weights.length ? s.weights : [{ id: uid(), date: todayKey(), kg: profile.startWeightKg }],
+        },
+        anchor,
+      ),
+    );
   };
 
   const steps = [
@@ -137,7 +153,28 @@ export function Onboarding() {
       )}
       <div className="flex gap-2 pt-2">
         <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-        <Button className="flex-1" onClick={finish}>Start DAILY 15</Button>
+        <Button className="flex-1" onClick={() => setStep(4)}>Continue</Button>
+      </div>
+    </div>,
+
+    <div key="anchor" className="space-y-5">
+      <h2 className="text-3xl">When will you do your 15?</h2>
+      <p className="text-muted-foreground">Tie it to something you already do every day. People who decide when and where are far more likely to stick with a new habit. We'll remind you then.</p>
+      <Choice
+        columns={1}
+        value={d.anchorId}
+        onChange={(v) => set("anchorId", v)}
+        options={[...ANCHORS.map((a) => ({ value: a.id, label: `${a.text.charAt(0).toUpperCase()}${a.text.slice(1)} (${a.time})` })), { value: "custom", label: "Something else" }]}
+      />
+      {d.anchorId === "custom" && (
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Input placeholder="e.g. after walking the dog" value={d.customText} maxLength={60} onChange={(e) => set("customText", e.target.value)} />
+          <Input type="time" className="w-28" value={d.customTime} onChange={(e) => set("customTime", e.target.value)} />
+        </div>
+      )}
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
+        <Button className="flex-1" disabled={d.anchorId === "custom" && !d.customText.trim()} onClick={finish}>Start DAILY 15</Button>
       </div>
     </div>,
   ];

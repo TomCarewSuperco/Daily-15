@@ -121,7 +121,7 @@ const who = (req) => { const t = (req.headers()['authorization'] || '').split(' 
   const nums = p.locator('input[type=number]');
   await nums.nth(0).fill('42'); await nums.nth(1).fill('178'); await nums.nth(2).fill('92'); await nums.nth(3).fill('82');
   await p.getByRole('button', { name: 'Continue' }).click(); await p.getByRole('button', { name: 'Continue' }).click();
-  await p.getByRole('button', { name: 'Start DAILY 15' }).click();
+  await p.getByRole('button', { name: 'Continue' }).click(); await p.getByRole('button', { name: 'Start DAILY 15' }).click();
   await p.getByRole('button', { name: '+ Glass 250 ml' }).click();
   await p.waitForTimeout(2500);
   const saved = rows['u0']?.data;

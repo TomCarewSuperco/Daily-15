@@ -23,6 +23,8 @@ import type { Navigate } from "../nav";
 import { useDaily15 } from "../store";
 import { PregnancyCard } from "../components/PregnancyCard";
 import { RoughDay } from "../components/RoughDay";
+import { ANCHORS, anchorPhrase, withAnchor } from "../anchor";
+import { toast } from "../notify";
 import { lifeStageOf } from "../pregnancy";
 import { buildRoutine, estimateMinutes, settingsOf } from "../routine";
 
@@ -83,6 +85,22 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const answerIntention = (date: string, done: boolean) =>
     update((s) => ({ ...s, intentions: { ...s.intentions, [date]: { ...s.intentions![date], done } } }));
 
+  const [anchorSkipped, setAnchorSkipped] = useState(() => {
+    try {
+      return localStorage.getItem("daily15:anchor-skip") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const skipAnchor = () => {
+    try {
+      localStorage.setItem("daily15:anchor-skip", "1");
+    } catch {
+      /* storage unavailable */
+    }
+    setAnchorSkipped(true);
+  };
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -116,7 +134,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
                   ? "Recovery is part of training. Your streak is paused, not broken."
                   : streakNow.missedYesterday && !workoutsOn(state, today).length
                     ? `You missed yesterday. Never miss twice: today's 15 keeps your streak. ${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`
-                    : `${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`}
+                    : `${p.anchor?.text.trim() ? `${anchorPhrase(p.anchor)}. ` : ""}${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`}
             </p>
           </div>
           <div className="shrink-0 text-right">
@@ -172,6 +190,21 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           })}
         </div>
       </Card>
+
+      {!p.anchor && !anchorSkipped && (
+        <Card>
+          <CardHeading action={<Button variant="ghost" size="sm" className="h-8 text-xs" onClick={skipAnchor}>Not now</Button>}>When will you do your 15?</CardHeading>
+          <p className="mb-3 text-sm text-muted-foreground">Tie it to something you already do. We'll remind you then, in your words.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ANCHORS.map((a) => (
+              <Button key={a.id} variant="outline" className="h-auto whitespace-normal py-2.5 text-sm" onClick={() => { update((s) => withAnchor(s, a)); toast.success(`Reminder set for ${a.time}`); }}>
+                {a.text.charAt(0).toUpperCase() + a.text.slice(1)}
+              </Button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">Change it, or set your own, in Profile under Reminders.</p>
+        </Card>
+      )}
 
       {askAbout && (
         <Card className="text-sm">
