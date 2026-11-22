@@ -44,9 +44,11 @@ export interface OffProduct extends Nutrients {
   servingG: number | null;
   /** Pack size as printed, e.g. '400 g'. */
   quantity: string | null;
+  /** Pack size in grams (or ml), read from the label text or Open Food Facts. */
+  packG: number | null;
 }
 
-const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,quantity";
+const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity";
 
 interface RawProduct {
   code?: string;
@@ -56,7 +58,22 @@ interface RawProduct {
   brands?: string | string[];
   nutriments?: Record<string, unknown>;
   serving_quantity?: number | string;
+  /** As printed, e.g. '125 g' or '1 pot (125g)'. */
+  serving_size?: string;
   quantity?: string;
+  /** Pack size in grams or millilitres, when Open Food Facts has worked it out. */
+  product_quantity?: number | string;
+}
+
+/** Grams (or ml) in label text such as '250g', '2 x 125 g', '1.5kg' or '1 pot (125g)'. */
+export function gramsIn(text: string | undefined | null): number {
+  if (!text) return 0;
+  const t = text.toLowerCase().replace(",", ".");
+  const m = t.match(/(?:(\d+)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l)\b/);
+  if (!m) return 0;
+  const n = Number(m[2]) * (m[1] ? Number(m[1]) : 1);
+  const f = m[3] === "kg" || m[3] === "l" ? 1000 : m[3] === "cl" ? 10 : 1;
+  return Math.round(n * f);
 }
 
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
@@ -74,8 +91,9 @@ function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
   return {
     code: p.code ?? fallbackCode,
     name: name || `Product ${fallbackCode}`,
-    servingG: p.serving_quantity ? num(p.serving_quantity) || null : null,
+    servingG: (p.serving_quantity ? num(p.serving_quantity) : 0) || gramsIn(p.serving_size) || null,
     quantity: p.quantity?.trim() || null,
+    packG: gramsIn(p.quantity) || (p.product_quantity ? num(p.product_quantity) : 0) || null,
     kcal: Math.round(kcal),
     protein: num(n.proteins_100g),
     carbs: num(n.carbohydrates_100g),

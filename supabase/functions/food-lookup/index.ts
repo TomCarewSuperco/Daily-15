@@ -11,7 +11,7 @@ const cors = {
 };
 
 const UA = "DAILY15/0.1 (fitness and food diary app; https://github.com/TomCarewSuperco/Daily-15)";
-const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,quantity";
+const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity";
 
 async function get(url: string, ms: number) {
   const ctrl = new AbortController();

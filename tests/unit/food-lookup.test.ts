@@ -65,3 +65,20 @@ test("app reads products from the newer search service, where brands is a list",
     globalThis.fetch = realFetch;
   }
 });
+
+test("pack and serving sizes are read from label text", async () => {
+  const { gramsIn } = await import("../../src/app/components/barcode");
+  assert.equal(gramsIn("250g"), 250);
+  assert.equal(gramsIn("2 x 125 g"), 250);
+  assert.equal(gramsIn("1.5kg"), 1500);
+  assert.equal(gramsIn("1 pot (125g)"), 125);
+  assert.equal(gramsIn("33cl"), 330);
+  assert.equal(gramsIn("Serves 2"), 0);
+});
+
+test("a branded meal with no serving size gets half pack, or a typical portion", async () => {
+  const { dishUnitsFor } = await import("../../src/app/cofid");
+  assert.equal(dishUnitsFor("Merchant Gourmet Lentil & Chickpea Tagine")[0].g, 200);
+  assert.equal(dishUnitsFor("Heinz Cream of Tomato Soup")[0].name, "bowl");
+  assert.deepEqual(dishUnitsFor("Something unusual"), []);
+});

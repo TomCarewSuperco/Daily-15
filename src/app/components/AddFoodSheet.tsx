@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { scaleNutrients, sumNutrients, uid } from "../calc";
 import { extrasFor, FOOD_DB, formatQty, type FoodItem, type FoodUnit } from "../foods";
 import { useDaily15 } from "../store";
-import { COFID_CREDIT, householdUnitsFor, loadCofid, loadCofidByCode, matchesAll, searchFoods, sumComponents, type Row } from "../cofid";
+import { COFID_CREDIT, dishUnitsFor, householdUnitsFor, loadCofid, loadCofidByCode, matchesAll, searchFoods, sumComponents, type Row } from "../cofid";
 import { CUISINES, MEALS_OUT, SIZES, type EatingOutMeal } from "../eatingOut";
 import { flagsForFood, lifeStageOf } from "../pregnancy";
 import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../types";
@@ -55,8 +55,13 @@ function fromOff(p: OffProduct): Pending {
   const units: FoodUnit[] = [];
   if (p.servingG) units.push({ name: "serving", plural: "servings", g: p.servingG });
   units.push(...householdUnitsFor(p.name));
-  const pack = p.quantity?.match(/^(\d+(?:\.\d+)?)\s*(g|ml)\b/i);
-  if (pack && Number(pack[1]) > 0) units.push({ name: `pack (${p.quantity})`, plural: `packs (${p.quantity})`, g: Number(pack[1]) });
+  // Meals and sides in a pack (a pouch, a tray) are often shared: offer half and whole.
+  if (p.packG && p.packG > 0) {
+    if (p.packG >= 150 && !units.length) units.push({ name: "half pack", plural: "half packs", g: Math.round(p.packG / 2) });
+    units.push({ name: `pack (${p.quantity ?? `${p.packG} g`})`, plural: `packs (${p.quantity ?? `${p.packG} g`})`, g: p.packG });
+  }
+  // Nothing on the label: fall back to a typical portion for what the food is.
+  if (!units.length) units.push(...dishUnitsFor(p.name));
   return { name: p.name, base: p, per: 100, baseUnit: "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true };
 }
 

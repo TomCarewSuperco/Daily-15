@@ -44,6 +44,22 @@ export function householdUnitsFor(name: string): FoodUnit[] {
   return [];
 }
 
+/**
+ * A typical portion for a branded product with no serving or pack size,
+ * guessed from its name: ready meals and sides, bowls of soup, pots, bars.
+ */
+export function dishUnitsFor(name: string): FoodUnit[] {
+  const n = fold(name);
+  if (/\bsoup\b/.test(n)) return [u("bowl", 300), u("cup", 200)];
+  if (/tagine|curry|chilli|stew|casserole|dhal|\bdal\b|risotto|paella|biryani|lasagne|bolognese|pasta bake|ready meal|stir.?fry|noodles|rice\b|grains|couscous|quinoa|lentils|beans|chickpeas/.test(n))
+    return [u("portion", 200), u("large portion", 300), u("side portion", 125)];
+  if (/\bbar\b/.test(n)) return [u("bar", 40)];
+  if (/\bpot\b/.test(n)) return [u("pot", 125)];
+  if (/biscuit|cookie/.test(n)) return [u("biscuit", 15)];
+  if (/crisps|popcorn|pretzels/.test(n)) return [u("bag", 25)];
+  return [];
+}
+
 export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind | null, group = ""): FoodUnit[] {
   const n = name.toLowerCase();
   if (unit === "ml") {
