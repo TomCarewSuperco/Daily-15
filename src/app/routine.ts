@@ -29,7 +29,8 @@ const sub = (name: string): Omit<RoutineExercise, "id"> => {
 /** Similar movements for each default slot. The first is the default. */
 const VARIANTS: Record<string, Omit<RoutineExercise, "id">[]> = {
   squat: [DEFAULT_ROUTINE.find((e) => e.id === "squat")!, sub("Reverse lunges"), sub("Step-ups")],
-  plank: [DEFAULT_ROUTINE.find((e) => e.id === "plank")!, sub("Dead bug"), sub("Bird dog"), sub("Side plank")],
+  bridge: [DEFAULT_ROUTINE.find((e) => e.id === "bridge")!, sub("Single-leg glute bridges"), sub("Glute bridge march"), sub("Donkey kicks")],
+  plank: [DEFAULT_ROUTINE.find((e) => e.id === "plank")!, sub("Dead bug"), sub("Reverse crunches"), sub("Bird dog"), sub("Hollow hold"), sub("Side plank"), sub("Bicycle crunches")],
   knees: [DEFAULT_ROUTINE.find((e) => e.id === "knees")!, sub("Jumping jacks")],
 };
 

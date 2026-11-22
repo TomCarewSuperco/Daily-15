@@ -70,6 +70,14 @@ export const SUBSTITUTES: Omit<RoutineExercise, "id">[] = [
   { name: "Dead bug", kind: "time", amount: 30, instructions: "Lie on your back, arms up, knees at 90 degrees. Lower the opposite arm and leg slowly, keeping your lower back on the floor." },
   { name: "Jumping jacks", kind: "time", amount: 30, instructions: "Jump your feet out while raising your arms, then return. Step side to side for a low-impact version." },
   { name: "Side plank", kind: "time", amount: 20, instructions: "On one forearm, feet stacked, lift your hips. Split the time between sides." },
+  // Glutes
+  { name: "Single-leg glute bridges", kind: "reps", amount: 12, instructions: "Lie on your back, one foot flat and the other leg straight. Squeeze your glutes and lift your hips until they line up with the straight leg. Lower slowly. Switch legs halfway." },
+  { name: "Glute bridge march", kind: "time", amount: 30, instructions: "Lift into a glute bridge and hold your hips level while you lift one knee towards your chest, then the other. Don't let your hips drop or twist." },
+  { name: "Donkey kicks", kind: "reps", amount: 20, instructions: "On all fours, keep one knee bent at 90 degrees and push that foot up towards the ceiling, squeezing your glute. Keep your back flat. Switch legs halfway." },
+  // Core
+  { name: "Hollow hold", kind: "time", amount: 20, instructions: "Lie on your back, press your lower back into the floor, then lift your shoulders and legs slightly with arms reaching past your head. Bend your knees to make it easier." },
+  { name: "Reverse crunches", kind: "reps", amount: 12, instructions: "Lie on your back, knees bent over your hips. Use your lower abs to curl your hips off the floor towards your chest, then lower with control. No swinging." },
+  { name: "Bicycle crunches", kind: "reps", amount: 20, instructions: "Lie on your back, hands lightly behind your head. Bring one knee in as you turn the opposite elbow towards it, straightening the other leg. Alternate sides slowly." },
 ];
 
 /** Exercises made of several moves done in turn, splitting the time equally. */

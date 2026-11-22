@@ -118,3 +118,10 @@ test("finishing in about 12 minutes puts another round first, also for 'about ri
   assert.equal(right.headline, "Room for a little more");
   assert.equal(right.options![0].label, "Another round");
 });
+
+test("glute and core slots rotate through more exercises; push-ups stay", () => {
+  const names = (id: string) => new Set(Array.from({ length: 14 }, (_, n) => buildRoutine(DEFAULT_ROUTINE, "standard", DEFAULT_SETTINGS, addDays(DAY, n)).find((e) => e.id === id)!.name));
+  assert.ok(names("bridge").size >= 3, [...names("bridge")].join(", "));
+  assert.ok(names("plank").size >= 5, [...names("plank")].join(", "));
+  assert.deepEqual([...names("pushup")], ["Push-ups"]);
+});
