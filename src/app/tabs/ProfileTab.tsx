@@ -26,6 +26,7 @@ import { supabase } from "../cloud/client";
 import { NewPasswordForm } from "./Auth";
 import { healthName } from "../native/health";
 import { ANCHORS, anchorPhrase, reminderBody, withAnchor } from "../anchor";
+import { PremiumGate } from "../premium/Paywall";
 import { notificationPermission, requestNotificationPermission, scheduleReminders } from "../native/notifications";
 import { isNative } from "../native/platform";
 import { useHealthSync } from "../native/useHealthSync";
@@ -239,6 +240,7 @@ export function ProfileTab() {
 
       <Card>
         <CardHeading>Focus areas</CardHeading>
+        <PremiumGate title="Focus areas" why="Premium lets the weekly review concentrate on cholesterol, salt, sugar, fibre and more, with tags in your diary.">
         <p className="mb-3 text-xs text-muted-foreground">Choose any you'd like the weekly review to concentrate on.</p>
         <div className="space-y-2">
           {FOCUS.map((f) => {
@@ -260,6 +262,7 @@ export function ProfileTab() {
         <p className="mt-3 text-xs text-muted-foreground">
           General guidance based on NHS advice, not a treatment plan. If you've been told you have high cholesterol, high blood pressure or another condition, follow your GP's or dietitian's advice.
         </p>
+              </PremiumGate>
       </Card>
 
       <Card>

@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Dumbbell, Home, LineChart, User, Utensils } from "lucide-react";
 import { AuthProvider, useAuth } from "./cloud/AuthProvider";
+import { PremiumProvider } from "./premium/PremiumProvider";
+import { Paywall } from "./premium/Paywall";
 import { ErrorBoundary, importWithReload } from "./components/ErrorBoundary";
 import { cloudEnabled } from "./cloud/client";
 import { useReminders } from "./components/useReminders";
@@ -97,7 +99,10 @@ function AccountGate() {
   if (!session) return <AuthScreen />;
   return (
     <Daily15Provider key={session.user.id} userId={session.user.id}>
-      <Shell />
+      <PremiumProvider>
+        <Shell />
+        <Paywall />
+      </PremiumProvider>
     </Daily15Provider>
   );
 }
@@ -111,7 +116,10 @@ export function Daily15App() {
         </AuthProvider>
       ) : (
         <Daily15Provider>
-          <Shell />
+          <PremiumProvider>
+            <Shell />
+            <Paywall />
+          </PremiumProvider>
         </Daily15Provider>
       )}
     </div>

@@ -27,6 +27,7 @@ import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { evidence, evidenceHeadline } from "../evidence";
+import { PremiumGate } from "../premium/Paywall";
 import type { MeasurementEntry } from "../types";
 import { weeklyReview, type ReviewPoint } from "../review";
 import { lifeStageOf, pregnancyReview } from "../pregnancy";
@@ -234,6 +235,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             {review.foodCoverage.missing > 0 && `, ${review.foodCoverage.missing} missing`}
           </p>
 
+          {review.wins.length > 0 && <ReviewList title="Keep doing" items={review.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
+          <div className="mt-4">
+          <PremiumGate title="Your plan for next week" why="Premium shows what to eat more and less of, and whether to change your calorie target based on your weight trend.">
           {review.adjustment && (
             <div className="mt-4 rounded-xl border border-copper/40 bg-copper/5 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-copper">Suggested change</p>
@@ -243,9 +247,10 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             </div>
           )}
 
-          {review.wins.length > 0 && <ReviewList title="Keep doing" items={review.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
           {review.moreOf.length > 0 && <ReviewList title="Do more of" items={review.moreOf} />}
           {review.lessOf.length > 0 && <ReviewList title="Do less of" items={review.lessOf} />}
+          </PremiumGate>
+          </div>
           {review.notes.map((n) => <p key={n} className="mt-3 text-sm text-muted-foreground">{n}</p>)}
           {!review.moreOf.length && !review.lessOf.length && !review.adjustment && <p className="mt-3 text-sm">Nothing to change this week. Keep doing what you're doing.</p>}
           <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">

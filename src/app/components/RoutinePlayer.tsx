@@ -1,3 +1,4 @@
+import { usePremium } from "../premium/PremiumProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
 import { toast } from "../notify";
@@ -234,6 +235,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
   // Per-exercise tweaks on top of the proposal, e.g. push-ups up faster than the rest.
   const [bias, setBias] = useState<Record<string, number>>(settings.bias ?? {});
   const seconds = state.routineLogs[today]?.seconds;
+  const { premium, openPaywall } = usePremium();
   // After the feedback, one food choice for the day (the habit stack), unless already chosen.
   const [askIntention, setAskIntention] = useState(false);
   const [custom, setCustom] = useState("");
@@ -248,7 +250,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
     setFeeling(f);
     const logs = Object.values({ ...state.routineLogs, [today]: { ...state.routineLogs[today], feeling: f } }).sort((a, b) => a.date.localeCompare(b.date));
     update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: { ...s.routineLogs[today], feeling: f } } }));
-    setProposal(mode === "standard" ? proposeAfter(f, settings, logs, seconds || undefined) : null);
+    setProposal(mode === "standard" && premium ? proposeAfter(f, settings, logs, seconds || undefined) : null);
     setChoice(0);
   };
 
@@ -367,7 +369,12 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
         </div>
       ) : (
         <div className="mt-6 flex flex-1 flex-col">
-          <p className="text-lg">{feeling === "right" ? "Good. Keep it as it is for now." : feeling === "easy" ? "You're at the top level. Try adding a round in Workouts." : "You're at the easiest setting. Try light mode on tougher days."}</p>
+          {!premium && mode === "standard" && feeling !== "right" && (
+            <button className="mb-3 rounded-xl border border-dashed p-3 text-left text-sm" onClick={openPaywall}>
+              <span className="font-medium">Smart progression is part of Premium.</span> It adjusts reps, rounds and time to how it felt and how long it took.
+            </button>
+          )}
+          <p className="text-lg">{feeling === "right" ? "Good. Keep it as it is for now." : !premium ? "Noted. You can change rounds and difficulty yourself in Workouts." : feeling === "easy" ? "You're at the top level. Try adding a round in Workouts." : "You're at the easiest setting. Try light mode on tougher days."}</p>
           <div className="mt-auto grid gap-2 pt-6">
             {settings.rounds < 3 && mode === "standard" && (
               <Button size="lg" variant="outline" onClick={() => apply({ ...settings, rounds: settings.rounds + 1 }, `${settings.rounds + 1} rounds from next time`)}>Felt short? Add a round</Button>

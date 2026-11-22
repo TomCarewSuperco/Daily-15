@@ -1,3 +1,4 @@
+import { usePremium } from "../premium/PremiumProvider";
 import { fmtClock } from "./RoutinePlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Minus, Plus, SkipForward, X } from "lucide-react";
@@ -68,6 +69,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
 
   const current = plan[ex];
   const lib = findExercise(current.name);
+  const { premium } = usePremium();
   const last = lastTimeFor(state.workouts, current.name);
   const suggestion = suggestNext(current.name, targets[ex][set] ?? 0, last);
   const unit = lib?.timed ? "sec" : "reps";
@@ -184,7 +186,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
           {last && (
             <p className="mt-3 rounded-lg bg-muted p-2.5 text-sm">
               Last time: {describeLast(last)}
-              {suggestion && <span className="block text-muted-foreground">{suggestion.note}</span>}
+              {suggestion && premium && <span className="block text-muted-foreground">{suggestion.note}</span>}
             </p>
           )}
 
