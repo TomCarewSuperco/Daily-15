@@ -109,3 +109,12 @@ test("adjusting an exercise edits the amount you actually do, at its current dif
   const plankBase = DEFAULT_ROUTINE.map((e) => (e.id === "plank" ? { ...e, amount: baseForShown(45, e, settings) } : e));
   assert.equal(buildRoutine(plankBase, "standard", settings, DAY).find((e) => e.id === "plank")!.amount, 45);
 });
+
+test("finishing in about 12 minutes puts another round first, also for 'about right'", () => {
+  const easy = proposeAfter("easy", fixed, [], 728)!;
+  assert.equal(easy.options![0].label, "Another round");
+  assert.equal(easy.options![0].minutes, 17);
+  const right = proposeAfter("right", fixed, [], 728)!;
+  assert.equal(right.headline, "Room for a little more");
+  assert.equal(right.options![0].label, "Another round");
+});

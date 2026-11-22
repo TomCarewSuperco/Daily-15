@@ -4,7 +4,7 @@ import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
 import { suggestedIntentions } from "../intentions";
-import { TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
+import { MAX_ROUNDS, TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
@@ -315,7 +315,16 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
               </button>
             ))}
           </div>
-          <Button variant="ghost" className="mt-4" onClick={finish}>Skip</Button>
+          {mode === "standard" && !!seconds && seconds < (TARGET_MINUTES - 1) * 60 && settings.rounds < MAX_ROUNDS && (
+            <Button
+              variant="outline"
+              className="mt-4 h-auto whitespace-normal py-3"
+              onClick={() => apply({ ...settings, rounds: settings.rounds + 1, bias }, `${settings.rounds + 1} rounds from tomorrow`)}
+            >
+              Finished early? Add a round tomorrow (about {Math.round((seconds * (1 + 0.85 / settings.rounds)) / 60)} min)
+            </Button>
+          )}
+          <Button variant="ghost" className="mt-2" onClick={finish}>Skip</Button>
         </>
       ) : proposal && chosen && next ? (
         <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-y-auto">

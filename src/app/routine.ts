@@ -125,7 +125,14 @@ function stepUpOptions(current: RoutineSettings, seconds?: number): Proposal[] {
     opts.push({ settings: { ...current, level: current.level + 1 }, label: "More reps", headline: "Step it up a little", detail: "About 15% more reps and time on the main exercises.", minutes: seconds ? Math.round((seconds * 1.12) / 60) : undefined });
   if (current.rounds < MAX_ROUNDS)
     opts.push({ settings: { ...current, rounds: current.rounds + 1 }, label: "Another round", headline: "Add a round", detail: "One more time through the main exercises.", minutes: seconds ? Math.round((seconds * (1 + 0.85 / current.rounds)) / 60) : undefined });
-  if (seconds) opts.sort((a, b) => Math.abs(a.minutes! - TARGET_MINUTES) - Math.abs(b.minutes! - TARGET_MINUTES));
+  if (seconds) {
+    // Well short of 15 minutes, another round is the natural step if it lands within about 3 minutes over;
+    // otherwise whichever lands closest to 15.
+    const round = opts.find((o) => o.label === "Another round");
+    const wellShort = seconds <= (TARGET_MINUTES - 2) * 60;
+    if (round && wellShort && round.minutes! <= TARGET_MINUTES + 3) opts.sort((a) => (a === round ? -1 : 1));
+    else opts.sort((a, b) => Math.abs(a.minutes! - TARGET_MINUTES) - Math.abs(b.minutes! - TARGET_MINUTES));
+  }
   else if (current.level >= 3) opts.reverse();
   return opts;
 }
@@ -152,7 +159,7 @@ export function proposeAfter(feeling: Feeling, current: RoutineSettings, recentL
     return null;
   }
   // About right, but well under 15 minutes: there's room for a little more.
-  if (short && seconds! < (TARGET_MINUTES - 3) * 60) return withOptions(stepUpOptions(current, seconds), "Room for a little more", timeNote);
+  if (short) return withOptions(stepUpOptions(current, seconds), "Room for a little more", timeNote);
   // Three 'about right' sessions in a row: suggest a small step up so progress continues.
   const lastThree = recentLogs.filter((l) => l.finished && l.mode === "standard").slice(-3);
   if (lastThree.length === 3 && lastThree.every((l) => l.feeling === "right") && current.level < MAX_LEVEL) {
