@@ -18,7 +18,7 @@ test("foods not eaten as listed have no everyday unit", () => {
 test("portion rules avoid known traps", () => {
   assert.equal(first("Taramasalata", "JR").g, 30);
   assert.equal(first("Curry powder", "HC").g, 3);
-  assert.equal(first("Cheese sauce, made with semi-skimmed milk, homemade", "SN").g, 60);
+  assert.deepEqual(unitsFor("Cheese sauce, made with semi-skimmed milk, homemade", "g", null, "SN").map((x) => x.g), [20, 60]);
   assert.equal(first("Black pudding, dry-fried", "MI").g, 40);
   assert.equal(first("Raisins, dried", "FA", "dried").g, 30);
   assert.equal(first("Pakora/bhajia, onion, fried in vegetable oil, homemade", "DR").g, 50);
@@ -58,4 +58,14 @@ test("branded products get spoon measures from their name", async () => {
   assert.equal(householdUnitsFor("Heinz Tomato Ketchup")[0].g, 15);
   assert.equal(householdUnitsFor("Ben & Jerry's ice cream").length, 0);
   assert.deepEqual(householdUnitsFor("Mars bar"), []);
+});
+
+test("cooked meat, fish and puddings get everyday units", () => {
+  assert.equal(first("Beef, fore-rib/rib-roast, roasted, lean", "MAC").name, "slice");
+  assert.equal(first("Chicken, breast, grilled, meat and skin", "MCC").g, 140);
+  assert.equal(first("Lamb, loin chops, grilled, lean", "MBG").name, "chop");
+  assert.equal(first("Chorizo", "MI").g, 5);
+  assert.equal(first("Cheesecake, homemade", "BRC").name, "slice");
+  assert.equal(first("Trifle, homemade", "BRC").name, "bowl");
+  assert.notEqual(first("Corned beef hash, homemade", "MRA").name, "slice");
 });

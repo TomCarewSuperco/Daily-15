@@ -18,7 +18,7 @@ const u = (name: string, g: number, plural = `${name}s`): FoodUnit => ({ name, p
  * amounts from general knowledge and are estimates.
  */
 const MEAL: FoodUnit[] = [u("regular portion", 350), u("small portion", 250), u("restaurant or takeaway portion", 450)];
-const DISH: FoodUnit[] = [u("portion", 200), u("large portion", 300)];
+const DISH: FoodUnit[] = [u("serving spoon", 80), u("portion", 200), u("large portion", 300)];
 
 /** Foods not eaten as listed (dry mixes, raw dried pulses, fat only, weighed with peel): grams only. */
 const NOT_AS_EATEN = /weighed whole|weighed as whole|as purchased|\bpowder\b|granules|uncooked|undiluted|concentrate|\bdry\b(?![- ]?(fried|cured|roasted))|fat only|rind only|fat, average|^dripping|^lard|^suet|dried, raw/;
@@ -131,10 +131,10 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (group.startsWith("AP")) return [u("pastry", 80, "pastries")];
   if (/^dumpling/.test(n)) return [u("dumpling", 50)];
   if (/^stuffing(?!.*dried)/.test(n)) return [u("portion", 50)];
-  if (/^custard|^blancmange|^instant dessert|^trifle|^mousse|^jelly/.test(n)) return [u("portion", 120)];
+  if (/^instant dessert|^jelly/.test(n)) return [u("portion", 120)];
   if (/cornetto|^lollies|^sorbet|^kulfi|ice cream cone/.test(n)) return [u("one", 70, "ones")];
   if (/^fromage frais/.test(n)) return [u("pot", 100)];
-  if (group.startsWith("BR")) return [u("portion", 120)];
+  if (group.startsWith("BR") && !/cheesecake|gateau|pavlova|torte|mousse|caramel|trifle|knickerbocker|banana split|sundae|melba|blancmange|panna cotta|custard/.test(n)) return [u("portion", 120)];
   if (/canned,? in tomato sauce|ravioli/.test(n)) return [u("half can", 200, "half cans")];
   if (/^jam tarts?/.test(n)) return [u("tart", 35)];
   if (/^bacon rashers/.test(n)) return [u("rasher", /streaky/.test(n) ? 15 : 25)];
@@ -214,11 +214,40 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/pesto/.test(n)) return [u("tablespoon", 15)];
   if (/burger/.test(n)) return [u("burger", /with bun/.test(n) ? 200 : 100)];
   if (/^sausages?/.test(n)) return [u("sausage", 45)];
-  if (/^cheese sauce|^white sauce|^bread sauce|^sauce, (cheese|white)/.test(n) && !/dry|packet mix, dry/.test(n)) return [u("portion", 60)];
+  if (/^cheese sauce|^white sauce|^bread sauce|^onion sauce|^parsley sauce|^sauce, (cheese|white)/.test(n) && !/dry|packet mix, dry/.test(n)) return [u("tablespoon", 20), u("portion", 60)];
   if (/^sauce, (pasta|traditional cook in|indian cook in|chinese cook in)|^sauces, indian cook in|^bolognese sauce|cook in sauce/.test(n)) return [u("quarter jar", 125), u("half jar", 250)];
   if (/^gravy.*made up/.test(n)) return [u("portion", 80)];
   if (group.startsWith("H")) return [u("teaspoon", 3)];
 
+  // Cooked meat and poultry by the piece or slice.
+  if (group.startsWith("M") && !/, raw\b/.test(n)) {
+    if (/meatballs?/.test(n)) return [u("meatball", 30), u("portion of 5", 150, "portions of 5")];
+    if (/mince/.test(n)) return [u("heaped tablespoon", 40), u("portion", 125)];
+    if (/chops?\b|cutlets?/.test(n)) return [u("chop", 130)];
+    if (/gammon|bacon loin steak/.test(n)) return [u("steak", 150)];
+    if (/steak/.test(n) && !/braising|stewing|pudding|pie/.test(n)) return [u("steak", 200), u("small steak", 150)];
+    if (/chicken.*breast|breast.*chicken|turkey.*breast/.test(n) && !/coated|slices/.test(n)) return [u("breast", 140), u("half breast", 70, "half breasts")];
+    if (/thigh/.test(n)) return [u("thigh", 75)];
+    if (/drumstick|leg quarter/.test(n)) return [u(/leg quarter/.test(n) ? "leg quarter" : "drumstick", /leg quarter/.test(n) ? 200 : 60)];
+    if (/coated|nuggets|goujons|dippers|battered|portions/.test(n)) return [u("piece", /portions|battered/.test(n) ? 120 : 30), u("portion", 150)];
+    if (/roast|joint|leg|loin|topside|silverside|brisket|whole, roasted|light meat|dark meat|meat only|meat and skin/.test(n) && !/stewed|casseroled|braised|slow cooked/.test(n)) return [u("slice", 30), u("portion (4 slices)", 120, "portions")];
+    if (/ham\b|chicken slices|turkey slices|corned beef|brawn|luncheon|pastrami|tongue/.test(n) && !/hash/.test(n)) return [u("slice", /corned beef/.test(n) ? 30 : 25)];
+    if (/salami|pepperoni|chorizo|prosciutto|parma/.test(n)) return [u("slice", 5), u("portion (6 slices)", 30, "portions")];
+    if (/frankfurter|hot dog sausage/.test(n)) return [u("frankfurter", 45)];
+    if (/stewed|casseroled|braised|slow cooked|stew/.test(n)) return [u("ladle", 150), u("portion", 200)];
+  }
+  if (/fish fingers/.test(n)) return [u("fish finger", 28), u("portion of 4", 112, "portions of 4")];
+  if (/fishcakes?|fish cakes?/.test(n)) return [u("fish cake", 90)];
+  if (/fish balls/.test(n)) return [u("fish ball", 20)];
+  if (/yorkshire pudding/.test(n)) return [u("individual pudding", 30, "individual puddings"), u("large pudding", 90, "large puddings")];
+  if (/^stuffing/.test(n) && !/dried/.test(n)) return [u("stuffing ball", 30), u("portion", 60)];
+  if (/cheesecake|gateau|pavlova|torte|tart\b/.test(n)) return [u("slice", 100), u("restaurant slice", 140)];
+  if (/mousse|creme caramel|crème caramel|blancmange|panna cotta/.test(n)) return [u("pot", 80)];
+  if (/^trifle|knickerbocker|banana split|sundae|peach melba/.test(n)) return [u("bowl", 150)];
+  if (/^custard/.test(n)) return [u("serving spoon", 60), u("jug pour", 120, "jug pours")];
+  if (/^(pasta|noodles)/.test(n) && /boiled|cooked|fried/.test(n)) return [u("bowl", 230), u("side portion", 120)];
+  if (/^(crumble|pudding|pie, fruit|sponge)/.test(n) || group.startsWith("AS")) return [u("bowlful", 150), u("small bowlful", 100)];
+  if (/stew|casserole|bourguignon|stroganoff|goulash|curry|chilli|dhal|hotpot/.test(n) && !/sauce|powder|paste/.test(n)) return [u("ladle", 150), ...MEAL];
   if (/^(red )?rice/.test(n) && !/raw|flour|uncooked|pudding/.test(n)) return [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)];
   if (/^(pasta|noodles)/.test(n) && /boiled|cooked|fried/.test(n)) return [u("portion", 180), u("large portion", 250)];
   if (/chips|fries|wedges/.test(n) && group.startsWith("DA")) return [u("portion", 150), u("takeaway portion", 250)];
@@ -234,7 +263,10 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (group.startsWith("AS") || /crumble|pudding|pie, fruit|tart/.test(n)) return [u("portion", 150)];
   if (/^cheese spread/.test(n)) return [u("tablespoon", 15)];
   if (/^cheese, (cottage|quark)/.test(n)) return [u("tablespoon", 30), u("pot", 150)];
-  if (/^cheese,/.test(n)) return [u("portion", 30)];
+  if (/^cheese,/.test(n)) {
+    if (/brie|camembert|goats?|feta|mozzarella|halloumi|paneer|ricotta|mascarpone|cream cheese|soft/.test(n)) return [u("slice", 30), u("tablespoon", 15)];
+    return [u("matchbox-size piece", 30, "matchbox-size pieces"), u("slice", 20), u("grated tablespoon", 7, "grated tablespoons")];
+  }
   if (/^yogurt|^yoghurt/.test(n)) return [u("pot", 125)];
   if (/^ice cream/.test(n)) return [u("scoop", 60)];
   if (/^sauce|\bsauce\b|^dips?\b|horseradish|piccalilli|salad cream|gravy|ketchup|mayonnaise|dressing|chutney|pickle|relish/.test(n)) return [u("tablespoon", 15)];
