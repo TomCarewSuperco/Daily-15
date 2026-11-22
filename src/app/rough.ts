@@ -1,4 +1,4 @@
-import { addDays, foodsOn, uid } from "./calc";
+import { addDays, foodsOn, maintenanceCalories, sumNutrients, trendWeight, uid } from "./calc";
 import type { AppState, FoodEntry, Meal, Nutrients, RoughLevel } from "./types";
 
 /*
@@ -26,6 +26,46 @@ export interface TypicalDay extends Nutrients {
   /** Completed days the average is based on; 0 means the calorie target was used. */
   days: number;
   shares: Record<Meal, number>;
+  /** kcal added because the weight trend suggests more is eaten than logged (0 if none). */
+  realityKcal: number;
+}
+
+/** Roughly 7,700 kcal per kilo of body weight. */
+const KCAL_PER_KG = 7700;
+/** Never adjust by more than this share of the typical day. */
+const MAX_REALITY_SHARE = 0.25;
+
+/**
+ * Reality check: over the last four weeks, compare what the logged days say
+ * the weight should have done with what the weight trend actually did. If the
+ * trend says more was eaten than logged, by more than 150 kcal a day, the
+ * typical day is nudged up (never down), at most 25%. Needs a 14-day weight
+ * trend and 10 completed days. An estimate: it also absorbs any error in the
+ * maintenance calculation.
+ */
+export function realityAdjustment(state: AppState, before: string): number {
+  const p = state.profile;
+  if (!p) return 0;
+  const end = addDays(before, -1);
+  const start = addDays(before, -28);
+  const wEnd = trendWeight(state.weights, end);
+  const wStart = trendWeight(state.weights, addDays(start, 6));
+  const weighIns = state.weights.filter((w) => w.date >= start && w.date <= end).length;
+  if (wEnd === null || wStart === null || weighIns < 4) return 0;
+  const done = new Set(state.foodDiaryDone ?? []);
+  const days: string[] = [];
+  for (let i = 1; i <= 28; i++) {
+    const d = addDays(before, -i);
+    if (done.has(d) && realFoods(state, d).length) days.push(d);
+  }
+  if (days.length < 10) return 0;
+  const logged = days.reduce((t, d) => t + sumNutrients(realFoods(state, d)).kcal, 0) / days.length;
+  const maintenance = maintenanceCalories(p, wEnd);
+  const span = 22; // days between the two seven-day trend points
+  const observed = ((wEnd - wStart) * KCAL_PER_KG) / span; // + surplus, - deficit
+  const predicted = logged - maintenance;
+  const gap = observed - predicted;
+  return gap > 150 ? Math.min(gap, logged * MAX_REALITY_SHARE) : 0;
 }
 
 const realFoods = (state: AppState, date: string) => foodsOn(state, date).filter((f) => !f.rough);
@@ -40,7 +80,7 @@ export function typicalDay(state: AppState, before: string): TypicalDay {
   if (days.length < MIN_TYPICAL_DAYS) {
     const t = state.profile!.targets;
     // Fibre, saturates, sugars and salt aren't known from a target, so they're left out rather than guessed.
-    return { kcal: t.calories, protein: t.proteinG, carbs: t.carbsG, fat: t.fatG, fibre: 0, days: 0, shares: DEFAULT_SHARES };
+    return { kcal: t.calories, protein: t.proteinG, carbs: t.carbsG, fat: t.fatG, fibre: 0, days: 0, shares: DEFAULT_SHARES, realityKcal: 0 };
   }
   const sum: Nutrients = { kcal: 0, protein: 0, carbs: 0, fat: 0, fibre: 0 };
   // Per limit: [amount, calories of the food that stated it].
@@ -60,11 +100,14 @@ export function typicalDay(state: AppState, before: string): TypicalDay {
   const n = days.length;
   const total = Object.values(byMeal).reduce((a, b) => a + b, 0) || 1;
   const shares = Object.fromEntries(MEALS.map((m) => [m, byMeal[m] / total])) as Record<Meal, number>;
-  const out: TypicalDay = { kcal: sum.kcal / n, protein: sum.protein / n, carbs: sum.carbs / n, fat: sum.fat / n, fibre: sum.fibre / n, days: n, shares };
+  // Scale the whole day up if the weight trend says more is eaten than logged.
+  const reality = realityAdjustment(state, before);
+  const k = sum.kcal ? 1 + reality / (sum.kcal / n) : 1;
+  const out: TypicalDay = { kcal: (sum.kcal / n) * k, protein: (sum.protein / n) * k, carbs: (sum.carbs / n) * k, fat: (sum.fat / n) * k, fibre: sum.fibre / n, days: n, shares, realityKcal: Math.round(reality) };
   // Only carry a limit when most of the food (by calories) had it, scaled up for the rest, so gaps don't look like good news.
   for (const k of ["satFat", "sugars", "salt"] as const) {
     const share = sum.kcal ? extra[k][1] / sum.kcal : 0;
-    if (share >= 0.6) out[k] = extra[k][0] / share / n;
+    if (share >= 0.6) out[k] = (extra[k][0] / share / n) * (sum.kcal ? 1 + reality / (sum.kcal / n) : 1);
   }
   return out;
 }

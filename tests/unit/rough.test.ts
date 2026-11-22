@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { roughEntries, typicalDay, emptyMeals } from "../../src/app/rough";
 import { emptyStateForTests as empty } from "./fixtures";
+import { addDays as addD } from "../../src/app/calc";
 import type { AppState, FoodEntry, Meal } from "../../src/app/types";
 
 const D = "2026-11-21";
@@ -38,4 +39,28 @@ test("'rest of day' fills only the meals with nothing logged; drinks add units",
   assert.deepEqual(e.map((x) => x.meal), ["dinner", "snacks", "dinner"]);
   assert.equal(e.reduce((a, x) => a + x.kcal, 0), Math.round(2000 * 0.35) + Math.round(2000 * 0.1) + 340);
   assert.equal(e.find((x) => x.alcoholUnits)?.alcoholUnits, 4);
+});
+
+test("reality check nudges the typical day up when weight doesn't match the logged deficit", async () => {
+  const { maintenanceCalories } = await import("../../src/app/calc");
+  const { realityAdjustment } = await import("../../src/app/rough");
+  const profile = { name: "", age: 40, sex: "male", heightCm: 180, startWeightKg: 90, targetWeightKg: 82, experience: "beginner", activityLevel: "light", goal: "lose-fat", targetsCustomised: false,
+    targets: { calories: 2000, proteinG: 150, carbsG: 200, fatG: 65, fibreG: 30, waterMl: 2500, steps: 7500, activeMinutes: 30 } } as AppState["profile"];
+  const maint = maintenanceCalories(profile!, 90);
+  const build = (kgPerDay: number): AppState => {
+    const days = Array.from({ length: 28 }, (_, i) => addD(D, -(i + 1)));
+    return {
+      ...empty(),
+      profile,
+      foodDiaryDone: days,
+      foods: days.map((d) => food(d, "dinner", Math.round(maint - 500))),
+      weights: days.filter((_, i) => i % 2 === 0).map((d, i) => ({ id: `w${i}`, date: d, kg: 90 + kgPerDay * (Date.parse(d) - Date.parse(D)) / 86400000 })),
+    };
+  };
+  // Weight flat although the log says 500 kcal a day under maintenance: under-logging, nudge up (capped at 25%).
+  const flat = realityAdjustment(build(0), D);
+  assert.ok(flat > 150 && flat <= (maint - 500) * 0.25 + 1, String(flat));
+  assert.ok(typicalDay(build(0), D).realityKcal > 0);
+  // Losing about what the log predicts (500 kcal a day is about 0.065 kg a day): no change.
+  assert.equal(realityAdjustment(build(-500 / 7700), D), 0);
 });

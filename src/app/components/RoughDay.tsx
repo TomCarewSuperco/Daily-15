@@ -52,6 +52,7 @@ export function RoughDay({ date, scope, compact = false, onDone }: { date: strin
             {typical.days
               ? `Based on your typical day: ${Math.round(typical.kcal).toLocaleString("en-GB")} kcal, the average of ${typical.days} completed days in the last four weeks.`
               : `Based on your calorie target (${Math.round(typical.kcal).toLocaleString("en-GB")} kcal) until you've marked a few days complete. Then it uses your own typical day.`}{" "}
+            {typical.realityKcal > 0 && `Includes about ${typical.realityKcal} kcal added because your weight trend suggests you eat a little more than you log. `}
             Shown as an estimate; the weekly review counts it as such.
           </p>
         </>
