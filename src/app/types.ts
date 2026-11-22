@@ -135,6 +135,13 @@ export interface Nutrients {
 /** 'dried' is dried fruit: 30 g a portion rather than 80 g. */
 export type FiveADayKind = "fv" | "juice" | "pulses" | "dried";
 
+export interface DayIntention {
+  id: string;
+  text: string;
+  /** true = did it, false = didn't, absent = not answered yet. */
+  done?: boolean;
+}
+
 export type RoughLevel = "lighter" | "typical" | "heavier" | "blowout";
 
 export interface FoodEntry extends Nutrients {
@@ -238,6 +245,8 @@ export interface AppState {
   foods: FoodEntry[];
   savedMeals: SavedMeal[];
   customFoods: CustomFood[];
+  /** One food choice per day, picked after the daily 15; done is set when the user answers in the evening. */
+  intentions?: Record<string, DayIntention>;
   /** Days whose food diary the user marked complete (locked), as dates. */
   foodDiaryDone?: string[];
   /** Supplements ticked off per day, keyed by date. */

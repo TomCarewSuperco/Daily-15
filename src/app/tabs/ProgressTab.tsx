@@ -26,6 +26,7 @@ import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
+import { evidence, evidenceHeadline } from "../evidence";
 import type { MeasurementEntry } from "../types";
 import { weeklyReview, type ReviewPoint } from "../review";
 import { lifeStageOf, pregnancyReview } from "../pregnancy";
@@ -197,6 +198,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Step target hit on {stepGoalDays} of seven days. Dashed line marks your {p.targets.steps.toLocaleString("en-GB")} target.</p>
       </Card>
+
+      {/* Does the 15 help? The user's own evidence. */}
+      <EvidenceCard />
 
       {/* Consistency */}
       <div className="grid grid-cols-2 gap-3">
@@ -443,5 +447,39 @@ function ReviewList({ title, items }: { title: string; items: ReviewPoint[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+function EvidenceCard() {
+  const { state } = useDaily15();
+  const e = useMemo(() => evidence(state), [state]);
+  const pct = (v: number | null) => (v === null ? "\u2014" : `${Math.round(v * 100)}%`);
+  const kcal = (v: number | null) => (v === null ? "\u2014" : Math.round(v).toLocaleString("en-GB"));
+  return (
+    <Card>
+      <CardHeading>Your 15 and the rest of your day</CardHeading>
+      <p className="text-sm">{evidenceHeadline(e)}</p>
+      {e.on.days + e.off.days > 0 && (
+        <table className="mt-3 w-full text-sm tabular-nums">
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground">
+              <th className="py-1 font-normal">Last 8 weeks</th>
+              <th className="py-1 text-right font-normal">15 done</th>
+              <th className="py-1 text-right font-normal">Not done</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t"><td className="py-1.5">Days</td><td className="text-right">{e.on.days}</td><td className="text-right">{e.off.days}</td></tr>
+            <tr className="border-t"><td className="py-1.5">Food logged</td><td className="text-right">{pct(e.on.days ? e.on.loggedShare : null)}</td><td className="text-right">{pct(e.off.days ? e.off.loggedShare : null)}</td></tr>
+            {e.ready && <tr className="border-t"><td className="py-1.5">Average calories</td><td className="text-right">{kcal(e.on.avgKcal)}</td><td className="text-right">{kcal(e.off.avgKcal)}</td></tr>}
+            {e.ready && <tr className="border-t"><td className="py-1.5">Protein target hit</td><td className="text-right">{pct(e.on.proteinHitShare)}</td><td className="text-right">{pct(e.off.proteinHitShare)}</td></tr>}
+          </tbody>
+        </table>
+      )}
+      {e.intentions.answered > 0 && (
+        <p className="mt-3 text-sm text-muted-foreground">Food choices after your 15: {e.intentions.done} of {e.intentions.answered} done.</p>
+      )}
+      <p className="mt-2 text-[11px] text-muted-foreground">Compares days, it doesn't prove cause: busy days can mean both no workout and less logging. Rest days are left out.</p>
+    </Card>
   );
 }

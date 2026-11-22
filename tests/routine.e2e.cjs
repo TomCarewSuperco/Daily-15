@@ -28,9 +28,18 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("proposal shown", (await p.getByText("Step it up a little").count()) === 1);
   await p.screenshot({ path: OUT + "/routine-proposal.png" });
   await p.getByRole("button", { name: "Sounds good" }).click();
+  // Then one food choice for the day.
+  await p.getByText("One food choice for today").waitFor();
+  await p.screenshot({ path: OUT + "/routine-intention.png" });
+  await p.getByRole("button", { name: "Nothing to eat after 8pm" }).click();
+  await p.getByRole("navigation").getByRole("button", { name: "Home", exact: true }).click();
+  await p.getByText("Today's food choice", { exact: true }).waitFor();
+  ok("food choice shown on Home", (await p.getByText("Nothing to eat after 8pm").count()) === 1);
+  await p.screenshot({ path: OUT + "/home-intention.png" });
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   const today = Object.values(st.routineLogs)[0];
   ok("feeling and new level saved", today.feeling === "easy" && today.finished && st.routineSettings?.level === 1);
+  ok("food choice saved for today", Object.values(st.intentions ?? {})[0]?.id === "late-snacks");
   await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
   ok("difficulty shows +1", (await p.getByText("+1", { exact: true }).count()) === 1);
   await p.screenshot({ path: OUT + "/routine-workouts.png", fullPage: true });

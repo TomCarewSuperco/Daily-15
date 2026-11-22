@@ -38,7 +38,23 @@ const done = (s: AppState, ...ago: number[]) => ({
 test("streak counts back from today, or from yesterday if today isn't done yet", () => {
   assert.equal(currentStreak(done(empty(), 0, 1, 2)), 3);
   assert.equal(currentStreak(done(empty(), 1, 2)), 2);
-  assert.equal(currentStreak(done(empty(), 0, 2)), 1);
+  // Never miss twice: one missed day is forgiven, two in a row break the streak.
+  assert.equal(currentStreak(done(empty(), 0, 2)), 2);
+  assert.equal(currentStreak(done(empty(), 0, 3)), 1);
+});
+
+test("missing yesterday is flagged; a freeze earned at 14 days covers a second miss", async () => {
+  const { streakInfo } = await import("../../src/app/calc");
+  const missed = streakInfo(done(empty(), 2, 3, 4));
+  assert.equal(missed.current, 3);
+  assert.equal(missed.missedYesterday, true);
+  // 14 days in a row, then two missed days, then today: the freeze keeps the streak.
+  const run = Array.from({ length: 14 }, (_, i) => i + 3);
+  const kept = streakInfo(done(empty(), 0, ...run));
+  assert.equal(kept.current, 15);
+  assert.equal(kept.freezes, 0);
+  // Without the freeze (only 5 days), the same gap breaks it.
+  assert.equal(streakInfo(done(empty(), 0, 3, 4, 5, 6, 7)).current, 1);
 });
 
 test("a planned rest day pauses the streak without breaking it", () => {

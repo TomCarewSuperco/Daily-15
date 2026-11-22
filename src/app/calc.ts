@@ -283,36 +283,66 @@ export function isRestDay(state: AppState, date: string): boolean {
  * Current streak of active days. Planned rest days pause the streak without
  * breaking it. Today doesn't break the streak until it's over.
  */
-export function currentStreak(state: AppState): number {
-  let day = todayKey();
-  if (!isActiveDay(state, day)) day = addDays(day, -1);
-  let streak = 0;
-  for (let i = 0; i < 3650; i++) {
-    if (isActiveDay(state, day)) streak++;
-    else if (!isRestDay(state, day)) break;
-    day = addDays(day, -1);
+/*
+ * Streaks follow 'never miss twice': one missed day doesn't break the streak
+ * (it doesn't add to it either); two missed days in a row do, unless a streak
+ * freeze covers the second. A freeze is earned for every 14 days in a streak,
+ * up to two held. Planned rest days and light days count as normal.
+ */
+export const FREEZE_EVERY = 14;
+export const MAX_FREEZES = 2;
+
+export interface StreakInfo {
+  /** Active days in the current streak. */
+  current: number;
+  best: number;
+  /** Freezes held now. */
+  freezes: number;
+  /** Yesterday was missed and forgiven: today must be done to keep the streak. */
+  missedYesterday: boolean;
+}
+
+export function streakInfo(state: AppState): StreakInfo {
+  const today = todayKey();
+  const active = new Set<string>([...Object.keys(state.routineLogs).filter((d) => state.routineLogs[d].finished), ...state.workouts.map((w) => w.date)]);
+  if (!active.size) return { current: 0, best: 0, freezes: 0, missedYesterday: false };
+  let day = [...active].sort()[0];
+  let current = 0;
+  let best = 0;
+  let freezes = 0;
+  let misses = 0;
+  for (let i = 0; i < 3650 && day <= today; i++, day = addDays(day, 1)) {
+    if (active.has(day)) {
+      current++;
+      misses = 0;
+      if (current % FREEZE_EVERY === 0) freezes = Math.min(MAX_FREEZES, freezes + 1);
+      best = Math.max(best, current);
+    } else if (isRestDay(state, day) || day === today) {
+      // A rest day pauses the streak; today isn't missed until it's over.
+    } else {
+      misses++;
+      if (misses >= 2) {
+        if (freezes > 0) {
+          freezes--;
+          misses = 1;
+        } else {
+          current = 0;
+          freezes = 0;
+        }
+      }
+    }
   }
-  return streak;
+  const yesterday = addDays(today, -1);
+  const missedYesterday = current > 0 && misses === 1 && !active.has(yesterday) && !isRestDay(state, yesterday);
+  return { current, best, freezes, missedYesterday };
+}
+
+export function currentStreak(state: AppState): number {
+  return streakInfo(state).current;
 }
 
 export function bestStreak(state: AppState): number {
-  const days = new Set<string>([...Object.keys(state.routineLogs).filter((d) => state.routineLogs[d].finished), ...state.workouts.map((w) => w.date)]);
-  if (!days.size) return 0;
-  const sorted = [...days].sort();
-  let best = 0;
-  let run = 0;
-  let prev: string | null = null;
-  for (const d of sorted) {
-    if (prev) {
-      // Walk across any rest days between active days.
-      let next = addDays(prev, 1);
-      while (next < d && isRestDay(state, next)) next = addDays(next, 1);
-      run = next === d ? run + 1 : 1;
-    } else run = 1;
-    best = Math.max(best, run);
-    prev = d;
-  }
-  return Math.max(best, currentStreak(state));
+  return streakInfo(state).best;
 }
 
 export function totalActiveDays(state: AppState): number {

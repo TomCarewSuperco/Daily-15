@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dumbbell, Footprints, GlassWater, Moon, Play, Plus, Scale, Utensils } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  currentStreak,
+  streakInfo,
   foodsOn,
   addDays,
   formatDay,
@@ -43,7 +43,8 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const { total: activeMin, fromSteps: activeFromSteps } = activeMinutesBreakdown(state, view);
   const routine = state.routineLogs[today];
   const workoutsToday = workoutsOn(state, today).length + (routine?.finished ? 1 : 0);
-  const streak = currentStreak(state);
+  const streakNow = streakInfo(state);
+  const streak = streakNow.current;
   const weight = latestWeight(state);
   const change = weight !== null ? Math.round((weight - p.startWeightKg) * 10) / 10 : null;
   const stage = lifeStageOf(p);
@@ -74,6 +75,13 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
     }
     setSkipped(true);
   };
+
+  // The food choice made after the 15: shown through the day, asked about from the evening (and the next morning if missed).
+  const intentionToday = state.intentions?.[today];
+  const intentionYesterday = state.intentions?.[yesterday];
+  const askAbout = intentionYesterday && intentionYesterday.done === undefined ? { date: yesterday, it: intentionYesterday } : intentionToday ? { date: today, it: intentionToday } : null;
+  const answerIntention = (date: string, done: boolean) =>
+    update((s) => ({ ...s, intentions: { ...s.intentions, [date]: { ...s.intentions![date], done } } }));
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -106,12 +114,19 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
                 ? "Anything else today is a bonus."
                 : restToday
                   ? "Recovery is part of training. Your streak is paused, not broken."
-                  : `${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`}
+                  : streakNow.missedYesterday && !workoutsOn(state, today).length
+                    ? `You missed yesterday. Never miss twice: today's 15 keeps your streak. ${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`
+                    : `${todayRoutine.length} exercises, about ${estimateMinutes(todayRoutine)} minutes.`}
             </p>
           </div>
           <div className="shrink-0 text-right">
             <div className="text-3xl font-semibold tabular-nums">{streak}</div>
             <div className="text-xs opacity-70">day streak</div>
+            {streakNow.freezes > 0 && (
+              <div className="mt-1 text-[11px] opacity-70" title="A freeze covers a second missed day in a row. You earn one every 14 days.">
+                {streakNow.freezes} {streakNow.freezes === 1 ? "freeze" : "freezes"} held
+              </div>
+            )}
           </div>
         </div>
         <div className="mt-4 flex gap-2">
@@ -157,6 +172,23 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
           })}
         </div>
       </Card>
+
+      {askAbout && (
+        <Card className="text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{askAbout.date === today ? "Today's food choice" : "Yesterday's food choice"}</p>
+          <p className="mt-1 text-base font-medium">{askAbout.it.text}</p>
+          {askAbout.it.done !== undefined ? (
+            <p className="mt-1 text-muted-foreground">{askAbout.it.done ? "Done. Nice." : "Not today. Pick another tomorrow."}</p>
+          ) : askAbout.date === yesterday || hour >= 18 ? (
+            <div className="mt-3 flex gap-2">
+              <Button size="sm" className="flex-1" onClick={() => answerIntention(askAbout.date, true)}>Did it</Button>
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => answerIntention(askAbout.date, false)}>Not today</Button>
+            </div>
+          ) : (
+            <p className="mt-1 text-muted-foreground">We'll check in this evening.</p>
+          )}
+        </Card>
+      )}
 
       <PregnancyCard />
 

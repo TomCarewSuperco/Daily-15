@@ -3,6 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "luc
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
+import { suggestedIntentions } from "../intentions";
 import { TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
@@ -233,6 +234,15 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
   // Per-exercise tweaks on top of the proposal, e.g. push-ups up faster than the rest.
   const [bias, setBias] = useState<Record<string, number>>(settings.bias ?? {});
   const seconds = state.routineLogs[today]?.seconds;
+  // After the feedback, one food choice for the day (the habit stack), unless already chosen.
+  const [askIntention, setAskIntention] = useState(false);
+  const [custom, setCustom] = useState("");
+  const finish = () => (state.intentions?.[today] ? onClose() : setAskIntention(true));
+  const chooseIntention = (id: string, text: string) => {
+    update((s) => ({ ...s, intentions: { ...s.intentions, [today]: { id, text } } }));
+    toast.success("Today's food choice set. We'll check in this evening.");
+    onClose();
+  };
 
   const rate = (f: Feeling) => {
     setFeeling(f);
@@ -245,7 +255,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
   const apply = (next: RoutineSettings, message: string) => {
     update((s) => ({ ...s, routineSettings: next }));
     toast.success(message);
-    onClose();
+    finish();
   };
 
   // Preview tomorrow's actual exercises, since variety may rotate them.
@@ -273,7 +283,24 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
         </p>
       ) : null}
 
-      {!feeling ? (
+      {askIntention ? (
+        <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <p className="text-lg font-medium">One food choice for today</p>
+          <p className="mt-1 text-muted-foreground">You've done your 15. Pick one thing to carry into the rest of the day; we'll ask this evening how it went.</p>
+          <div className="mt-4 grid gap-2">
+            {suggestedIntentions(state).map((o) => (
+              <button key={o.id} onClick={() => chooseIntention(o.id, o.text)} className="rounded-2xl border bg-card p-4 text-left font-medium">
+                {o.text}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Or write your own" maxLength={80} className="h-11 flex-1 rounded-xl border bg-background px-3 text-base" />
+            <Button className="h-11" disabled={!custom.trim()} onClick={() => chooseIntention("custom", custom.trim())}>Set</Button>
+          </div>
+          <Button variant="ghost" className="mt-auto" onClick={onClose}>Not today</Button>
+        </div>
+      ) : !feeling ? (
         <>
           <p className="mt-6 text-lg">How did that feel?</p>
           <div className="mt-3 grid gap-2">
@@ -288,7 +315,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
               </button>
             ))}
           </div>
-          <Button variant="ghost" className="mt-4" onClick={onClose}>Skip</Button>
+          <Button variant="ghost" className="mt-4" onClick={finish}>Skip</Button>
         </>
       ) : proposal && chosen && next ? (
         <div className="mt-6 flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -326,7 +353,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
           </div>
           <div className="mt-auto grid gap-2 pt-6">
             <Button size="lg" onClick={() => apply(next, "Next session updated")}>Sounds good</Button>
-            <Button size="lg" variant="outline" onClick={onClose}>Keep it the same</Button>
+            <Button size="lg" variant="outline" onClick={finish}>Keep it the same</Button>
           </div>
         </div>
       ) : (
@@ -336,7 +363,7 @@ function FinishScreen({ mode, onClose }: { mode: RoutineMode; onClose: () => voi
             {settings.rounds < 3 && mode === "standard" && (
               <Button size="lg" variant="outline" onClick={() => apply({ ...settings, rounds: settings.rounds + 1 }, `${settings.rounds + 1} rounds from next time`)}>Felt short? Add a round</Button>
             )}
-            <Button size="lg" onClick={onClose}>Done</Button>
+            <Button size="lg" onClick={finish}>Done</Button>
           </div>
         </div>
       )}
