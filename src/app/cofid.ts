@@ -73,6 +73,18 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^(rice|pasta|noodles|couscous|bulgur|quinoa)\b.*\braw\b/.test(n) && !/flour|pudding|sauce mix/.test(n)) return [u("portion, uncooked", 75, "portions, uncooked")];
   if (/^(beer|lager|cider|stout|shandy)/.test(n)) return [u("pint", 568), u("bottle", 330)];
   if (/^tonic water/.test(n)) return [u("glass", 150), u("can", 150)];
+  if (/powder.*made up|made up with (whole|semi-skimmed|skimmed) milk|made up with water/.test(n) && !/porridge|oat|potato|custard|dessert|rice|noodle|soup|sauce|gravy|stuffing|pot savour/.test(n))
+    return [u("mug", 250)];
+  // Powders measured by the spoon (the made-up drinks have their own entries).
+  if (!/made up|as served/.test(n)) {
+    if (/ovaltine|horlicks|malted.*powder|drinking chocolate|hot chocolate.*powder|milk ?shake.*powder|instant drinks powder|complan|build up/.test(n))
+      return [u("heaped teaspoon", 6), u("mug's worth (4 heaped tsp)", 25, "mugs' worth")];
+    if (/^cocoa powder/.test(n)) return [u("heaped teaspoon", 5)];
+    if (/coffee.*powder|coffee, instant(?!.*made)/.test(n)) return [u("heaped teaspoon", 2)];
+    if (/custard powder|cornflour|gravy.*granules|stock cubes?|bouillon/.test(n)) return [u("teaspoon", 4), u("tablespoon", 10)];
+    if (/milk.*dried|dried.*milk|coffeemate|whitener/.test(n)) return [u("teaspoon", 3), u("tablespoon", 8)];
+    if (/protein powder|whey/.test(n)) return [u("scoop", 30)];
+  }
   if (NOT_AS_EATEN.test(n) && !/made up|as served|diluted/.test(n)) return [];
   if (/undiluted/.test(n)) return [];
   if (/^rice.*pudding.*raw/.test(n)) return [];
