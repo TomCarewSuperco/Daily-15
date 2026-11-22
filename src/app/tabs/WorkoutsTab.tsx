@@ -15,7 +15,7 @@ import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
-import { estimateMinutes, MAX_LEVEL, MAX_ROUNDS, MIN_LEVEL, settingsOf } from "../routine";
+import { baseForShown, estimateMinutes, MAX_LEVEL, MAX_ROUNDS, MIN_LEVEL, settingsOf, shownAmount } from "../routine";
 import { Switch } from "@/components/ui/switch";
 import type { RoutineExercise, RoutineMode, RoutineSettings } from "../types";
 
@@ -325,7 +325,12 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </Card>
 
       <WorkoutForm open={formOpen} onOpenChange={setFormOpen} seed={seed} />
-      <AdjustDialog exercise={editing} onClose={() => setEditing(null)} onSave={(e) => saveRoutine(state.routine.map((r) => (r.id === e.id ? e : r)))} />
+      <AdjustDialog
+        exercise={editing}
+        shown={editing ? shownAmount(editing, settingsOf(state)) : 0}
+        onClose={() => setEditing(null)}
+        onSave={(e, shown) => saveRoutine(state.routine.map((r) => (r.id === e.id ? { ...e, amount: baseForShown(shown, e, settingsOf(state)) } : r)))}
+      />
       <SwapDialog
         exercise={swapping}
         onClose={() => setSwapping(null)}
@@ -335,11 +340,12 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   );
 }
 
-function AdjustDialog({ exercise, onClose, onSave }: { exercise: RoutineExercise | null; onClose: () => void; onSave: (e: RoutineExercise) => void }) {
+/** Edits the amount as the user does it now (after difficulty), not the stored starting amount. */
+function AdjustDialog({ exercise, shown, onClose, onSave }: { exercise: RoutineExercise | null; shown: number; onClose: () => void; onSave: (e: RoutineExercise, shown: number) => void }) {
   const [amount, setAmount] = useState<number | "">("");
   useEffect(() => {
-    setAmount(exercise?.amount ?? "");
-  }, [exercise]);
+    setAmount(exercise ? shown : "");
+  }, [exercise]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!exercise) return null;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -352,7 +358,7 @@ function AdjustDialog({ exercise, onClose, onSave }: { exercise: RoutineExercise
         <Button
           disabled={typeof amount !== "number" || amount < 1}
           onClick={() => {
-            onSave({ ...exercise, amount: amount as number });
+            onSave(exercise, amount as number);
             onClose();
           }}
         >

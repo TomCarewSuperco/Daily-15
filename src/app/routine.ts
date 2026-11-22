@@ -46,9 +46,26 @@ function vary(e: RoutineExercise, date: string): RoutineExercise {
   return { ...pick, id: e.id };
 }
 
+/** Difficulty steps applied to one exercise: the overall level plus its own bias, within the limits. */
+export function levelFor(settings: RoutineSettings, id: string): number {
+  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, settings.level + (settings.bias?.[id] ?? 0)));
+}
+
+export const scaleFactor = (level: number) => (level ? Math.max(0.55, 1 + 0.15 * level) : 1);
+
+/** The amount the user actually does today, after difficulty. */
+export function shownAmount(e: RoutineExercise, settings: RoutineSettings): number {
+  return scale(e, levelFor(settings, e.id)).amount;
+}
+
+/** The stored base amount that comes out as `shown` at the exercise's current difficulty. */
+export function baseForShown(shown: number, e: RoutineExercise, settings: RoutineSettings): number {
+  return Math.round((shown / scaleFactor(levelFor(settings, e.id))) * 100) / 100;
+}
+
 function scale(e: RoutineExercise, level: number): RoutineExercise {
   if (!level) return e;
-  const factor = Math.max(0.55, 1 + 0.15 * level);
+  const factor = scaleFactor(level);
   const amount = e.kind === "reps" ? Math.max(3, Math.round(e.amount * factor)) : Math.max(10, Math.round((e.amount * factor) / 5) * 5);
   return { ...e, amount };
 }
@@ -59,7 +76,7 @@ export function buildRoutine(base: RoutineExercise[], mode: RoutineMode, setting
   const cool = base.filter((e) => e.id === COOL_DOWN);
   let main = base.filter((e) => e.id !== WARM_UP && e.id !== COOL_DOWN);
   if (settings.variety) main = main.map((e) => vary(e, date));
-  main = main.map((e) => scale(e, Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, settings.level + (settings.bias?.[e.id] ?? 0)))));
+  main = main.map((e) => scale(e, levelFor(settings, e.id)));
   let rounds = settings.rounds;
   if (mode === "light") {
     main = main.map((e) => ({ ...e, amount: Math.max(e.kind === "time" ? 10 : 3, Math.round(e.amount / 2)) }));

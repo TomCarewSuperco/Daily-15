@@ -96,3 +96,16 @@ test("one exercise can be set harder than the rest", () => {
   assert.ok(r.find((e) => e.id === "pushup")!.amount > base.find((e) => e.id === "pushup")!.amount);
   assert.equal(r.find((e) => e.id === "squat")!.amount, base.find((e) => e.id === "squat")!.amount);
 });
+
+test("adjusting an exercise edits the amount you actually do, at its current difficulty", async () => {
+  const { shownAmount, baseForShown } = await import("../../src/app/routine");
+  const settings = { ...fixed, level: 2, bias: { pushup: 1 } };
+  const push = DEFAULT_ROUTINE.find((e) => e.id === "pushup")!;
+  const shown = shownAmount(push, settings);
+  assert.equal(shown, buildRoutine(DEFAULT_ROUTINE, "standard", settings, DAY).find((e) => e.id === "pushup")!.amount);
+  // Set it to 16: the routine then shows 16 at this difficulty.
+  const base = DEFAULT_ROUTINE.map((e) => (e.id === "pushup" ? { ...e, amount: baseForShown(16, e, settings) } : e));
+  assert.equal(buildRoutine(base, "standard", settings, DAY).find((e) => e.id === "pushup")!.amount, 16);
+  const plankBase = DEFAULT_ROUTINE.map((e) => (e.id === "plank" ? { ...e, amount: baseForShown(45, e, settings) } : e));
+  assert.equal(buildRoutine(plankBase, "standard", settings, DAY).find((e) => e.id === "plank")!.amount, 45);
+});
