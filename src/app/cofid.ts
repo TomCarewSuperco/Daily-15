@@ -112,22 +112,49 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^bacon rashers/.test(n)) return [u("rasher", /streaky/.test(n) ? 15 : 25)];
   // Fruit and veg people count (fresh, not dried, stewed or canned).
   if (!/dried|stewed|canned|juice|puree|pur\u00e9e/.test(n)) {
-  if (/^apples, eating/.test(n)) return [u("apple", 150), u("portion", 80)];
-  if (/^bananas/.test(n)) return [u("banana", 100), u("portion", 80)];
-  if (/^oranges/.test(n)) return [u("orange", 130), u("portion", 80)];
-  if (/^pears/.test(n) && !/stewed/.test(n)) return [u("pear", 150), u("portion", 80)];
-  if (/satsuma|clementine|mandarin|tangerine/.test(n)) return [u("fruit", 60), u("portion", 80)];
-  if (/^kiwi/.test(n)) return [u("kiwi", 60), u("portion", 80)];
-  if (/^plums/.test(n)) return [u("plum", 55), u("portion", 80)];
-  if (/^peaches|^nectarines/.test(n)) return [u("fruit", 110), u("portion", 80)];
-  if (/^apricots/.test(n) && !/dried/.test(n)) return [u("apricot", 35), u("portion", 80)];
-  if (/^avocado/.test(n)) return [u("half avocado", 70, "half avocados"), u("portion", 80)];
-  if (/^tomatoes, cherry/.test(n)) return [u("cherry tomato", 15, "cherry tomatoes"), u("portion", 80)];
-  if (/^tomatoes/.test(n) && !/canned|puree|sun dried|paste/.test(n)) return [u("tomato", 85, "tomatoes"), u("portion", 80)];
-  if (/^carrots/.test(n)) return [u("carrot", 60), u("portion", 80)];
-  if (/^onions/.test(n) && !/dried|pickled/.test(n)) return [u("onion", 150), u("portion", 80)];
-  if (/^peppers/.test(n)) return [u("pepper", 140), u("portion", 80)];
-  if (/^mushrooms/.test(n) && !/dried/.test(n)) return [u("mushroom", 15), u("portion", 80)];
+  if (/^apples, eating/.test(n)) return [u("apple", 150), u("5-a-day portion", 80)];
+  if (/^bananas/.test(n)) return [u("banana", 100), u("5-a-day portion", 80)];
+  if (/^oranges/.test(n)) return [u("orange", 130), u("5-a-day portion", 80)];
+  if (/^pears/.test(n) && !/stewed/.test(n)) return [u("pear", 150), u("5-a-day portion", 80)];
+  if (/satsuma|clementine|mandarin|tangerine/.test(n)) return [u("fruit", 60), u("5-a-day portion", 80)];
+  if (/^kiwi/.test(n)) return [u("kiwi", 60), u("5-a-day portion", 80)];
+  if (/^plums/.test(n)) return [u("plum", 55), u("5-a-day portion", 80)];
+  if (/^peaches|^nectarines/.test(n)) return [u("fruit", 110), u("5-a-day portion", 80)];
+  if (/^apricots/.test(n) && !/dried/.test(n)) return [u("apricot", 35), u("5-a-day portion", 80)];
+  if (/^avocado/.test(n)) return [u("half avocado", 70, "half avocados"), u("5-a-day portion", 80)];
+  if (/^tomatoes, cherry/.test(n)) return [u("cherry tomato", 15, "cherry tomatoes"), u("5-a-day portion", 80)];
+  if (/^tomatoes/.test(n) && !/canned|puree|sun dried|paste/.test(n)) return [u("tomato", 85, "tomatoes"), u("5-a-day portion", 80)];
+  if (/^carrots/.test(n)) return [u("carrot", 60), u("5-a-day portion", 80)];
+  if (/^onions/.test(n) && !/dried|pickled/.test(n)) return [u("onion", 150), u("5-a-day portion", 80)];
+  if (/^peppers/.test(n)) return [u("pepper", 140), u("5-a-day portion", 80)];
+  if (/^mushrooms/.test(n) && !/dried/.test(n)) return [u("mushroom", 15), u("5-a-day portion", 80)];
+  if (/^sharon fruit|persimmon/.test(n)) return [u("fruit", 150), u("half", 75, "halves")];
+  if (/^mango/.test(n)) return [u("half mango", 100, "half mangoes"), u("whole mango", 200, "whole mangoes")];
+  if (/^pineapple/.test(n)) return [u("slice", 80)];
+  if (/^grapes/.test(n)) return [u("handful (about 10)", 80, "handfuls"), u("grape", 8)];
+  if (/^strawberries/.test(n)) return [u("strawberry", 12, "strawberries"), u("handful (about 7)", 80, "handfuls")];
+  if (/^(raspberries|blueberries|blackberries|redcurrants|blackcurrants)/.test(n)) return [u("handful", 80)];
+  if (/^cherries/.test(n)) return [u("handful (about 10)", 80, "handfuls"), u("cherry", 8, "cherries")];
+  if (/^grapefruit/.test(n)) return [u("half grapefruit", 130, "half grapefruits")];
+  if (/^figs/.test(n)) return [u("fig", 50)];
+  if (/^passion fruit/.test(n)) return [u("fruit", 20)];
+  if (/^pomegranate/.test(n)) return [u("half (seeds)", 80, "halves (seeds)")];
+  if (/^papaya/.test(n)) return [u("slice", 140)];
+  if (/^lychees/.test(n)) return [u("lychee", 10)];
+  if (/^melon, watermelon|^watermelon/.test(n)) return [u("slice", 200)];
+  if (/^melon/.test(n)) return [u("slice", 150)];
+  if (/^courgette/.test(n)) return [u("courgette", 200), u("half courgette", 100, "half courgettes")];
+  if (/^aubergine/.test(n)) return [u("aubergine", 250), u("half aubergine", 125, "half aubergines")];
+  if (/^cucumber/.test(n)) return [u("5 cm piece", 80, "5 cm pieces"), u("whole cucumber", 300, "whole cucumbers")];
+  if (/^sweetcorn/.test(n)) return /cob/.test(n) ? [u("cob", 125)] : [u("tablespoon", 25), u("5-a-day portion", 80)];
+  if (/^sweet potato/.test(n)) return [u("medium sweet potato", 150, "medium sweet potatoes"), u("5-a-day portion", 80)];
+  if (/^beetroot/.test(n)) return [u("beetroot", 50)];
+  if (/^celery/.test(n)) return [u("stick", 40)];
+  if (/^leeks/.test(n)) return [u("leek", 150)];
+  if (/^lettuce|^rocket|^watercress|^spinach, (baby|mature), raw/.test(n)) return [u("handful", 30), u("cereal bowl", 80)];
+  if (/^(broccoli|cauliflower)/.test(n)) return [u("floret", 15), u("5-a-day portion (about 6 florets)", 80, "5-a-day portions")];
+  if (/^parsnip/.test(n)) return [u("parsnip", 120)];
+  if (/^garlic/.test(n)) return [u("clove", 4)];
   }
   if (/^porridge, made|^porridge oats.*(cooked|made up)|^breakfast cereal, oat, instant.*made up/.test(n)) return [u("bowl", 200), u("large bowl", 300)];
   if (/condensed(?!.*as served)/.test(n)) return [u("half can", 150, "half cans")];
@@ -189,7 +216,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/lemon juice|lime juice/.test(n)) return [u("tablespoon", 15)];
   if (fiveADay === "juice") return [u("glass", 150)];
   if (fiveADay === "dried") return [u("handful", 30)];
-  if (fiveADay === "fv" || fiveADay === "pulses") return [u("portion", 80)];
+  if (fiveADay === "fv" || fiveADay === "pulses") return [u("5-a-day portion", 80)];
   return [];
 }
 
