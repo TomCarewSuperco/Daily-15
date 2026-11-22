@@ -14,6 +14,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.goto(BASE);
   ok("home shows estimated minutes", (await p.getByText(/12 exercises, about 1[3-7] minutes/).count()) === 1);
   await p.getByRole("button", { name: "Start", exact: true }).click();
+  await p.getByText(/· 1 of 12/).waitFor();
   ok("player shows rounds", (await p.getByText(/· 1 of 12/).count()) === 1);
   ok("player shows time so far", (await p.getByLabel("Time so far").count()) === 1);
   ok("page behind hidden while playing", (await p.getByRole("heading", { name: "Workouts" }).count()) === 0);

@@ -55,7 +55,7 @@ const SIZES = [
     await shot(5, "weekly-review");
 
     await tab("Workouts");
-    await p.getByRole("button", { name: /Air squats/ }).click();
+    await p.getByRole("button", { name: /^Push-ups/ }).first().click();
     await p.waitForTimeout(900);
     await shot(6, "workouts");
     await ctx.close();

@@ -22,4 +22,18 @@ export default defineConfig({
     __APP_BUILD__: JSON.stringify(`${process.env.npm_package_version ?? "0"} · ${commit()} · ${new Date().toISOString().slice(0, 10)}`),
   },
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  build: {
+    rollupOptions: {
+      output: {
+        // Libraries change less often than the app, so they get their own cached files.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return "react";
+          if (id.includes("@supabase")) return "supabase";
+          if (id.includes("@radix-ui")) return "radix";
+          return undefined;
+        },
+      },
+    },
+  },
 });

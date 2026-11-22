@@ -11,12 +11,12 @@ import type { Intent, TabId } from "./nav";
 import { Daily15Provider, useDaily15 } from "./store";
 import { AuthScreen, ResetPasswordScreen } from "./tabs/Auth";
 import { HomeTab } from "./tabs/HomeTab";
-import { NutritionTab } from "./tabs/NutritionTab";
 import { Onboarding } from "./tabs/Onboarding";
-import { ProfileTab } from "./tabs/ProfileTab";
-// Charts are heavy, so the Progress tab loads on first visit.
+// Home loads first; the other tabs load on first visit, so the app opens faster on a phone.
+const NutritionTab = lazy(importWithReload(() => import("./tabs/NutritionTab").then((m) => ({ default: m.NutritionTab }))));
 const ProgressTab = lazy(importWithReload(() => import("./tabs/ProgressTab").then((m) => ({ default: m.ProgressTab }))));
-import { WorkoutsTab } from "./tabs/WorkoutsTab";
+const ProfileTab = lazy(importWithReload(() => import("./tabs/ProfileTab").then((m) => ({ default: m.ProfileTab }))));
+const WorkoutsTab = lazy(importWithReload(() => import("./tabs/WorkoutsTab").then((m) => ({ default: m.WorkoutsTab }))));
 
 const TABS: { id: TabId; label: string; Icon: typeof Home }[] = [
   { id: "home", label: "Home", Icon: Home },
@@ -61,15 +61,13 @@ function Shell() {
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
       <main className="px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
         <ErrorBoundary resetKey={tab}>
+        <Suspense fallback={<p className="pt-8 text-center text-sm text-muted-foreground">Loading</p>}>
         {tab === "home" && <HomeTab onNavigate={navigate} />}
         {tab === "workouts" && <WorkoutsTab intent={intent} clearIntent={clearIntent} />}
         {tab === "nutrition" && <NutritionTab intent={intent} clearIntent={clearIntent} />}
-        {tab === "progress" && (
-          <Suspense fallback={<p className="pt-8 text-center text-sm text-muted-foreground">Loading</p>}>
-            <ProgressTab intent={intent} clearIntent={clearIntent} />
-          </Suspense>
-        )}
+        {tab === "progress" && <ProgressTab intent={intent} clearIntent={clearIntent} />}
         {tab === "profile" && <ProfileTab />}
+        </Suspense>
         </ErrorBoundary>
       </main>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="Main">

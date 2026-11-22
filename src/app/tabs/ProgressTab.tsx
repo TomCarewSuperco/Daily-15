@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Flame, Footprints, Ruler, Scale, Trash2, Trophy } from "lucide-react";
 import { toast } from "../notify";
-import { Bar as RBar, BarChart, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar as RBar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -123,7 +123,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         <div className="mt-4 flex items-center justify-between">
           <div className="flex gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/50" />Weigh-ins</span>
-            <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-3 bg-copper" />7-day trend</span>
+            <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-3 bg-foreground" />7-day trend</span>
           </div>
           <div className="flex gap-1 text-xs">
             {([30, 90, 0] as const).map((r) => (
@@ -143,7 +143,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                 {!stage && <ReferenceLine y={p.targetWeightKg} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: "Target", position: "insideTopRight", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />}
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number, n: string) => [`${v.toFixed(1)} kg`, n === "trend" ? "7-day trend" : "Weigh-in"]} />
                 <Line dataKey="kg" stroke="none" isAnimationActive={false} dot={{ r: 4, fill: "hsl(var(--muted-foreground) / 0.5)", stroke: "hsl(var(--card))", strokeWidth: 2 }} activeDot={{ r: 5 }} />
-                <Line dataKey="trend" type="monotone" stroke="hsl(var(--copper))" strokeWidth={2} dot={false} />
+                <Line dataKey="trend" type="monotone" stroke="hsl(var(--foreground))" strokeWidth={2} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -188,7 +188,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
               <YAxis tick={AXIS} tickLine={false} axisLine={false} tickFormatter={(v) => (v >= 1000 ? `${v / 1000}k` : v)} />
               <ReferenceLine y={p.targets.steps} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
               <Tooltip cursor={{ fill: "hsl(var(--muted))" }} contentStyle={tooltipStyle} formatter={(v: number) => [v.toLocaleString("en-GB"), "Steps"]} />
-              <RBar dataKey="steps" fill="hsl(var(--copper))" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <RBar dataKey="steps" radius={[4, 4, 0, 0]} maxBarSize={28}>
+                {stepsData.map((d) => <Cell key={d.date} fill={d.steps >= p.targets.steps ? "hsl(var(--d15-done))" : "hsl(var(--foreground) / 0.72)"} />)}
+              </RBar>
             </BarChart>
           </ResponsiveContainer>
         </div>

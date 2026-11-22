@@ -14,7 +14,7 @@ function build({ includeToday = true } = {}) {
     version: 1,
     profile: {
       name: "Alex", age: 41, sex: "male", heightCm: 180, startWeightKg: 94.2, targetWeightKg: 86, experience: "intermediate",
-      activityLevel: "light", goal: "lose-fat", focus: ["cholesterol"], targetsCustomised: false,
+      activityLevel: "light", goal: "lose-fat", focus: ["cholesterol"], anchor: { id: "coffee", text: "after my morning coffee", time: "07:30" }, targetsCustomised: false,
       targets: { calories: 2050, proteinG: 155, carbsG: 206, fatG: 68, fibreG: 30, waterMl: 2750, steps: 8000, activeMinutes: 30 },
     },
     routine: undefined, routineLogs: {}, restDays: [], workouts: [], templates: [], foods: [], savedMeals: [], water: {}, activity: {},
