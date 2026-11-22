@@ -68,3 +68,12 @@ test("pregnancy review never mentions calories or losing weight", () => {
   assert.ok(r.watch.some((w) => w.includes("brie")));
   assert.ok(!/calorie|kcal|lose weight|deficit/.test(all));
 });
+
+test("every lying-on-back exercise in the rotation is flagged from 16 weeks", async () => {
+  const { exerciseWarning } = await import("../../src/app/pregnancy");
+  const due = new Date(Date.now() + 20 * 7 * 86400000).toISOString().slice(0, 10);
+  const stage = { kind: "pregnant", dueDate: due } as Parameters<typeof exerciseWarning>[0];
+  for (const n of ["Glute bridges", "Single-leg glute bridges", "Glute bridge march", "Dead bug", "Hollow hold", "Reverse crunches", "Bicycle crunches"])
+    assert.ok(exerciseWarning(stage, n), n);
+  assert.equal(exerciseWarning(stage, "Donkey kicks"), null);
+});

@@ -123,7 +123,7 @@ export function oilyFishPortions(state: AppState, days: string[]): number {
 /* ---------- Exercise ---------- */
 
 /** Exercises done lying on the back. The NHS advises against lying flat on your back for long periods after about 16 weeks. */
-const SUPINE = new Set(["glute bridges", "dead bug"]);
+const SUPINE = new Set(["glute bridges", "single-leg glute bridges", "glute bridge march", "dead bug", "hollow hold", "reverse crunches", "bicycle crunches"]);
 export const SUPINE_FROM_WEEK = 16;
 
 export function exerciseWarning(stage: LifeStage | null, exerciseName: string): string | null {

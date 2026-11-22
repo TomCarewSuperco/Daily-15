@@ -48,7 +48,8 @@ const BASE = process.env.BASE_URL || "http://127.0.0.1:8092/";
   const dueDate = new Date(Date.now() + 20 * 7 * 86400000).toISOString().slice(0, 10);
   await p.locator('input[type="date"]').first().fill(dueDate);
   await tab("Workouts");
-  await p.getByRole("button", { name: /Glute bridges/ }).first().click();
+  // The glute slot rotates; whichever bridge is on today is done lying on the back.
+  await p.getByRole("button", { name: /Glute bridge/i }).first().click();
   ok("lying-on-back exercise warned at 20 weeks", (await p.getByText(/avoid exercises lying flat on your back/).count()) === 1);
 
   await tab("Progress");
