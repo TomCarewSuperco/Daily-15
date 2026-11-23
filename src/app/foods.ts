@@ -255,8 +255,8 @@ const BASE: FoodItem[] = [
   food("Yogurt-coated raisins", "g", 440, 3, 70, 17, 1.5, [u("handful", 30), u("small bag", 40)]),
 
   // Drinks
-  food("Tea with semi-skimmed milk", "ml", 7, 0.5, 0.7, 0.2, 0, [u("mug", 250)]),
-  food("Coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
+  food("Tea with semi-skimmed milk", "ml", 7, 0.5, 0.7, 0.2, 0, [u("mug", 250), u("teacup", 180)]),
+  food("Coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250), u("teacup", 180)]),
   food("Filter coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
   food("Decaf coffee with semi-skimmed milk", "ml", 20, 1.3, 1.9, 0.7, 0, [u("mug", 250)]),
   food("Orange juice", "ml", 45, 0.7, 10, 0.2, 0.2, [u("glass", 150)]),
