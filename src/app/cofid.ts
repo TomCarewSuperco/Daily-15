@@ -422,7 +422,8 @@ const forms = (w: string) => [...stems(w), ...(SYNONYMS[w] ?? [])];
 
 /** Matches the start of a word in the name, so 'ale' doesn't find 'Wensleydale'. */
 const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const wordsOf = (name: string) => fold(name).split(/[^a-z0-9&]+/).filter(Boolean);
+/** Brand names joined with '&' ('Bio&Me') also match their parts ('bio me'). */
+const wordsOf = (name: string) => fold(name).split(/[^a-z0-9&]+/).filter(Boolean).flatMap((w) => (/\w&\w/.test(w) ? [w, ...w.split("&")] : [w]));
 const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.some((nw) => nw.startsWith(x)));
 
 /** Small words that food names often leave out: 'gin and tonic', 'fish with chips'. */

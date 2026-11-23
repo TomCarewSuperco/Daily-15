@@ -70,3 +70,12 @@ test("'natural yogurt 10%' finds full-fat Greek-style yoghurt; numbers read as f
   assert.equal(searchFoods(FOOD_DB, "milk", 1)[0].name, "Whole milk");
   assert.notEqual(searchFoods(FOOD_DB, "yogurt", 1)[0].name, "Yogurt-coated raisins");
 });
+
+test("'bio me' finds Bio&Me; branded results rank by words matched", async () => {
+  const { FOOD_DB } = await import("../../src/app/foods");
+  const { searchFoods } = await import("../../src/app/cofid");
+  const { rankByQuery } = await import("../../src/app/components/barcode");
+  assert.equal(searchFoods(FOOD_DB, "Bio me super nutty")[0]?.name, "Bio&Me Super Nutty Granola");
+  const ranked = rankByQuery([{ name: "Marks & Spencer Super Nutty" }, { name: "Bio&Me Mango" }, { name: "Bio&Me Granola Super Nutty" }], "bio me super nutty");
+  assert.equal(ranked[0].name, "Bio&Me Granola Super Nutty");
+});

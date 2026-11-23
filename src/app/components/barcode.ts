@@ -144,7 +144,7 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
       return null;
     }
   };
-  const keep = (products: RawProduct[]) => products.map(safeParse).filter((p): p is OffProduct => !!p && p.kcal > 0);
+  const keep = (products: RawProduct[]) => rankByQuery(products.map(safeParse).filter((p): p is OffProduct => !!p && p.kcal > 0), q);
   try {
     const site = await viaSite<{ products: RawProduct[] }>({ q }, signal);
     if (site) return keep(site.products ?? []);
@@ -174,6 +174,17 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);
   const json = await res.json();
   return keep(Array.isArray(json.products) ? json.products : []);
+}
+
+/** Puts products that contain more of the words typed first, keeping the database order otherwise. */
+export function rankByQuery<T extends { name: string }>(products: T[], q: string): T[] {
+  const split = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = split(q);
+  const score = (p: T) => {
+    const nw = split(p.name);
+    return words.filter((w) => nw.some((x) => x.startsWith(w))).length;
+  };
+  return products.map((p, i) => ({ p, i, s: score(p) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.p);
 }
 
 /* ---------- Camera scanning ---------- */

@@ -43,6 +43,8 @@ const BASE: FoodItem[] = [
   // Breakfast and bakery
   food("Porridge oats, dry", "g", 375, 11, 60, 8, 9, [u("bowl", 50), u("sachet", 27)]),
   food("Granola", "g", 450, 10, 60, 18, 7, [u("bowl", 45)]),
+  // Branded: values from the pack label (per 100 g).
+  food("Bio&Me Super Nutty Granola", "g", 402, 11, 55, 12, 15, [u("serving", 50), u("tablespoon", 10)]),
   food("Muesli", "g", 360, 10, 66, 6, 7, [u("bowl", 45)]),
   food("Cornflakes", "g", 378, 7, 84, 0.9, 3, [u("bowl", 30)]),
   food("Wholewheat biscuit cereal", "g", 362, 12, 69, 2, 10, [u("biscuit", 19)]),
@@ -325,6 +327,7 @@ type Extra = [satFat: number, sugars: number, salt: number, fiveADay?: FiveADayK
 const EXTRA: Record<string, Extra> = {
   "Porridge oats, dry": [1.5, 1, 0.01],
   Granola: [3, 20, 0.3],
+  "Bio&Me Super Nutty Granola": [2, 9.9, 0.1],
   Muesli: [1.2, 16, 0.1],
   Cornflakes: [0.2, 8, 1.1],
   "Wholewheat biscuit cereal": [0.6, 4.4, 0.28],
