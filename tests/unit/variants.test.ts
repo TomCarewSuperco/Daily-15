@@ -30,3 +30,13 @@ test("coffees offer the six milks; plain foods have no versions", () => {
   assert.equal(variantsFor("Flat white, semi-skimmed milk")!.options.length, 6);
   assert.equal(variantsFor("Banana"), null);
 });
+
+test("roast potatoes, chips and porridge offer cooking choices", () => {
+  assert.equal(variantsFor("Roast potatoes")!.options.length, 4);
+  assert.equal(variantsFor("Chip shop chips")!.options.length, 5);
+  assert.equal(variantsFor("Porridge, made with water")!.options.length, 5);
+  // CoFID rows for the same food get the choice too.
+  assert.equal(variantsFor("Potatoes, old, roasted in corn oil")!.options[variantsFor("Potatoes, old, roasted in corn oil")!.current].label, "Roasted in oil");
+  const fries = switchTo(pendingOf("Oven chips", 1, 1), item("Fast-food fries"));
+  assert.equal(amountOf(fries), 150);
+});

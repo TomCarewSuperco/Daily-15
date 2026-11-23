@@ -42,6 +42,12 @@ function food(name: string, unit: "g" | "ml", kcal: number, protein: number, car
 const BASE: FoodItem[] = [
   // Breakfast and bakery
   food("Porridge oats, dry", "g", 375, 11, 60, 8, 9, [u("bowl", 50), u("sachet", 27)]),
+  // Made-up porridge. Oat milk is the app's estimate: water porridge plus a standard oat drink.
+  food("Porridge, made with water", "g", 47, 1.4, 8.8, 1, 1, [u("bowl", 200), u("small bowl", 150)]),
+  food("Porridge, made with milk and water", "g", 72, 3.1, 11.2, 1.9, 1, [u("bowl", 200), u("small bowl", 150)]),
+  food("Porridge, made with semi-skimmed milk", "g", 84, 4.6, 12.1, 2.3, 1, [u("bowl", 200), u("small bowl", 150)]),
+  food("Porridge, made with whole milk", "g", 112, 4.9, 13.3, 4.7, 0.9, [u("bowl", 200), u("small bowl", 150)]),
+  food("Porridge, made with oat milk", "g", 87, 2.3, 14.7, 2.3, 1.7, [u("bowl", 200), u("small bowl", 150)]),
   food("Granola", "g", 450, 10, 60, 18, 7, [u("bowl", 45)]),
   // Branded: values from the pack label (per 100 g).
   food("Bio&Me Super Nutty Granola", "g", 402, 11, 55, 12, 15, [u("serving", 50), u("tablespoon", 10)]),
@@ -119,7 +125,17 @@ const BASE: FoodItem[] = [
   food("Mashed potato, with milk", "g", 71, 2, 16, 0.3, 1.4, [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)]),
   food("Mashed potato, with olive oil", "g", 124, 1.7, 16.5, 6.1, 1.5, [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)]),
   food("Mashed potato, with butter and cream", "g", 192, 1.7, 14, 14.7, 1.3, [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)]),
-  food("Oven chips", "g", 200, 3.2, 30, 7, 2.5, [u("portion", 150)]),
+  food("Oven chips", "g", 200, 3.2, 30, 7, 2.5, [u("side portion", 100), u("portion", 150), u("large portion", 250)]),
+  // Ways of cooking chips and roast potatoes. Air-fried values are the app's estimates:
+  // boiled potato (CoFID 13-490) losing about a fifth of its water, plus about 2 g of oil per 100 g.
+  food("Chips, air-fried", "g", 130, 2.8, 26, 2.4, 2.6, [u("side portion", 100), u("portion", 150), u("large portion", 250)]),
+  food("Chips, homemade, deep-fried", "g", 202, 3.6, 34.1, 6.7, 3.4, [u("side portion", 100), u("portion", 150), u("large portion", 250)]),
+  food("Chip shop chips", "g", 214, 3.5, 33.2, 8.4, 3.2, [u("chip shop portion", 300), u("half portion", 150)]),
+  food("Fast-food fries", "g", 290, 3.5, 39.7, 14.2, 3.8, [u("medium fries", 115, "medium fries"), u("small fries", 80, "small fries"), u("large fries", 150, "large fries")]),
+  food("Roast potatoes", "g", 161, 2.6, 26.4, 5.7, 2.7, [u("roast potato", 50, "roast potatoes"), u("portion of 4", 200, "portions of 4")]),
+  food("Roast potatoes, air-fried", "g", 111, 2.3, 21.9, 2.1, 2, [u("roast potato", 50, "roast potatoes"), u("portion of 4", 200, "portions of 4")]),
+  food("Roast potatoes, in goose fat or lard", "g", 161, 2.6, 26.4, 5.7, 2.7, [u("roast potato", 50, "roast potatoes"), u("portion of 4", 200, "portions of 4")]),
+  food("Roast potatoes, frozen, oven-cooked", "g", 157, 2.5, 23.4, 6.6, 3, [u("roast potato", 50, "roast potatoes"), u("portion of 4", 200, "portions of 4")]),
   food("Sweet potato, baked", "g", 90, 2, 21, 0.2, 3.3, [u("medium sweet potato", 150, "medium sweet potatoes")]),
   food("Pizza, margherita", "g", 250, 11, 32, 9, 2, [u("slice", 80), u("whole pizza", 400, "whole pizzas")]),
 
@@ -393,6 +409,9 @@ const EXTRA: Record<string, Extra> = {
   "Mashed potato, with butter and cream": [9.2, 0.8, 0.2],
   "Egg, poached": [2.9, 0, 0.4],
   "Oven chips": [0.7, 0.5, 0.3],
+  "Chips, air-fried": [0.2, 0.8, 0.05],
+  "Roast potatoes, air-fried": [0.2, 0.8, 0.02],
+  "Porridge, made with oat milk": [0.4, 3.5, 0.1],
   "Sweet potato, baked": [0.1, 6.5, 0.1, "fv"],
   "Pizza, margherita": [4.5, 3.5, 1.2],
   Broccoli: [0.1, 1.7, 0.03, "fv"],

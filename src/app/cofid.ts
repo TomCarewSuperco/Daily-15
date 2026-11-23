@@ -417,7 +417,7 @@ const SYNONYMS: Record<string, string[]> = {
   pastry: ["pastries", "croissants", "pain"],
 };
 
-const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 4 && w.endsWith("es") ? w.slice(0, -2) : w];
+const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w, w.length > 5 && w.endsWith("es") ? w.slice(0, -2) : w];
 const forms = (w: string) => [...stems(w), ...(SYNONYMS[w] ?? [])];
 
 /** Matches the start of a word in the name, so 'ale' doesn't find 'Wensleydale'. */
@@ -543,6 +543,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/\b(latte|cappuccino|cortado|macchiato|mocha|flat white|americano|hot chocolate|tea with|coffee with|chai|matcha)\b/.test(name) && !/latte|cappuccino|cortado|macchiato|mocha|flat|americano|chocolate|tea|coffee|chai|matcha/.test(qtext)) score -= 8;
     if (/coated|covered/.test(name) && !/coated|covered|chocolate|raisin|nut|almond|peanut/.test(qtext)) score -= 15;
     if (/\b(chocolate|kefir|shake)\b/.test(name) && !/chocolate|kefir|shake/.test(qtext)) score -= 10;
+    if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
     // 'Yogurt 10%': prefer foods whose fat per 100 g is close to the number, or whose name states it.
     if (hint !== null && hint <= 100) {
       if (name.includes(`${hint}%`)) score += 10;
@@ -551,6 +552,8 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     // Whole-word matches beat prefixes: 'rose' finds rosé wine before rosemary.
     score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;
     if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;
+    // The word as typed beats a synonym: 'fries' finds fries before chips.
+    score += words.filter((w) => nw.includes(w)).length * 12;
     // 'Eggs, chicken, boiled' before 'Egg fu yung': the first part is just the food.
     if (segment.split(/\s+/).length === 1) score += 4;
     score -= (name.match(/,/g)?.length ?? 0) * 1.5;
