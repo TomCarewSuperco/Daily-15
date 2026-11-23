@@ -57,6 +57,18 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    question: "What kind of noodles?",
+    options: [
+      ["Egg", "Egg noodles, cooked"],
+      ["Rice", "Rice noodles, cooked"],
+      ["Udon", "Udon noodles, cooked"],
+      ["Soba", "Soba noodles, cooked"],
+      ["Glass", "Glass noodles, cooked"],
+      ["Instant, made up", "Instant noodles, made up"],
+      ["Stir-fried egg", "Egg noodles, stir-fried"],
+    ],
+  },
+  {
     question: "What was it made with?",
     options: [
       ["Water", "Porridge, made with water"],
@@ -74,6 +86,18 @@ const GROUPS: Group[] = [
       ["Fried", "Egg, fried"],
       ["Scrambled, nothing added", "Scrambled eggs, no butter or milk"],
       ["Scrambled, butter and milk", "Scrambled eggs, with butter and milk"],
+    ],
+  },
+  // Last, so mash and roast potatoes open their own choices; here they link across.
+  {
+    question: "How were they cooked?",
+    options: [
+      ["Boiled", "Potato, boiled"],
+      ["New, boiled", "New potatoes, boiled"],
+      ["Jacket", "Jacket potato"],
+      ["Mashed", "Mashed potato"],
+      ["Roast", "Roast potatoes"],
+      ["Wedges", "Potato wedges, homemade"],
     ],
   },
 ];
@@ -102,6 +126,14 @@ const ALIASES: [RegExp, string][] = [
   [/^Pasta, white, .*boiled/, "Pasta, cooked"],
   [/^Pasta, wholewheat, .*boiled/, "Wholewheat pasta, cooked"],
   [/^Pasta, (plain, fresh|egg, white, tagliatelle, fresh), boiled/, "Fresh egg pasta, cooked"],
+  [/^Potatoes, old, boiled/, "Potato, boiled"],
+  [/^Potatoes, new and salad, boiled/, "New potatoes, boiled"],
+  [/^Potatoes, old, (baked|microwaved), flesh and skin/, "Jacket potato"],
+  [/^Potatoes, old, (potato )?wedges/, "Potato wedges, homemade"],
+  [/^Potatoes, old, mashed with butter/, "Mashed potato"],
+  [/^Noodles, egg, [a-z]+, dried, boiled/, "Egg noodles, cooked"],
+  [/^Noodles, egg, fried/, "Egg noodles, stir-fried"],
+  [/^Noodles, rice/, "Rice noodles, cooked"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 

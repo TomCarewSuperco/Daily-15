@@ -122,10 +122,14 @@ const BASE: FoodItem[] = [
   // The app's estimate: dried pasta (CoFID 11-1129) with about a tablespoon of butter or oil per two portions.
   food("Pasta, cooked, with butter or oil", "g", 187, 5.4, 36.2, 3.4, 2.4, [u("portion", 180), u("bowl", 230), u("side portion", 120)]),
   food("Egg noodles, cooked", "g", 138, 4.5, 25, 2, 1.2, [u("portion", 180)]),
+  food("Egg noodles, stir-fried", "g", 244, 5, 30.5, 12.2, 2, [u("portion", 180)]),
+  food("Rice noodles, cooked", "g", 89, 1.9, 21.3, 0.2, 1.1, [u("portion", 180)]),
   food("Couscous, cooked", "g", 112, 3.8, 23, 0.2, 1.4, [u("portion", 150)]),
   food("Quinoa, cooked", "g", 120, 4.4, 21, 1.9, 2.8, [u("portion", 150)]),
   food("Potato, boiled", "g", 87, 1.9, 20, 0.1, 1.8, [u("medium potato", 175, "medium potatoes")]),
   food("Jacket potato", "g", 93, 2.5, 21, 0.1, 2.5, [u("medium potato", 220, "medium potatoes")]),
+  food("New potatoes, boiled", "g", 68, 1.8, 14.9, 0.1, 1.8, [u("new potato", 40, "new potatoes"), u("portion", 175)]),
+  food("Potato wedges, homemade", "g", 145, 2.9, 26.5, 3.8, 3, [u("wedge", 25), u("portion", 150)]),
   food("Mashed potato", "g", 100, 1.8, 15, 4, 1.2, [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)]),
   // Other ways of making mash, worked out from boiled potato (CoFID 13-490) plus what goes in.
   food("Mashed potato, plain", "g", 74, 1.8, 17.5, 0.1, 1.6, [u("heaped tablespoon", 45), u("serving spoon", 90), u("portion", 180)]),

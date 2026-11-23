@@ -49,3 +49,12 @@ test("rice and pasta offer kinds, including CoFID rows", () => {
   const pouch = switchTo(pendingOf("White rice, cooked", 1, 1), item("Microwave rice, pouch"));
   assert.equal(amountOf(pouch), 180);
 });
+
+test("potatoes and noodles offer kinds; roast and mash keep their own choices", () => {
+  assert.equal(variantsFor("Potato, boiled")!.options.length, 6);
+  assert.equal(variantsFor("Egg noodles, cooked")!.options.length, 7);
+  assert.equal(variantsFor("Roast potatoes")!.question, "How were they cooked?");
+  assert.equal(variantsFor("Roast potatoes")!.options[0].label, "Air-fried");
+  const news = switchTo(pendingOf("Potato, boiled", 0, 1), item("New potatoes, boiled"));
+  assert.equal(news.units[news.unitIdx].name, "portion");
+});
