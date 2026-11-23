@@ -112,8 +112,15 @@ const BASE: FoodItem[] = [
 
   // Carbohydrates
   food("White rice, cooked", "g", 130, 2.7, 28, 0.3, 0.4, [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)]),
-  food("Brown rice, cooked", "g", 123, 2.7, 26, 1, 1.6, [u("heaped tablespoon", 30), u("portion", 180)]),
-  food("Pasta, cooked", "g", 158, 5.8, 31, 0.9, 1.8, [u("portion", 180)]),
+  food("Brown rice, cooked", "g", 123, 2.7, 26, 1, 1.6, [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)]),
+  food("Microwave rice, pouch", "g", 161, 4.1, 33.9, 1.9, 1.1, [u("heaped tablespoon", 30), u("portion", 180), u("pouch", 250, "pouches"), u("half pouch", 125, "half pouches")]),
+  food("Pilau rice", "g", 134, 2.5, 24.3, 3.7, 0.6, [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)]),
+  food("Egg fried rice, takeaway", "g", 186, 4.3, 33.3, 4.9, 1.1, [u("heaped tablespoon", 30), u("portion", 180), u("takeaway portion", 300)]),
+  food("Pasta, cooked", "g", 158, 5.8, 31, 0.9, 1.8, [u("portion", 180), u("bowl", 230), u("side portion", 120)]),
+  food("Wholewheat pasta, cooked", "g", 134, 5.2, 27.5, 1.1, 4.2, [u("portion", 180), u("bowl", 230), u("side portion", 120)]),
+  food("Fresh egg pasta, cooked", "g", 152, 5.8, 30.6, 1.6, 2, [u("portion", 180), u("bowl", 230), u("side portion", 120)]),
+  // The app's estimate: dried pasta (CoFID 11-1129) with about a tablespoon of butter or oil per two portions.
+  food("Pasta, cooked, with butter or oil", "g", 187, 5.4, 36.2, 3.4, 2.4, [u("portion", 180), u("bowl", 230), u("side portion", 120)]),
   food("Egg noodles, cooked", "g", 138, 4.5, 25, 2, 1.2, [u("portion", 180)]),
   food("Couscous, cooked", "g", 112, 3.8, 23, 0.2, 1.4, [u("portion", 150)]),
   food("Quinoa, cooked", "g", 120, 4.4, 21, 1.9, 2.8, [u("portion", 150)]),
@@ -409,6 +416,7 @@ const EXTRA: Record<string, Extra> = {
   "Mashed potato, with butter and cream": [9.2, 0.8, 0.2],
   "Egg, poached": [2.9, 0, 0.4],
   "Oven chips": [0.7, 0.5, 0.3],
+  "Pasta, cooked, with butter or oil": [1.3, 0.6, 0.1],
   "Chips, air-fried": [0.2, 0.8, 0.05],
   "Roast potatoes, air-fried": [0.2, 0.8, 0.02],
   "Porridge, made with oat milk": [0.4, 3.5, 0.1],

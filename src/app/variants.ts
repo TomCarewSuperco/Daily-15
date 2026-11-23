@@ -38,6 +38,25 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    question: "What kind of rice?",
+    options: [
+      ["Boiled white", "White rice, cooked"],
+      ["Boiled brown", "Brown rice, cooked"],
+      ["Microwave pouch", "Microwave rice, pouch"],
+      ["Pilau", "Pilau rice"],
+      ["Egg fried", "Egg fried rice, takeaway"],
+    ],
+  },
+  {
+    question: "What kind of pasta?",
+    options: [
+      ["Plain, dried", "Pasta, cooked"],
+      ["Wholewheat", "Wholewheat pasta, cooked"],
+      ["Fresh egg pasta", "Fresh egg pasta, cooked"],
+      ["With butter or oil", "Pasta, cooked, with butter or oil"],
+    ],
+  },
+  {
     question: "What was it made with?",
     options: [
       ["Water", "Porridge, made with water"],
@@ -75,6 +94,14 @@ const ALIASES: [RegExp, string][] = [
   [/^Potato chips, homemade, fried/, "Chips, homemade, deep-fried"],
   [/^Potato chips, fine cut, from fast food outlets/, "Fast-food fries"],
   [/^Potato chips, oven ready, no batter/, "Oven chips"],
+  [/^Rice, (white|Thai)[^,]*,( basmati,| long grain,)?( easy cook,)? boiled/i, "White rice, cooked"],
+  [/^Rice, brown, .*boiled/, "Brown rice, cooked"],
+  [/^Rice, egg fried/, "Egg fried rice, takeaway"],
+  [/^Rice, ready-cooked/, "Microwave rice, pouch"],
+  [/^Rice, pilau/, "Pilau rice"],
+  [/^Pasta, white, .*boiled/, "Pasta, cooked"],
+  [/^Pasta, wholewheat, .*boiled/, "Wholewheat pasta, cooked"],
+  [/^Pasta, (plain, fresh|egg, white, tagliatelle, fresh), boiled/, "Fresh egg pasta, cooked"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 

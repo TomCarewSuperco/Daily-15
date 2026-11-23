@@ -40,3 +40,12 @@ test("roast potatoes, chips and porridge offer cooking choices", () => {
   const fries = switchTo(pendingOf("Oven chips", 1, 1), item("Fast-food fries"));
   assert.equal(amountOf(fries), 150);
 });
+
+test("rice and pasta offer kinds, including CoFID rows", () => {
+  assert.equal(variantsFor("White rice, cooked")!.options.length, 5);
+  assert.equal(variantsFor("Pasta, cooked")!.options.length, 4);
+  const v = variantsFor("Rice, white, long grain, boiled in unsalted water")!;
+  assert.equal(v.options[v.current].label, "Boiled white");
+  const pouch = switchTo(pendingOf("White rice, cooked", 1, 1), item("Microwave rice, pouch"));
+  assert.equal(amountOf(pouch), 180);
+});
