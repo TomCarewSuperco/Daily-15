@@ -113,6 +113,21 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const mashOk = mash && mash.name === "Mashed potato, with butter and cream" && /heaped tablespoon \(45 g\)/.test(mash.portion) && Math.round(mash.kcal) === 86;
   console.log(mashOk ? "PASS mash version changes calories, not the amount" : `FAIL mash version changes calories, not the amount (${mash && mash.name} ${mash && mash.portion} ${mash && mash.kcal})`);
   if (!mashOk) process.exitCode = 1;
+  // Searching again shows one mash row that opens on last time's choice.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("mash");
+  await p.getByText(/5 kinds · last time: butter and cream/).waitFor({ timeout: 5000 });
+  const mashTexts = await p.getByText(/^Mashed potato/).allTextContents();
+  const mashRows = mashTexts.filter((t) => t === "Mashed potato").length;
+  await p.getByText(/5 kinds · last time/).click();
+  const mashOpened = await p.getByRole("radio", { name: /Butter and cream/ }).getAttribute("aria-checked");
+  const others = await p.getByText("Other potatoes:").count();
+  await p.screenshot({ path: OUT + "/f7-mash-again.png" });
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.keyboard.press("Escape");
+  const remembered = mashRows === 1 && mashOpened === "true" && others === 1;
+  console.log(remembered ? "PASS mash shows once and opens on last time's choice" : `FAIL mash shows once and opens on last time's choice (${mashRows}, ${mashOpened}, ${others})`);
+  if (!remembered) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

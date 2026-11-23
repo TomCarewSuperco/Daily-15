@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { FOOD_DB } from "../../src/app/foods";
-import { amountOf, switchTo, variantsFor } from "../../src/app/variants";
+import { amountOf, collapse, preferred, switchTo, variantsFor } from "../../src/app/variants";
 
 const item = (n: string) => FOOD_DB.find((f) => f.name === n)!;
 const pendingOf = (n: string, unitIdx = 0, qty = 1) => {
@@ -52,19 +52,42 @@ test("rice and pasta offer kinds, including CoFID rows", () => {
 
 test("potatoes and noodles offer kinds; roast and mash keep their own choices", () => {
   assert.equal(variantsFor("Potato, boiled")!.options.length, 6);
-  assert.equal(variantsFor("Egg noodles, cooked")!.options.length, 7);
-  assert.equal(variantsFor("Roast potatoes")!.question, "How were they cooked?");
+  assert.equal(variantsFor("Egg noodles, cooked")!.options.length, 6);
+  assert.equal(variantsFor("Roast potatoes")!.question, "How was it made?");
   assert.equal(variantsFor("Roast potatoes")!.options[0].label, "Air-fried");
   const news = switchTo(pendingOf("Potato, boiled", 0, 1), item("New potatoes, boiled"));
   assert.equal(news.units[news.unitIdx].name, "portion");
 });
 
 test("bread and toast: a slice switches to a slice, so calories compare per slice", () => {
-  assert.equal(variantsFor("White bread")!.options.length, 6);
+  // Bread kinds differ too little per slice to ask; toast with butter differs a lot.
+  assert.equal(variantsFor("White bread"), null);
   assert.equal(variantsFor("White toast")!.options.length, 6);
   const buttered = switchTo(pendingOf("White toast", 0, 2), item("White toast, buttered"));
   assert.equal(buttered.units[buttered.unitIdx].name, "slice");
   assert.equal(buttered.qty, 2);
-  const v = variantsFor("Bread, white, sliced")!;
-  assert.equal(v.options[v.current].label, "White");
+});
+
+test("search shows one row per food with versions, opening on last time's choice", () => {
+  const results = FOOD_DB.filter((f) => /^(Chips, |Chip shop|Oven chips|Fast-food)/.test(f.name));
+  const fresh = collapse(results, "chips", []);
+  assert.equal(fresh.length, 1);
+  assert.equal(fresh[0].title, "Chips");
+  assert.equal(fresh[0].food.name, "Oven chips");
+  const after = collapse(results, "chips", [{ name: "Chip shop chips" }, { name: "Banana" }]);
+  assert.equal(after[0].food.name, "Chip shop chips");
+  assert.match(after[0].detail!, /last time: chip shop/);
+  // A search for one version lists that version.
+  assert.equal(collapse(results, "chip shop chips", [])[0].title, undefined);
+});
+
+test("milky drinks remember the milk across drinks", () => {
+  assert.equal(preferred("Latte, semi-skimmed milk", [{ name: "Flat white, oat milk" }])!.name, "Latte, oat milk");
+  assert.equal(preferred("Tea with semi-skimmed milk", [])!.name, "Tea with semi-skimmed milk");
+});
+
+test("mash and chips offer the other potatoes; eggs no longer ask", () => {
+  const v = variantsFor("Mashed potato")!;
+  assert.deepEqual(v.others!.options.map((o) => o.label), ["Boiled", "New, boiled", "Jacket", "Wedges", "Roast"]);
+  assert.equal(variantsFor("Egg, fried"), null);
 });

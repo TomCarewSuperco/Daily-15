@@ -16,7 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
-import { amountOf, switchTo, variantsFor } from "../variants";
+import { amountOf, collapse, coveredBy, switchTo, variantsFor, type Option } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
@@ -126,7 +126,12 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   useEffect(() => {
     if (open && q.length >= 2 && !cofid) loadCofid().then(setCofid).catch(() => setCofid([]));
   }, [open, q, cofid]);
-  const cofidResults = useMemo(() => (cofid && q.length >= 2 ? searchFoods(cofid, q, 15) : []), [cofid, q]);
+  // Foods with versions (chips, porridge, flat white) show as one row, opening on last time's choice.
+  const dbRows = useMemo(() => collapse(dbResults, q, state.foods), [dbResults, q, state.foods]);
+  const cofidResults = useMemo(() => {
+    const covered = coveredBy(dbRows);
+    return cofid && q.length >= 2 ? searchFoods(cofid, q, 20).filter((f) => !covered(f.name)).slice(0, 15) : [];
+  }, [cofid, q, dbRows]);
   const myFoods = (state.customFoods ?? []).filter((f) => !q || matches(f.name)).slice(0, q ? 20 : 8);
   const savedResults = state.savedMeals.filter((m) => !q || m.name.toLowerCase().includes(q));
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
@@ -288,9 +293,9 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                     </ResultGroup>
                   )}
                   {!exact && brandedBlock}
-                  {q && dbResults.length > 0 && (
+                  {q && dbRows.length > 0 && (
                     <ResultGroup title={exact ? "Common foods" : "Similar common foods"}>
-                      {dbResults.map((f) => <ResultRow key={f.name} name={f.name} detail={unitHint(f)} onClick={() => pickDb(f)} />)}
+                      {dbRows.map((r) => <ResultRow key={r.title ?? r.food.name} name={r.title ?? r.food.name} detail={r.detail ?? unitHint(r.food)} onClick={() => pickDb(r.food)} />)}
                     </ResultGroup>
                   )}
                   {q.length >= 3 && MEALS_OUT.some((m) => matchesAll(m.name, q)) && (
@@ -437,13 +442,14 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
   );
 }
 
-/** Versions of the same food that differ in calories, each shown at the amount chosen. */
+/** Versions of the same food that differ in calories, each shown at the amount it would log. */
 function VariantPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
   const v = variantsFor(pending.name);
   if (!v) return null;
+  const kcalOf = (o: Option, on: boolean) => Math.round((o.food.kcal * (on ? amountOf(pending) : amountOf(switchTo(pending, o.food)))) / o.food.per);
   return (
-    <div>
-      <p className="mb-2 text-sm font-medium">{v.question}</p>
+    <div className="space-y-2">
+      <p className="text-sm font-medium">{v.question}</p>
       <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={v.question}>
         {v.options.map((o, i) => {
           const on = i === v.current;
@@ -456,11 +462,21 @@ function VariantPicker({ pending, setPending }: { pending: Pending; setPending: 
               className={`flex items-baseline justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
             >
               <span>{o.label}</span>
-              <span className={`shrink-0 tabular-nums ${on ? "" : "text-muted-foreground"}`}>{Math.round((o.food.kcal * (on ? amountOf(pending) : amountOf(switchTo(pending, o.food)))) / o.food.per)} kcal</span>
+              <span className={`shrink-0 tabular-nums ${on ? "" : "text-muted-foreground"}`}>{kcalOf(o, on)} kcal</span>
             </button>
           );
         })}
       </div>
+      {v.others && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1" aria-label={v.others.title}>
+          <span className="text-xs text-muted-foreground">{v.others.title}:</span>
+          {v.others.options.map((o) => (
+            <button key={o.food.name} onClick={() => setPending(switchTo(pending, o.food))} className="rounded-full border bg-card px-2.5 py-1 text-xs">
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
