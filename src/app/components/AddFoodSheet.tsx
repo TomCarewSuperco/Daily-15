@@ -441,7 +441,6 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
 function VariantPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
   const v = variantsFor(pending.name);
   if (!v) return null;
-  const amount = amountOf(pending);
   return (
     <div>
       <p className="mb-2 text-sm font-medium">{v.question}</p>
@@ -457,7 +456,7 @@ function VariantPicker({ pending, setPending }: { pending: Pending; setPending: 
               className={`flex items-baseline justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
             >
               <span>{o.label}</span>
-              <span className={`shrink-0 tabular-nums ${on ? "" : "text-muted-foreground"}`}>{Math.round((o.food.kcal * amount) / o.food.per)} kcal</span>
+              <span className={`shrink-0 tabular-nums ${on ? "" : "text-muted-foreground"}`}>{Math.round((o.food.kcal * (on ? amountOf(pending) : amountOf(switchTo(pending, o.food)))) / o.food.per)} kcal</span>
             </button>
           );
         })}

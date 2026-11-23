@@ -58,3 +58,13 @@ test("potatoes and noodles offer kinds; roast and mash keep their own choices", 
   const news = switchTo(pendingOf("Potato, boiled", 0, 1), item("New potatoes, boiled"));
   assert.equal(news.units[news.unitIdx].name, "portion");
 });
+
+test("bread and toast: a slice switches to a slice, so calories compare per slice", () => {
+  assert.equal(variantsFor("White bread")!.options.length, 6);
+  assert.equal(variantsFor("White toast")!.options.length, 6);
+  const buttered = switchTo(pendingOf("White toast", 0, 2), item("White toast, buttered"));
+  assert.equal(buttered.units[buttered.unitIdx].name, "slice");
+  assert.equal(buttered.qty, 2);
+  const v = variantsFor("Bread, white, sliced")!;
+  assert.equal(v.options[v.current].label, "White");
+});

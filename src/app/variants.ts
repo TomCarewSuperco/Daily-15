@@ -57,6 +57,28 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    question: "What kind of bread?",
+    options: [
+      ["White", "White bread"],
+      ["Wholemeal", "Wholemeal bread"],
+      ["Malted or granary", "Malted wheat bread"],
+      ["Seeded", "Seeded bread"],
+      ["Sourdough", "Sourdough bread"],
+      ["Rye", "Rye bread"],
+    ],
+  },
+  {
+    question: "What kind of toast?",
+    options: [
+      ["White", "White toast"],
+      ["Wholemeal", "Wholemeal toast"],
+      ["Seeded", "Seeded toast"],
+      ["Sourdough", "Sourdough toast"],
+      ["White, buttered", "White toast, buttered"],
+      ["Wholemeal, buttered", "Wholemeal toast, buttered"],
+    ],
+  },
+  {
     question: "What kind of noodles?",
     options: [
       ["Egg", "Egg noodles, cooked"],
@@ -134,6 +156,10 @@ const ALIASES: [RegExp, string][] = [
   [/^Noodles, egg, [a-z]+, dried, boiled/, "Egg noodles, cooked"],
   [/^Noodles, egg, fried/, "Egg noodles, stir-fried"],
   [/^Noodles, rice/, "Rice noodles, cooked"],
+  [/^Bread, white, (sliced|average|farmhouse|premium|crusty bloomer)/, "White bread"],
+  [/^Bread, wholemeal, average/, "Wholemeal bread"],
+  [/^Bread, white, toasted/, "White toast"],
+  [/^Bread, wholemeal, toasted/, "Wholemeal toast"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 
@@ -162,7 +188,8 @@ export function switchTo<P extends Portion>(p: P, f: FoodItem): P {
   let unitIdx = -1;
   let qty = amount;
   if (old) {
-    const same = f.units.findIndex((x) => x.name === old.name && x.g === old.g);
+    // The same measure by name keeps its count: two slices of toast stay two slices, buttered or not.
+    const same = f.units.findIndex((x) => x.name === old.name);
     // Otherwise pick the measure that gets closest to the same amount in halves (150 g of chips is one large fries).
     const halves = (g: number) => Math.max(0.5, Math.round((amount / g) * 2) / 2);
     const best = f.units.reduce((b, x, i) => (Math.abs(halves(x.g) * x.g - amount) < Math.abs(halves(f.units[b].g) * f.units[b].g - amount) ? i : b), 0);

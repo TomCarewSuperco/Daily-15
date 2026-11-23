@@ -1607,6 +1607,54 @@
   "salt": 0.3,
   "abv": null
  },
+ "Malted wheat bread": {
+  "code": "11-972",
+  "kcal": 237,
+  "protein": 9.6,
+  "carbs": 47.4,
+  "fat": 2.3,
+  "fibre": 5.3,
+  "satFat": 0.6,
+  "sugars": 2.9,
+  "salt": 1.0,
+  "abv": null
+ },
+ "Seeded bread": {
+  "code": "11-947",
+  "kcal": 270,
+  "protein": 9.9,
+  "carbs": 43.8,
+  "fat": 7.4,
+  "fibre": 6.2,
+  "satFat": 1.0,
+  "sugars": 3.8,
+  "salt": 0.9,
+  "abv": null
+ },
+ "White toast": {
+  "code": "11-1001",
+  "kcal": 267,
+  "protein": 9.7,
+  "carbs": 56.2,
+  "fat": 2.0,
+  "fibre": 3.0,
+  "satFat": 0.3,
+  "sugars": 4.1,
+  "salt": 1.23,
+  "abv": null
+ },
+ "Wholemeal toast": {
+  "code": "11-982",
+  "kcal": 255,
+  "protein": 11.2,
+  "carbs": 49.2,
+  "fat": 2.9,
+  "fibre": 8.2,
+  "satFat": 0.5,
+  "sugars": 3.2,
+  "salt": 1.18,
+  "abv": null
+ },
  "Gin and tonic": {
   "code": "mix",
   "kcal": 51,

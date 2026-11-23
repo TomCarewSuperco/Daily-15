@@ -363,6 +363,7 @@ const SYNONYMS: Record<string, string[]> = {
   tatties: ["potatoes"],
   chips: ["chips", "fries"],
   fries: ["chips"],
+  granary: ["malted"],
   aubergine: ["aubergine", "eggplant"],
   courgette: ["courgette", "zucchini"],
   prawn: ["prawns", "shrimp"],
@@ -546,7 +547,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
     if (/rice (cakes?|crackers?)/.test(name) && !/cake|cracker/.test(qtext)) score -= 10;
     // The plain cooked staple ('White rice, cooked') before dishes that contain it.
-    if (/^(white rice|pasta), cooked$/.test(name)) score += 6;
+    if (/^(white rice|pasta), cooked$|^white (bread|toast)$/.test(name)) score += 6;
     // 'Yogurt 10%': prefer foods whose fat per 100 g is close to the number, or whose name states it.
     if (hint !== null && hint <= 100) {
       if (name.includes(`${hint}%`)) score += 10;
