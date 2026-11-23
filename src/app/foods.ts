@@ -254,6 +254,12 @@ const BASE: FoodItem[] = [
   food("Pretzel, soft", "g", 340, 9, 68, 3, 2.5, [u("pretzel", 115)]),
   food("Pretzels, crunchy snack", "g", 380, 10, 77, 3, 3, [u("bag", 30)]),
   food("Protein shake, ready to drink", "ml", 60, 7.5, 4.5, 1.4, 0.3, [u("bottle", 330)]),
+  // Chicken wraps, the app's estimates per wrap. Homemade, light: 62 g wholemeal tortilla, 100 g grilled
+  // chicken breast, salad and a yogurt sauce. With cheese and mayo: white tortilla, 25 g Cheddar, 15 g mayonnaise.
+  food("Chicken wrap, homemade, light", "g", 146, 15, 13.7, 3.5, 2, [u("wrap", 250)]),
+  food("Chicken wrap, homemade, with cheese and mayo", "g", 210, 16.2, 12.7, 10.5, 1.1, [u("wrap", 260)]),
+  food("Chicken wrap, shop-bought", "g", 205, 11, 22, 8, 2, [u("wrap", 220)]),
+  food("Chicken wrap, fast-food, crispy", "g", 250, 11, 25, 12, 1.5, [u("wrap", 200)]),
   food("Shawarma wrap, chicken", "g", 215, 12, 22, 9, 1.8, [u("wrap", 350)]),
   food("Quesadilla, chicken and cheese", "g", 270, 14, 24, 13, 1.6, [u("quesadilla", 250)]),
   food("Tacos, beef", "g", 210, 10, 17, 11, 2.5, [u("taco", 90)]),
@@ -499,6 +505,10 @@ const EXTRA: Record<string, Extra> = {
   "Pretzels, crunchy snack": [0.5, 2, 2.5],
   "Protein shake, ready to drink": [0.9, 4, 0.2],
   "Shawarma wrap, chicken": [2.2, 2.5, 1.1],
+  "Chicken wrap, homemade, light": [1.2, 2, 0.6],
+  "Chicken wrap, homemade, with cheese and mayo": [3.8, 1.5, 0.9],
+  "Chicken wrap, shop-bought": [2.2, 2, 1],
+  "Chicken wrap, fast-food, crispy": [2.5, 2, 1.2],
   "Quesadilla, chicken and cheese": [6, 1.5, 1.0],
   "Tacos, beef": [4.5, 1.5, 0.8],
   "Paella, seafood": [0.8, 1, 0.6],

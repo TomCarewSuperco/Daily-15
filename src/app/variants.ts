@@ -95,6 +95,16 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "wrap", title: "Chicken wrap", question: MADE, usual: 2,
+    options: [
+      ["Homemade, light", "Chicken wrap, homemade, light"],
+      ["Homemade, cheese and mayo", "Chicken wrap, homemade, with cheese and mayo"],
+      ["Shop-bought", "Chicken wrap, shop-bought"],
+      ["Takeaway shawarma", "Shawarma wrap, chicken"],
+      ["Fast-food, crispy", "Chicken wrap, fast-food, crispy"],
+    ],
+  },
+  {
     key: "porridge", title: "Porridge", question: "What was it made with?", usual: 2,
     options: [
       ["Water", "Porridge, made with water"],

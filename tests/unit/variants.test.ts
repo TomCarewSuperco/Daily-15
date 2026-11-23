@@ -91,3 +91,13 @@ test("mash and chips offer the other potatoes; eggs no longer ask", () => {
   assert.deepEqual(v.others!.options.map((o) => o.label), ["Boiled", "New, boiled", "Jacket", "Wedges", "Roast"]);
   assert.equal(variantsFor("Egg, fried"), null);
 });
+
+test("chicken wraps: homemade to takeaway, compared per wrap", () => {
+  const v = variantsFor("Shawarma wrap, chicken")!;
+  assert.equal(v.options.length, 5);
+  const light = switchTo(pendingOf("Shawarma wrap, chicken", 0, 1), item("Chicken wrap, homemade, light"));
+  assert.equal(light.qty, 1);
+  assert.equal(Math.round((amountOf(light) * item("Chicken wrap, homemade, light").kcal) / 100), 365);
+  const rows = collapse(FOOD_DB.filter((f) => /^(Chicken|Shawarma) wrap/.test(f.name)), "chicken wrap", []);
+  assert.deepEqual(rows.map((r) => r.title), ["Chicken wrap"]);
+});
