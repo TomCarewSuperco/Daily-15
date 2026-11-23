@@ -1655,6 +1655,42 @@
   "salt": 1.18,
   "abv": null
  },
+ "Ham, wafer-thin": {
+  "code": "19-496",
+  "kcal": 107,
+  "protein": 18.4,
+  "carbs": 1.0,
+  "fat": 3.3,
+  "fibre": 0.1,
+  "satFat": 1.1,
+  "sugars": 1.0,
+  "salt": 2.0,
+  "abv": null
+ },
+ "Ham, thick-cut": {
+  "code": "19-496",
+  "kcal": 107,
+  "protein": 18.4,
+  "carbs": 1.0,
+  "fat": 3.3,
+  "fibre": 0.1,
+  "satFat": 1.1,
+  "sugars": 1.0,
+  "salt": 2.0,
+  "abv": null
+ },
+ "Ham, gammon joint, carved": {
+  "code": "19-021",
+  "kcal": 204,
+  "protein": 23.3,
+  "carbs": 0.0,
+  "fat": 12.3,
+  "fibre": 0.0,
+  "satFat": 4.1,
+  "sugars": 0.0,
+  "salt": 2.95,
+  "abv": null
+ },
  "Gin and tonic": {
   "code": "mix",
   "kcal": 51,

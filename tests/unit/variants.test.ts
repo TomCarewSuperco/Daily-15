@@ -101,3 +101,10 @@ test("chicken wraps: homemade to takeaway, compared per wrap", () => {
   const rows = collapse(FOOD_DB.filter((f) => /^(Chicken|Shawarma) wrap/.test(f.name)), "chicken wrap", []);
   assert.deepEqual(rows.map((r) => r.title), ["Chicken wrap"]);
 });
+
+test("ham: kinds of slice keep the count of slices", () => {
+  assert.equal(variantsFor("Ham, sliced")!.options.length, 5);
+  const carved = switchTo(pendingOf("Ham, sliced", 0, 3), item("Ham, gammon joint, carved"));
+  assert.equal(carved.qty, 3);
+  assert.equal(amountOf(carved), 105);
+});

@@ -105,6 +105,16 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "ham", title: "Ham", question: KIND, usual: 1,
+    options: [
+      ["Wafer-thin", "Ham, wafer-thin"],
+      ["Pre-packed slices", "Ham, sliced"],
+      ["Thick-cut or deli", "Ham, thick-cut"],
+      ["Carved gammon", "Ham, gammon joint, carved"],
+      ["Parma or Serrano", "Parma or Serrano ham"],
+    ],
+  },
+  {
     key: "porridge", title: "Porridge", question: "What was it made with?", usual: 2,
     options: [
       ["Water", "Porridge, made with water"],
@@ -160,6 +170,8 @@ const ALIASES: [RegExp, string][] = [
   [/^Bread, wholemeal, average/, "Wholemeal bread"],
   [/^Bread, white, toasted/, "White toast"],
   [/^Bread, wholemeal, toasted/, "Wholemeal toast"],
+  [/^Ham, gammon joint, boiled/, "Ham, gammon joint, carved"],
+  [/^Ham$/, "Ham, sliced"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 

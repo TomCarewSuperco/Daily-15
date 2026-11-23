@@ -101,6 +101,12 @@ const BASE: FoodItem[] = [
   food("Pork sausage, grilled", "g", 290, 14, 9, 23, 0.9, [u("sausage", 45), u("chipolata", 20)]),
   food("Bacon, back rasher, grilled", "g", 287, 23, 0, 22, 0, [u("rasher", 25)]),
   food("Ham, sliced", "g", 107, 18, 1.4, 3.3, 0, [u("slice", 15)]),
+  // Kinds of ham slice. Wafer-thin and thick-cut are the same cooked ham, cut differently.
+  food("Ham, wafer-thin", "g", 107, 18, 1.4, 3.3, 0, [u("slice", 6)]),
+  food("Ham, thick-cut", "g", 107, 18, 1.4, 3.3, 0, [u("slice", 30)]),
+  food("Ham, gammon joint, carved", "g", 204, 23.3, 0, 12.3, 0, [u("slice", 35)]),
+  // The app's estimate from typical UK labels.
+  food("Parma or Serrano ham", "g", 240, 27, 0.3, 15, 0, [u("slice", 8)]),
   food("Chicken breast, cooked", "g", 165, 31, 0, 3.6, 0, [u("breast", 150), u("small breast", 120)]),
   food("Chicken thigh, cooked, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
   food("Beef mince 5% fat, cooked", "g", 175, 27, 0, 7.5, 0, [u("portion", 125)]),
@@ -410,6 +416,7 @@ const EXTRA: Record<string, Extra> = {
   "Pork sausage, grilled": [8.5, 2, 1.8],
   "Bacon, back rasher, grilled": [8, 0, 3.5],
   "Ham, sliced": [1.1, 1, 2],
+  "Parma or Serrano ham": [5.5, 0.3, 5],
   "Chicken breast, cooked": [1, 0, 0.18],
   "Chicken thigh, cooked, no skin": [4, 0, 0.25],
   "Beef mince 5% fat, cooked": [3.2, 0, 0.2],
