@@ -16,7 +16,7 @@ import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
-import { baseForShown, estimateMinutes, MAX_LEVEL, MAX_ROUNDS, MIN_LEVEL, settingsOf, shownAmount } from "../routine";
+import { baseForShown, estimateMinutes, MAX_LEVEL, MAX_ROUNDS, MIN_LEVEL, settingsOf, shownAmount, settingsForDay } from "../routine";
 import { Switch } from "@/components/ui/switch";
 import type { RoutineExercise, RoutineMode, RoutineSettings } from "../types";
 
@@ -54,7 +54,8 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   }, [intent, clearIntent]);
 
   const settings = settingsOf(state);
-  const list = routineFor(state.routine, mode, settings, today);
+  // A finished day keeps the settings it was done with; changes made afterwards show from tomorrow.
+  const list = routineFor(state.routine, mode, settingsForDay(state, today, mode), today);
   const minutes = estimateMinutes(list);
   const setSettings = (patch: Partial<RoutineSettings>) => update((s) => ({ ...s, routineSettings: { ...settingsOf(s), ...patch } }));
   const stage = lifeStageOf(state.profile);

@@ -5,7 +5,7 @@ import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
 import { suggestedIntentions } from "../intentions";
-import { MAX_ROUNDS, TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, shownAmount, swapOptions, type Proposal } from "../routine";
+import { MAX_ROUNDS, TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsForDay, settingsOf, shownAmount, swapOptions, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
@@ -34,7 +34,8 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   const { state, update } = useDaily15();
   const today = todayKey();
   const settings = settingsOf(state);
-  const baseList = useMemo(() => routineFor(state.routine, mode, settings, today), [state.routine, mode, settings.level, settings.rounds, settings.variety, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const daySettings = settingsForDay(state, today, mode);
+  const baseList = useMemo(() => routineFor(state.routine, mode, daySettings, today), [state.routine, mode, daySettings.level, daySettings.rounds, settings.variety, today]); // eslint-disable-line react-hooks/exhaustive-deps
   // Swaps made during this session, by slot, so every round of that slot changes together.
   const [swaps, setSwaps] = useState<Record<string, Omit<RoutineExercise, "id">>>({});
   const [swapOpen, setSwapOpen] = useState(false);
@@ -118,7 +119,9 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     const finished = list.every((e) => ids.has(e.id));
     const finishedNow = finished && !prev?.finished;
     const seconds = priorSeconds.current + Math.floor((Date.now() - started.current) / 1000);
-    const entry = { ...(prev?.mode === mode ? prev : {}), date: today, mode, completedIds: [...ids], finished: finished || !!prev?.finished, seconds };
+    // Record what today was done with, so a round or level added afterwards starts tomorrow.
+    const snapshot = prev?.mode === mode && prev.settings ? prev.settings : { level: settings.level, rounds: settings.rounds, bias: settings.bias };
+    const entry = { ...(prev?.mode === mode ? prev : {}), date: today, mode, completedIds: [...ids], finished: finished || !!prev?.finished, seconds, ...(finished ? { settings: snapshot } : {}) };
     update((s) => ({ ...s, routineLogs: { ...s.routineLogs, [today]: entry } }));
     if (finishedNow) {
       setFinishedScreen(true);

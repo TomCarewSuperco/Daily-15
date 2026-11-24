@@ -17,6 +17,20 @@ export function settingsOf(s: { routineSettings?: RoutineSettings }): RoutineSet
   return { ...DEFAULT_SETTINGS, ...s.routineSettings };
 }
 
+/**
+ * Settings for one day's routine. A day already finished keeps what it was done with:
+ * adding a round or raising the level after finishing applies from the next day.
+ */
+export function settingsForDay(s: { routineSettings?: RoutineSettings; routineLogs: Record<string, RoutineLog> }, date: string, mode: RoutineMode): RoutineSettings {
+  const now = settingsOf(s);
+  const log = s.routineLogs[date];
+  if (!log?.finished || log.mode !== mode) return now;
+  if (log.settings) return { ...now, ...log.settings };
+  // Finished before the settings were recorded: keep as many rounds as were done.
+  const roundsDone = Math.max(1, ...log.completedIds.map((id) => Number(/~r(\d+)$/.exec(id)?.[1] ?? 1)));
+  return { ...now, rounds: Math.min(now.rounds, roundsDone) };
+}
+
 const WARM_UP = "march";
 const COOL_DOWN = "stretch";
 

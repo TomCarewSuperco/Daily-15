@@ -146,3 +146,15 @@ test("cool-down stretches cover every area and change from day to day", async ()
   assert.notDeepEqual(a, b);
   for (let d = 1; d <= 8; d++) for (const st of stepsFor("Gentle stretching", `2026-11-0${d}`)!) assert.ok(hasDemo(st.name), st.name);
 });
+
+test("a round added after finishing applies from tomorrow, not to today's finished routine", async () => {
+  const { settingsForDay } = await import("../../src/app/routine");
+  const s = { routineSettings: { ...DEFAULT_SETTINGS, rounds: 3 }, routineLogs: {
+    "2026-11-24": { date: "2026-11-24", mode: "standard" as const, completedIds: ["squat", "squat~r2"], finished: true, settings: { level: 0, rounds: 2 } },
+    "2026-11-23": { date: "2026-11-23", mode: "standard" as const, completedIds: ["squat", "squat~r2"], finished: true },
+  } };
+  assert.equal(settingsForDay(s, "2026-11-24", "standard").rounds, 2);
+  assert.equal(settingsForDay(s, "2026-11-25", "standard").rounds, 3);
+  // Finished before settings were recorded: keeps the rounds actually done.
+  assert.equal(settingsForDay(s, "2026-11-23", "standard").rounds, 2);
+});

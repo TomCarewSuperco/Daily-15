@@ -84,6 +84,8 @@ export interface RoutineLog {
   feeling?: Feeling;
   /** Time spent in the player today, in seconds, across sessions. */
   seconds?: number;
+  /** The difficulty, rounds and per-exercise bias the day was done with, so changes made afterwards start tomorrow. */
+  settings?: Pick<RoutineSettings, "level" | "rounds" | "bias">;
 }
 
 export interface RoutineSettings {

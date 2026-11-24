@@ -40,6 +40,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   const today = Object.values(st.routineLogs)[0];
   ok("feeling and new level saved", today.feeling === "easy" && today.finished && st.routineSettings?.level === 1);
+  ok("today keeps the level it was done at; the new level starts tomorrow", today.settings && today.settings.level === 0);
   ok("food choice saved for today", Object.values(st.intentions ?? {})[0]?.id === "late-snacks");
   await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
   ok("difficulty shows +1", (await p.getByText("+1", { exact: true }).count()) === 1);
