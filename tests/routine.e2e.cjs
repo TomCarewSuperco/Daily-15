@@ -61,7 +61,10 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await q.clock.runFor(31_000);
   ok("moves on to the second stretch after 30 seconds", (await q.getByRole("heading", { name: chips[1] }).count()) === 1);
   await q.screenshot({ path: OUT + "/routine-stretch.png" });
-  await q.clock.runFor(60_000);
+  // Time away from the app (no timer ticks) still counts when it comes back.
+  // fastForward jumps the clock and fires each due timer once: a tick-counting timer would lose the minute.
+  await q.clock.fastForward(60_000);
+  await q.clock.runFor(500);
   ok("then the fourth", (await q.getByRole("heading", { name: chips[3] }).count()) === 1);
   await ctx2.close();
 

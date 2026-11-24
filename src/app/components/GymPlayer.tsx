@@ -8,6 +8,7 @@ import { todayKey, uid } from "../calc";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { EQUIPMENT_LABELS, findExercise } from "../exercises";
 import { cue, primeCue } from "../cue";
+import { useWakeLock } from "../wakeLock";
 import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, gymSwaps, warmUpSets } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
@@ -90,6 +91,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   // A warm-up comes first on a fresh session; a resumed one goes straight back to the sets.
   const [warming, setWarming] = useState(!r);
   const started = useRef(r?.started ?? Date.now());
+  useWakeLock();
   useEffect(() => {
     try {
       const { resume: _r, ...plain } = session;
@@ -129,11 +131,18 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   }, []);
 
   // Wall-clock timer so it keeps time if the phone locks or the app goes to the background.
+  const [holdStart, setHoldStart] = useState<number | null>(null);
+  const [holdSignalled, setHoldSignalled] = useState(false);
   useEffect(() => {
-    if (!restUntil) return;
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, [restUntil]);
+    if (!restUntil && !holdStart) return;
+    const tickNow = () => setNow(Date.now());
+    const id = window.setInterval(tickNow, 250);
+    document.addEventListener("visibilitychange", tickNow);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", tickNow);
+    };
+  }, [restUntil, holdStart]);
   const restLeft = restUntil ? Math.max(0, Math.ceil((restUntil - now) / 1000)) : 0;
   useEffect(() => {
     if (restUntil && restLeft === 0) {
@@ -143,13 +152,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   }, [restLeft, restUntil]);
 
   // Hold timer for timed exercises such as the plank: counts down the target, signals, then counts on.
-  const [holdStart, setHoldStart] = useState<number | null>(null);
-  const [holdSignalled, setHoldSignalled] = useState(false);
-  useEffect(() => {
-    if (!holdStart) return;
-    const id = window.setInterval(() => setNow(Date.now()), 200);
-    return () => window.clearInterval(id);
-  }, [holdStart]);
+
   const held = holdStart ? Math.floor((now - holdStart) / 1000) : 0;
   const holdTarget = plan[ex]?.sets[set]?.reps ?? 0;
   useEffect(() => {

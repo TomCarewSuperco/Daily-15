@@ -10,6 +10,8 @@ import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
+import { cue, primeCue } from "../cue";
+import { useWakeLock } from "../wakeLock";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
 import type { RoutineExercise, RoutineMode } from "../types";
 
@@ -64,6 +66,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     return () => window.clearInterval(id);
   }, []);
   const priorSeconds = useRef(log?.mode === mode ? log.seconds ?? 0 : 0);
+  useWakeLock();
 
   // Stop the page behind from scrolling while the workout is open, so it can't show through on iPhone.
   // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
@@ -86,20 +89,24 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     setSwapOpen(false);
   }, [idx, ex.kind, ex.amount, ex.name]);
 
+  // The countdown runs off the clock, not a tick count, so time away from the app
+  // (another app, the screen locked) still counts.
   useEffect(() => {
     if (!running) return;
-    tick.current = window.setInterval(() => setLeft((l) => Math.max(0, l - 1)), 1000);
-    return () => window.clearInterval(tick.current);
-  }, [running]);
+    const endAt = Date.now() + left * 1000;
+    const update = () => setLeft(Math.max(0, Math.ceil((endAt - Date.now()) / 1000)));
+    tick.current = window.setInterval(update, 250);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      window.clearInterval(tick.current);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [running]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (running && left === 0) {
       setRunning(false);
-      try {
-        navigator.vibrate?.(200);
-      } catch {
-        /* unsupported */
-      }
+      cue();
       markDone();
     }
   }, [left, running]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -133,11 +140,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   if (steps && running && stepIdx !== lastStep.current) {
     lastStep.current = stepIdx;
     if (stepIdx > 0) {
-      try {
-        navigator.vibrate?.(150);
-      } catch {
-        /* unsupported */
-      }
+      cue();
     }
   }
 
@@ -200,7 +203,7 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
             <>
               <div className="text-7xl font-semibold tabular-nums" aria-live="polite">{mm}:{ss}</div>
               <div className="mt-6 flex gap-3">
-                <Button size="lg" onClick={() => setRunning((r) => !r)} disabled={left === 0}>
+                <Button size="lg" onClick={() => { primeCue(); setRunning((r) => !r); }} disabled={left === 0}>
                   {running ? <Pause className="mr-1.5 h-4 w-4" /> : <Play className="mr-1.5 h-4 w-4" />}
                   {running ? "Pause" : left < ex.amount ? "Resume" : "Start timer"}
                 </Button>
