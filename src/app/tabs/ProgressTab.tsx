@@ -23,6 +23,7 @@ import {
 } from "../calc";
 import { Field, NumField } from "../components/Field";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
+import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
@@ -44,6 +45,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const [range, setRange] = useState<30 | 90 | 0>(90);
   const [weightOpen, setWeightOpen] = useState(false);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [activitySeed, setActivitySeed] = useState<WorkoutSeed | null>(null);
   const [measureOpen, setMeasureOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -201,6 +203,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
           <div className="rounded-xl bg-muted p-2.5"><div className="text-[11px] text-muted-foreground">Active minutes</div><div className="font-semibold">{weekActive}</div></div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Step target hit on {stepGoalDays} of seven days. Dashed line marks your {p.targets.steps.toLocaleString("en-GB")} target.</p>
+        <button className="mt-2 text-left text-sm underline underline-offset-2" onClick={() => setActivitySeed({ category: "Swimming" })}>
+          Swim, ride, class or sport? Log it here. It counts towards active minutes, not steps.
+        </button>
       </Card>
 
       {/* Does the 15 help? The user's own evidence. */}
@@ -325,6 +330,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
 
       <WeightDialog open={weightOpen} onOpenChange={setWeightOpen} />
       <StepsDialog open={stepsOpen} onOpenChange={setStepsOpen} />
+      <WorkoutForm open={!!activitySeed} onOpenChange={(o) => !o && setActivitySeed(null)} seed={activitySeed ?? undefined} />
       <MeasureDialog open={measureOpen} onOpenChange={setMeasureOpen} />
     </div>
   );

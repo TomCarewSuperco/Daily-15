@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { todayKey, uid } from "../calc";
-import { DISTANCE_CATEGORIES, WORKOUT_CATEGORIES } from "../data";
+import { DISTANCE_CATEGORIES, STRENGTH_CATEGORIES, WORKOUT_CATEGORIES } from "../data";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { EQUIPMENT_LABELS, findExercise, hasDemo, PREBUILT, suggestExercises, type Equipment, type PrebuiltWorkout } from "../exercises";
 import { useDaily15 } from "../store";
@@ -20,6 +20,8 @@ export interface WorkoutSeed {
   template?: WorkoutTemplate;
   /** Build a reusable workout rather than log one. */
   asTemplate?: boolean;
+  /** Log an activity such as a swim or a class: starts blank in this category. */
+  category?: string;
 }
 
 const blankExercise = (): ExerciseEntry => ({ name: "", sets: [{ reps: 10, weightKg: 0 }] });
@@ -65,9 +67,16 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
     setSave(asTemplate);
     setSource(w || seed?.template ? "blank" : asTemplate ? "blank" : "prebuilt");
     load(w, seed?.template);
+    if (seed?.category && !w) {
+      setCategory(seed.category);
+      setSource("blank");
+      setExercises([]);
+    }
   }, [open, seed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showDistance = DISTANCE_CATEGORIES.has(category) && !asTemplate;
+  /** Opened to log a swim, ride or class rather than a gym session. */
+  const activity = !!seed?.category && !editing;
   const pace = showDistance && typeof distance === "number" && distance > 0 && typeof duration === "number" && duration > 0 ? duration / distance : null;
   const setEx = (i: number, fn: (e: ExerciseEntry) => ExerciseEntry) => setExercises((xs) => xs.map((x, j) => (j === i ? fn(x) : x)));
   const prebuilt = useMemo(() => PREBUILT.filter((w) => equipment === "all" || w.equipment === equipment), [equipment]);
@@ -116,10 +125,10 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="mx-auto h-[92dvh] max-w-md overflow-y-auto overscroll-contain rounded-t-2xl">
         <SheetHeader>
-          <SheetTitle>{asTemplate ? "New workout" : editing ? "Edit workout" : "Log a workout"}</SheetTitle>
+          <SheetTitle>{asTemplate ? "New workout" : editing ? "Edit workout" : activity ? "Log an activity" : "Log a workout"}</SheetTitle>
         </SheetHeader>
         <div className="mt-4 space-y-4 pb-6">
-          {!editing && !asTemplate && (
+          {!editing && !asTemplate && !activity && (
             <div className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1 text-sm">
               {([
                 ["prebuilt", "Ready-made"],
@@ -199,7 +208,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
               {!asTemplate && (
                 <div className="grid grid-cols-2 gap-3">
                   <NumField label="Duration" value={duration} onChange={setDuration} suffix="min" />
-                  <NumField label="Rest between sets" value={rest} onChange={setRest} suffix="sec" />
+                  {(STRENGTH_CATEGORIES.has(category) || exercises.some((e) => e.name.trim())) && <NumField label="Rest between sets" value={rest} onChange={setRest} suffix="sec" />}
                 </div>
               )}
               {showDistance && (
@@ -212,6 +221,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
                 <Choice columns={3} value={intensity} onChange={setIntensity} options={[{ value: "light", label: "Light" }, { value: "moderate", label: "Moderate" }, { value: "intense", label: "Intense" }]} />
               </Field>
 
+              {(asTemplate || STRENGTH_CATEGORIES.has(category) || exercises.some((e) => e.name.trim())) && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">Exercises</span>
@@ -223,6 +233,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
                   <ExerciseCard key={i} ex={ex} onChange={(fn) => setEx(i, fn)} onRemove={() => setExercises((xs) => xs.filter((_, j) => j !== i))} />
                 ))}
               </div>
+              )}
 
               {!asTemplate && (
                 <Field label="Notes">
