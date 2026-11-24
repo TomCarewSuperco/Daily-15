@@ -24,6 +24,12 @@ export interface GymSession {
 const DEFAULT_REST = 90;
 
 /** Guided gym session: one set at a time, weight and reps to confirm, rest timer between sets. */
+/** '3 sets: 5 × 60 kg' style summary of the sets done: '5 reps, 5 reps' or '30 sec' or '5 × 60 kg'. */
+function setSummary(name: string, sets: { reps: number; weightKg: number }[]): string {
+  const timed = findExercise(name)?.timed;
+  return sets.map((x) => (timed ? `${x.reps} sec` : x.weightKg ? `${x.reps} × ${x.weightKg} kg` : `${x.reps} reps`)).join(", ");
+}
+
 export function GymPlayer({ session, onClose }: { session: GymSession; onClose: () => void }) {
   const { state, update } = useDaily15();
   const [plan, setPlan] = useState<ExerciseEntry[]>(() => planSession(session.exercises, state.workouts));
@@ -34,6 +40,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   const [restLength, setRestLength] = useState(DEFAULT_REST);
   const [now, setNow] = useState(Date.now());
   const [finished, setFinished] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const started = useRef(Date.now());
   const targets = useMemo(() => session.exercises.map((e) => e.sets.map((s) => s.reps)), [session]);
 
@@ -122,18 +129,25 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
         <p className="text-sm font-semibold uppercase tracking-widest text-copper">Done</p>
         <h2 className="mt-2 text-4xl leading-tight">{session.name}</h2>
-        <p className="mt-2 text-muted-foreground">{doneSets} sets in {Math.max(1, Math.round((Date.now() - started.current) / 60000))} minutes.</p>
+        <p className="mt-2 text-muted-foreground">{doneSets} {doneSets === 1 ? "set" : "sets"} in {Math.max(1, Math.round((Date.now() - started.current) / 60000))} minutes.</p>
         <ul className="mt-6 space-y-1 text-sm">
           {plan.map((e, i) => (
             <li key={e.name + i} className="flex justify-between">
               <span>{e.name}</span>
-              <span className="tabular-nums text-muted-foreground">{e.sets.filter((_, j) => done[i][j]).map((s) => `${s.reps}${s.weightKg ? `×${s.weightKg}` : ""}`).join(", ") || "skipped"}</span>
+              <span className="tabular-nums text-muted-foreground">{setSummary(e.name, e.sets.filter((_, j) => done[i][j])) || "skipped"}</span>
             </li>
           ))}
         </ul>
         <div className="mt-auto grid gap-2 pt-6">
           {session.offerSave && <Button size="lg" variant="outline" onClick={() => save(true)}>Save and add to My workouts</Button>}
           <Button size="lg" onClick={() => save(false)}>Save workout</Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="ghost" onClick={() => { setConfirmDiscard(false); setFinished(false); }}>Back to workout</Button>
+            {/* Two taps, so a stray tap doesn't lose the session. */}
+            <Button variant="ghost" className={confirmDiscard ? "text-destructive" : ""} onClick={() => (confirmDiscard ? onClose() : setConfirmDiscard(true))}>
+              {confirmDiscard ? "Tap again to discard" : "Discard"}
+            </Button>
+          </div>
         </div>
       </div>
     );

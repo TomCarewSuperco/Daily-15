@@ -71,6 +71,24 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("last time and progression shown", (await p.getByText(/Last time: 2 × 10 at 16 kg/).count()) === 1 && (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "18");
   await p.getByRole("button", { name: "Close" }).click();
 
+  // Finishing early: go back to the workout, or discard it without logging.
+  const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.getByRole("button", { name: "All", exact: true }).click();
+  await p.locator("li", { hasText: "Core, no equipment" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Done set" }).click();
+  await p.getByRole("button", { name: "Finish early" }).click();
+  const oneSet = (await p.getByText(/^1 set in/).count()) === 1;
+  await p.getByRole("button", { name: "Back to workout" }).click();
+  const back = (await p.getByRole("button", { name: "Finish early" }).count()) === 1 && (await p.getByText(/^1 set in/).count()) === 0;
+  await p.getByRole("button", { name: "Finish early" }).click();
+  await p.getByRole("button", { name: "Discard" }).click();
+  await p.getByRole("button", { name: "Tap again to discard" }).click();
+  const after = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
+  ok("finish screen says '1 set'", oneSet);
+  ok("back to workout returns to the session", back);
+  ok("discard closes without logging", after === before && (await p.getByText(/^1 set in/).count()) === 0);
+
   console.log(R.join("\n")); console.log("errors:", errs);
   if (R.some((r) => r.startsWith("FAIL")) || errs.length) process.exitCode = 1;
   await b.close();
