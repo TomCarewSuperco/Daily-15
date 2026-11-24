@@ -92,3 +92,10 @@ test("salad vegetables are common foods with everyday measures", () => {
     assert.equal(searchFoods(FOOD_DB, q, 1)[0]?.name, want, q);
   assert.equal(FOOD_DB.find((f) => f.name === "Cucumber")!.units[0].name, "slice");
 });
+
+test("everyday vegetables come up under their plain names, before dishes", async () => {
+  const { loadCofid } = await import("../../src/app/cofid");
+  const all = [...FOOD_DB, ...(await loadCofid())];
+  for (const [q, want] of [["pakchoi", "Pak choi"], ["bok choy", "Pak choi"], ["corn on the cob", "Corn on the cob"], ["lettuce", "Lettuce"], ["leek", "Leeks"], ["green beans", "Green beans"], ["courgette", "Courgette"], ["tenderstem", "Tenderstem broccoli"], ["carrot", "Carrots"], ["sweet potato", "Sweet potato, baked"]])
+    assert.equal(searchFoods(all, q, 1)[0]?.name, want, q);
+});

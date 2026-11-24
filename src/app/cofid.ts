@@ -185,7 +185,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/^celery/.test(n)) return [u("stick", 40)];
   if (/^leeks/.test(n)) return [u("leek", 150)];
   if (/^lettuce|^rocket|^watercress|^spinach, (baby|mature), raw/.test(n)) return [u("handful", 30), u("cereal bowl", 80)];
-  if (/^(broccoli|cauliflower)/.test(n)) return [u("floret", 15), u("5-a-day portion (about 6 florets)", 80, "5-a-day portions")];
+  if (/^(broccoli|cauliflower)/.test(n) && !/cheese|soup|bake|curry|cheese sauce/.test(n)) return [u("floret", 15), u("5-a-day portion (about 6 florets)", 80, "5-a-day portions")];
   if (/^parsnip/.test(n)) return [u("parsnip", 120)];
   if (/^garlic/.test(n)) return [u("clove", 4)];
   }
@@ -466,6 +466,8 @@ const PHRASES: [RegExp, string][] = [
   [/\bmocktails?\b/, "virgin mojito alcohol free"],
   [/\bshreddies\b/, "shredded wheat"],
   [/\bpep+erami\b/, "salami snack stick"],
+  [/\bpak ?choy?i?\b|\bbok ?choy\b/, "pak choi"],
+  [/\bmange ?tout\b/, "mange-tout"],
   [/\brice (k|c)rispies\b/, "breakfast cereal rice toasted"],
   [/\bpot noodles?\b/, "pot savouries made up"],
   [/\bsuper noodles?\b/, "instant noodles"],
@@ -569,6 +571,8 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/coated|covered/.test(name) && !/coated|covered|chocolate|raisin|nut|almond|peanut/.test(qtext)) score -= 15;
     if (/\b(chocolate|kefir|shake)\b/.test(name) && !/chocolate|kefir|shake/.test(qtext)) score -= 10;
     if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
+    // Dishes that merely contain the vegetable come after the vegetable itself.
+    if (/\b(layer|bake|pie|casserole|curry|soup|sandwich|in cheese sauce|stuffed|fritters|with eggs)\b/.test(name) && !/layer|bake|pie|casserole|curry|soup|sandwich|cheese|stuffed|fritter|egg/.test(qtext)) score -= 6;
     if (/\bpepperoni\b/.test(name) && !/pepperoni|salami|pizza/.test(qtext)) score -= 10;
     if (/^(oat|soya|almond) milk/.test(name) && !/oat|soya|soy|almond|plant|vegan|dairy/.test(qtext)) score -= 3;
     if (/rice (cakes?|crackers?)/.test(name) && !/cake|cracker/.test(qtext)) score -= 10;
@@ -583,7 +587,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;
     if (forms(words[0]).some((x) => first.startsWith(x))) score += 10;
     // The word as typed beats a synonym: 'fries' finds fries before chips.
-    score += words.filter((w) => nw.includes(w)).length * 12;
+    score += words.filter((w) => nw.includes(w) || nw.includes(`${w}s`) || nw.includes(`${w}es`)).length * 12;
     // 'Eggs, chicken, boiled' before 'Egg fu yung': the first part is just the food.
     if (segment.split(/\s+/).length === 1) score += 4;
     score -= (name.match(/,/g)?.length ?? 0) * 1.5;

@@ -62,7 +62,7 @@
  "Sweet potato, baked": "13-672",
  "Pizza, margherita": "11-936",
  "Broccoli": "13-503",
- "Carrot": "13-496",
+ "Carrots": "13-496",
  "Peas, boiled": "13-536",
  "Sweetcorn": "13-529",
  "Mushrooms": "13-505",
@@ -264,5 +264,17 @@
  "Green pepper": "13-318",
  "Celery": "13-636",
  "Radishes": "13-656",
- "Spring onions": "13-352"
+ "Spring onions": "13-352",
+ "Courgette": "13-628",
+ "Aubergine": "13-651",
+ "Corn on the cob": "13-508",
+ "Leeks": "13-625",
+ "Green beans": "13-515",
+ "Tenderstem broccoli": "13-504",
+ "Parsnip": "13-631",
+ "Cabbage": "13-581",
+ "Lettuce": "13-520",
+ "Pak choi": "13-516",
+ "Beansprouts": "13-426",
+ "Edamame beans": "13-667"
 }
