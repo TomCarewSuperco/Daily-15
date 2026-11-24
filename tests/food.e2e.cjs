@@ -159,6 +159,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const cerealOk = asks && bowl.some((x) => x.startsWith("Bio&Me")) && bowl.includes("Oat milk|125 ml");
   console.log(cerealOk ? "PASS cereal logs the milk on it" : `FAIL cereal logs the milk on it (${asks} ${JSON.stringify(bowl)})`);
   if (!cerealOk) process.exitCode = 1;
+  // Salad asks for the dressing, logged as its own entry.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("mixed salad leaves");
+  await p.getByText("Mixed salad leaves", { exact: true }).first().click();
+  await p.getByRole("radio", { name: "Vinaigrette" }).click();
+  await p.getByRole("radio", { name: /A tablespoon/ }).click();
+  await p.screenshot({ path: OUT + "/f10-salad.png" });
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const salad = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.filter((f) => f.meal === "lunch").map((f) => `${f.name}|${f.portion}`));
+  const saladOk = salad.some((x) => x.startsWith("Mixed salad leaves")) && salad.includes("Vinaigrette|15 g");
+  console.log(saladOk ? "PASS salad logs the dressing" : `FAIL salad logs the dressing (${JSON.stringify(salad)})`);
+  if (!saladOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

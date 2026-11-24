@@ -216,6 +216,13 @@ const BASE: FoodItem[] = [
   food("Mayonnaise", "g", 680, 1, 1.3, 75, 0, [u("tablespoon", 15)]),
   // Not in CoFID 2021: typical UK supermarket label values.
   food("Caesar dressing", "g", 430, 2.5, 4, 44, 0.2, [u("tablespoon", 15)]),
+  food("Vinaigrette", "g", 335, 0.3, 11.7, 32.2, 0.5, [u("tablespoon", 15)]),
+  food("Oil and lemon dressing", "g", 652, 0.1, 3.4, 72.4, 0.1, [u("tablespoon", 15)]),
+  food("Fat-free dressing", "g", 33, 0.1, 8.7, 0, 0.5, [u("tablespoon", 15)]),
+  food("Salad cream", "g", 326, 1.5, 21.2, 26.7, 0.5, [u("tablespoon", 15)]),
+  food("Yogurt dressing", "g", 72, 5.3, 7.1, 2.7, 0.1, [u("tablespoon", 15)]),
+  // The app's estimate from typical UK labels.
+  food("Balsamic glaze", "g", 250, 0.5, 55, 0, 0, [u("tablespoon", 15), u("drizzle", 5)]),
   food("Sweet chilli sauce", "g", 220, 0.4, 52, 0.3, 1, [u("tablespoon", 15)]),
   food("Sriracha", "g", 105, 1.9, 22, 0.9, 1.5, [u("teaspoon", 5), u("tablespoon", 15)]),
   food("Tomato ketchup", "g", 100, 1.2, 23, 0.1, 0.9, [u("tablespoon", 15)]),
@@ -461,6 +468,7 @@ const EXTRA: Record<string, Extra> = {
   "Mashed potato, with butter and cream": [9.2, 0.8, 0.2],
   "Egg, poached": [2.9, 0, 0.4],
   "Oven chips": [0.7, 0.5, 0.3],
+  "Balsamic glaze": [0, 45, 0.1],
   "Chicken or turkey sausage, grilled": [2.8, 1, 1.5],
   "Venison sausage, grilled": [3, 1, 1.5],
   "Oat milk": [0.2, 4, 0.1],

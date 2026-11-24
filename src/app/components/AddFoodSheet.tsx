@@ -16,7 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
-import { AMOUNTS, isCereal, lastTopping, rememberTopping, TOPPINGS, toppingFood, type ToppingChoice } from "../cereal";
+import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
@@ -538,14 +538,15 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
   const flags = flagsForFood(lifeStageOf(state.profile), { name: pending.name, abv: pending.abv });
   const entry = entryFromPending(pending);
   // Cereal: what went on it, logged as its own entry.
-  const cereal = isCereal(pending.name);
-  const [topping, setTopping] = useState<ToppingChoice>(() => lastTopping());
-  const toppingEntry = (c: ToppingChoice): NewEntry | null => {
-    const f = c.name ? toppingFood(c.name) : undefined;
+  // Cereal with milk, salad with dressing: what went with it, logged as its own entry.
+  const companion = companionFor(pending.name);
+  const [topping, setTopping] = useState<CompanionChoice>(() => (companion ? lastChoice(companion) : { name: null, amount: 0 }));
+  const toppingEntry = (c: CompanionChoice): NewEntry | null => {
+    const f = c.name ? companionFood(c.name) : undefined;
     if (!f) return null;
     return entryFromPending({ ...fromItem(f, true), unitIdx: -1, qty: c.amount });
   };
-  const extra = cereal ? toppingEntry(topping) : null;
+  const extra = companion ? toppingEntry(topping) : null;
 
   return (
     <div className="space-y-4">
@@ -556,11 +557,11 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
         </p>
       </div>
       <PortionPicker pending={pending} setPending={setPending} />
-      {cereal && (
+      {companion && (
         <div className="space-y-2">
-          <p className="text-sm font-medium">What's on it?</p>
-          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="What's on it?">
-            {[{ label: "Nothing", name: null as string | null }, ...TOPPINGS].map((t) => (
+          <p className="text-sm font-medium">{companion.question}</p>
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={companion.question}>
+            {[{ label: companion.key === "salad" ? "None" : "Nothing", name: null as string | null }, ...companion.options].map((t) => (
               <button
                 key={t.label}
                 role="radio"
@@ -574,10 +575,10 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
           </div>
           {topping.name && (
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How much?">
-              {AMOUNTS.map((a) => {
+              {companion.amounts.map((a) => {
                 const e = toppingEntry({ name: topping.name, amount: a.amount });
                 const on = topping.amount === a.amount;
-                const unit = toppingFood(topping.name!)?.unit ?? "ml";
+                const unit = companionFood(topping.name!)?.unit ?? "g";
                 return (
                   <button
                     key={a.label}
@@ -586,14 +587,14 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
                     onClick={() => setTopping({ ...topping, amount: a.amount })}
                     className={`rounded-xl border px-2 py-1.5 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
                   >
-                    <span className="block">{a.label[0].toUpperCase() + a.label.slice(1)}</span>
+                    <span className="block">{a.label}</span>
                     <span className={`block text-xs tabular-nums ${on ? "opacity-80" : "text-muted-foreground"}`}>{a.amount} {unit} · {Math.round(e?.kcal ?? 0)} kcal</span>
                   </button>
                 );
               })}
             </div>
           )}
-          {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the cereal, and {extra.portion} of {extra.name.toLowerCase()}. Bowl total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
+          {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the {companion.key === "salad" ? "salad" : "cereal"}, and {extra.portion} of {extra.name.toLowerCase()}. Total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
         </div>
       )}
       <NutrientGrid n={extra ? sumNutrients([entry, extra]) : entry} />
@@ -604,7 +605,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       ))}
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => { if (cereal) rememberTopping(topping); onAdd(extra ? [entry, extra] : entry); }}>
+        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => { if (companion) rememberChoice(companion, topping); onAdd(extra ? [entry, extra] : entry); }}>
           <Plus className="mr-1.5 h-4 w-4" />Add
         </Button>
       </div>

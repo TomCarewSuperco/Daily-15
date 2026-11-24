@@ -1751,6 +1751,66 @@
   "salt": 1.38,
   "abv": null
  },
+ "Vinaigrette": {
+  "code": "17-701",
+  "kcal": 335,
+  "protein": 0.3,
+  "carbs": 11.7,
+  "fat": 32.2,
+  "fibre": 0.5,
+  "satFat": null,
+  "sugars": 6.7,
+  "salt": 1.5,
+  "abv": null
+ },
+ "Oil and lemon dressing": {
+  "code": "17-788",
+  "kcal": 652,
+  "protein": 0.1,
+  "carbs": 3.4,
+  "fat": 72.4,
+  "fibre": 0.1,
+  "satFat": 4.8,
+  "sugars": 3.4,
+  "salt": 0.0,
+  "abv": null
+ },
+ "Fat-free dressing": {
+  "code": "17-716",
+  "kcal": 33,
+  "protein": 0.1,
+  "carbs": 8.7,
+  "fat": 0.0,
+  "fibre": 0.5,
+  "satFat": 0.0,
+  "sugars": 8.6,
+  "salt": 2.98,
+  "abv": null
+ },
+ "Salad cream": {
+  "code": "17-703",
+  "kcal": 326,
+  "protein": 1.5,
+  "carbs": 21.2,
+  "fat": 26.7,
+  "fibre": 0.5,
+  "satFat": null,
+  "sugars": 16.7,
+  "salt": 1.75,
+  "abv": null
+ },
+ "Yogurt dressing": {
+  "code": "17-789",
+  "kcal": 72,
+  "protein": 5.3,
+  "carbs": 7.1,
+  "fat": 2.7,
+  "fibre": 0.1,
+  "satFat": 1.7,
+  "sugars": 7.0,
+  "salt": 0.18,
+  "abv": null
+ },
  "Gin and tonic": {
   "code": "mix",
   "kcal": 51,
