@@ -39,8 +39,10 @@ export function householdUnitsFor(name: string): FoodUnit[] {
   if (/butter|spread|margarine|ghee/.test(n)) return [u("thin spread", 7, "thin spreads"), u("teaspoon", 5)];
   if (/\bcream\b/.test(n) && !/ice cream|cream cracker|cream egg/.test(n)) return [u("tablespoon", 15)];
   if (/protein powder|whey|\bprotein\b.*powder/.test(n)) return [u("scoop", 30)];
-  if (/\boats\b|porridge|granola|muesli|cereal|flakes|bran/.test(n)) return [u("bowl", 40), u("tablespoon", 10)];
+  if (/\boats\b|porridge|granola|muesli|cereal|\bflakes\b|\bbran\b/.test(n)) return [u("bowl", 40), u("tablespoon", 10)];
   if (/\bsugar\b/.test(n)) return [u("teaspoon", 4)];
+  // Dried meat snacks come in small bags; a 100 g 'serving' is several bags.
+  if (/biltong|jerky|meat snack|meat stick/.test(n)) return [u("handful", 15), u("snack bag", 30)];
   return [];
 }
 
@@ -365,6 +367,8 @@ const SYNONYMS: Record<string, string[]> = {
   fries: ["chips"],
   granary: ["malted"],
   veggie: ["vegetarian"],
+  bilton: ["biltong"],
+  jerkey: ["jerky"],
   vegan: ["vegetarian"],
   aubergine: ["aubergine", "eggplant"],
   courgette: ["courgette", "zucchini"],

@@ -79,3 +79,10 @@ test("'bio me' finds Bio&Me; branded results rank by words matched", async () =>
   const ranked = rankByQuery([{ name: "Marks & Spencer Super Nutty" }, { name: "Bio&Me Mango" }, { name: "Bio&Me Granola Super Nutty" }], "bio me super nutty");
   assert.equal(ranked[0].name, "Bio&Me Granola Super Nutty");
 });
+
+test("biltong and jerky: built in, by the handful or bag, typos found", async () => {
+  const { householdUnitsFor } = await import("../../src/app/cofid");
+  assert.equal(searchFoods(FOOD_DB, "bilton", 1)[0].name, "Biltong");
+  assert.equal(FOOD_DB.find((f) => f.name === "Biltong")!.units[0].g, 15);
+  assert.equal(householdUnitsFor("Brand Biltong Original")[1].g, 30);
+});

@@ -125,6 +125,9 @@ const BASE: FoodItem[] = [
   food("Chorizo, sliced", "g", 395, 24, 2.4, 32.2, 1, [u("slice", 5), u("chunk", 15)]),
   food("Salami snack stick", "g", 504, 25.1, 1.9, 44, 0.5, [u("stick", 22)]),
   food("Bresaola", "g", 150, 32, 0.5, 2.5, 0, [u("slice", 7)]),
+  // Dried meat snacks: the app's estimates from typical UK labels. Jerky is usually sweetened; biltong isn't.
+  food("Biltong", "g", 260, 52, 3, 4.5, 0, [u("handful", 15), u("snack bag", 30), u("large bag", 70)]),
+  food("Beef jerky", "g", 270, 40, 15, 5, 0.5, [u("handful", 15), u("snack bag", 25), u("large bag", 70)]),
   food("Chicken breast, cooked", "g", 165, 31, 0, 3.6, 0, [u("breast", 150), u("small breast", 120)]),
   food("Chicken thigh, cooked, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
   food("Beef mince 5% fat, cooked", "g", 175, 27, 0, 7.5, 0, [u("portion", 125)]),
@@ -444,6 +447,8 @@ const EXTRA: Record<string, Extra> = {
   "Parma or Serrano ham": [5.5, 0.3, 5],
   Pepperoni: [16, 1, 4],
   Bresaola: [1, 0.5, 4],
+  Biltong: [2, 2, 4.5],
+  "Beef jerky": [2, 12, 4.5],
   "Chicken breast, cooked": [1, 0, 0.18],
   "Chicken thigh, cooked, no skin": [4, 0, 0.25],
   "Beef mince 5% fat, cooked": [3.2, 0, 0.2],
