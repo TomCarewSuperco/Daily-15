@@ -45,6 +45,11 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   // Guided session from a ready-made workout.
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
   await p.getByRole("button", { name: "Dumbbells", exact: true }).click();
+  // Tapping a ready-made workout lists its exercises before starting.
+  await p.getByRole("button", { name: /^Lower body, dumbbells/ }).click();
+  const opened = p.locator("li", { hasText: "Lower body, dumbbells" });
+  ok("ready-made workout opens to show its exercises", (await opened.getByText(/^1\. Goblet squat$/).count()) === 1 && (await opened.getByText(/\d × \d+/).count()) >= 3);
+  await p.screenshot({ path: OUT + "/w-ready-open.png" });
   await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
   ok("guided set shown", (await p.getByRole("heading", { name: "Goblet squat" }).count()) === 1);
   await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("16");

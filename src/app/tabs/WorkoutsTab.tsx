@@ -10,7 +10,7 @@ import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlaye
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { GymPlayer, type GymSession } from "../components/GymPlayer";
-import { EQUIPMENT_LABELS, PREBUILT, type Equipment } from "../exercises";
+import { EQUIPMENT_LABELS, findExercise, PREBUILT, type Equipment } from "../exercises";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
@@ -34,6 +34,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const [gym, setGym] = useState<GymSession | null>(null);
   const [library, setLibrary] = useState<"mine" | "ready">("mine");
   const [equipment, setEquipment] = useState<Equipment | "all">("all");
+  const [openPrebuilt, setOpenPrebuilt] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [seed, setSeed] = useState<WorkoutSeed | undefined>();
   const [editing, setEditing] = useState<RoutineExercise | null>(null);
@@ -243,14 +244,39 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
             </div>
             <ul className="divide-y">
               {PREBUILT.filter((w) => equipment === "all" || w.equipment === equipment).map((w) => (
-                <li key={w.id} className="flex items-center gap-2 py-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{w.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">About {w.minutes} min · {w.exercises.map((e) => e[0]).join(", ")}</div>
+                <li key={w.id} className="py-2">
+                  <div className="flex items-center gap-2">
+                    {/* Tap the workout to see what's in it before starting. */}
+                    <button className="min-w-0 flex-1 text-left" aria-expanded={openPrebuilt === w.id} onClick={() => setOpenPrebuilt(openPrebuilt === w.id ? null : w.id)}>
+                      <div className="flex items-center gap-1 font-medium">
+                        {w.name}
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${openPrebuilt === w.id ? "rotate-180" : ""}`} />
+                      </div>
+                      <div className={`text-xs text-muted-foreground ${openPrebuilt === w.id ? "" : "truncate"}`}>About {w.minutes} min · {w.exercises.length} exercises · {w.exercises.map((e) => e[0]).join(", ")}</div>
+                    </button>
+                    <Button size="sm" className="h-8" onClick={() => setGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
+                      <Play className="mr-1 h-3.5 w-3.5" />Start
+                    </Button>
                   </div>
-                  <Button size="sm" className="h-8" onClick={() => setGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
-                    <Play className="mr-1 h-3.5 w-3.5" />Start
-                  </Button>
+                  {openPrebuilt === w.id && (
+                    <div className="mt-2 space-y-2 rounded-xl bg-muted p-3">
+                      <p className="text-sm">{w.description}</p>
+                      <ol className="space-y-2">
+                        {w.exercises.map(([name, sets, reps], i) => {
+                          const info = findExercise(name);
+                          return (
+                            <li key={name + i} className="text-sm">
+                              <div className="flex justify-between gap-2">
+                                <span className="font-medium">{i + 1}. {name}</span>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">{sets} × {reps}{info?.timed ? " sec" : ""}</span>
+                              </div>
+                              {info && <div className="text-xs text-muted-foreground">{info.muscles}. {info.instructions}</div>}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
