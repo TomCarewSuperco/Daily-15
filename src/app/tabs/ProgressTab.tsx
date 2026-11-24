@@ -24,6 +24,7 @@ import {
 import { Field, NumField } from "../components/Field";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
+import { MeasureDiagram, type MeasureKey } from "../components/MeasureDiagram";
 import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
@@ -340,10 +341,12 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const { update } = useDaily15();
   const [date, setDate] = useState(todayKey());
   const [m, setM] = useState<Record<string, number | "">>({});
+  const [active, setActive] = useState<MeasureKey>("waistCm");
   useEffect(() => {
     if (open) {
       setDate(todayKey());
       setM({});
+      setActive("waistCm");
     }
   }, [open]);
   const fields: [keyof MeasurementEntry, string][] = [["waistCm", "Waist"], ["chestCm", "Chest"], ["hipsCm", "Hips"], ["armCm", "Upper arm"], ["thighCm", "Thigh"]];
@@ -353,11 +356,16 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Body measurements</DialogTitle>
-          <DialogDescription>Fill in any you track. Waist: at the navel, relaxed, after breathing out.</DialogDescription>
+          <DialogDescription>Fill in any you track. Use a soft tape, snug but not tight, at the same time of day each time.</DialogDescription>
         </DialogHeader>
         <Field label="Date"><Input type="date" value={date} max={todayKey()} onChange={(e) => setDate(e.target.value || todayKey())} /></Field>
+        <MeasureDiagram active={active} />
         <div className="grid grid-cols-2 gap-3">
-          {fields.map(([k, label]) => <NumField key={k} label={label} value={m[k] ?? ""} onChange={(v) => setM({ ...m, [k]: v })} suffix="cm" step={0.5} />)}
+          {fields.map(([k, label]) => (
+            <div key={k} onFocusCapture={() => setActive(k as MeasureKey)} onPointerDown={() => setActive(k as MeasureKey)}>
+              <NumField label={label} value={m[k] ?? ""} onChange={(v) => setM({ ...m, [k]: v })} suffix="cm" step={0.5} />
+            </div>
+          ))}
         </div>
         <Button
           disabled={!any}
