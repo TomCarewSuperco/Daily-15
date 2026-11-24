@@ -380,8 +380,12 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
 
   const chooseUnit = (idx: number) => {
     if (idx === pending.unitIdx) return;
-    // Keep roughly the same amount when switching between a unit and grams.
-    const qty = idx < 0 ? Math.round(amount) : Math.max(0.5, Math.round((amount / pending.units[idx].g) * 2) / 2 || 1);
+    // Between named measures, keep the count: tapping 'pint' after '1 bottle' means one pint, not half.
+    // To or from grams, keep the amount.
+    const qty =
+      idx < 0 ? Math.round(amount)
+      : pending.unitIdx >= 0 ? pending.qty || 1
+      : Math.max(0.5, Math.round((amount / pending.units[idx].g) * 2) / 2 || 1);
     setPending({ ...pending, unitIdx: idx, qty });
   };
 

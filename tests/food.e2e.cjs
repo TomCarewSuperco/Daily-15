@@ -179,7 +179,6 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   await p.getByText(/Estrella Damm$/).first().click();
   const beerUnits = await p.getByRole("radiogroup", { name: "Measure" }).getByRole("radio").allTextContents();
   await p.getByRole("radio", { name: /^pint/ }).click();
-  await p.getByRole("button", { name: "1", exact: true }).click();
   await p.getByRole("button", { name: /^Add$/ }).click();
   await p.waitForTimeout(300);
   const beer = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => /Estrella Damm/.test(f.name)));
