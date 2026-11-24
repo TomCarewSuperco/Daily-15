@@ -146,6 +146,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const soupOk = soup && soup.name === "Soup, vegetable, homemade (lighter)" && soup.kcal < 165 && soupAgain === "true";
   console.log(soupOk ? "PASS soup logged lighter and remembered" : `FAIL soup logged lighter and remembered (${soup && soup.name} ${soup && soup.kcal} ${soupAgain})`);
   if (!soupOk) process.exitCode = 1;
+  // Cereal asks what went on it and logs the milk as its own entry.
+  await p.getByRole("button", { name: "Add to breakfast" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("bio me granola");
+  await p.getByText("Bio&Me Super Nutty Granola", { exact: true }).first().click();
+  const asks = (await p.getByRole("radiogroup", { name: "What's on it?" }).count()) === 1;
+  await p.getByRole("radio", { name: "Oat", exact: true }).click();
+  await p.screenshot({ path: OUT + "/f9-cereal.png" });
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const bowl = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.filter((f) => f.meal === "breakfast").map((f) => `${f.name}|${f.portion}`));
+  const cerealOk = asks && bowl.some((x) => x.startsWith("Bio&Me")) && bowl.includes("Oat milk|125 ml");
+  console.log(cerealOk ? "PASS cereal logs the milk on it" : `FAIL cereal logs the milk on it (${asks} ${JSON.stringify(bowl)})`);
+  if (!cerealOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

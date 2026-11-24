@@ -16,6 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
+import { AMOUNTS, isCereal, lastTopping, rememberTopping, TOPPINGS, toppingFood, type ToppingChoice } from "../cereal";
 import { amountOf, collapse, coveredBy, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
@@ -138,10 +139,12 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   const savedResults = state.savedMeals.filter((m) => !q || m.name.toLowerCase().includes(q));
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
 
-  const add = (entry: Omit<FoodEntry, "id" | "date" | "meal">) => {
+  // One entry, or several logged together (cereal and the milk on it).
+  const add = (entry: Omit<FoodEntry, "id" | "date" | "meal"> | Omit<FoodEntry, "id" | "date" | "meal">[]) => {
     const wasDone = (state.foodDiaryDone ?? []).includes(date);
+    const entries = (Array.isArray(entry) ? entry : [entry]).map((e) => ({ ...e, id: uid(), date, meal }));
     // Adding to a completed day reopens it.
-    update((s) => ({ ...s, foods: [...s.foods, { ...entry, id: uid(), date, meal }], foodDiaryDone: (s.foodDiaryDone ?? []).filter((d) => d !== date) }));
+    update((s) => ({ ...s, foods: [...s.foods, ...entries], foodDiaryDone: (s.foodDiaryDone ?? []).filter((d) => d !== date) }));
     toast.success(wasDone ? `Added to ${meal}. Diary reopened.` : `Added to ${meal}`);
     onOpenChange(false);
   };
@@ -528,10 +531,21 @@ function VariantPicker({ pending, setPending }: { pending: Pending; setPending: 
   );
 }
 
-function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: Omit<FoodEntry, "id" | "date" | "meal">) => void; onBack: () => void }) {
+type NewEntry = Omit<FoodEntry, "id" | "date" | "meal">;
+
+function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; setPending: (p: Pending) => void; onAdd: (e: NewEntry | NewEntry[]) => void; onBack: () => void }) {
   const { state } = useDaily15();
   const flags = flagsForFood(lifeStageOf(state.profile), { name: pending.name, abv: pending.abv });
   const entry = entryFromPending(pending);
+  // Cereal: what went on it, logged as its own entry.
+  const cereal = isCereal(pending.name);
+  const [topping, setTopping] = useState<ToppingChoice>(() => lastTopping());
+  const toppingEntry = (c: ToppingChoice): NewEntry | null => {
+    const f = c.name ? toppingFood(c.name) : undefined;
+    if (!f) return null;
+    return entryFromPending({ ...fromItem(f, true), unitIdx: -1, qty: c.amount });
+  };
+  const extra = cereal ? toppingEntry(topping) : null;
 
   return (
     <div className="space-y-4">
@@ -542,7 +556,47 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
         </p>
       </div>
       <PortionPicker pending={pending} setPending={setPending} />
-      <NutrientGrid n={entry} />
+      {cereal && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">What's on it?</p>
+          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="What's on it?">
+            {[{ label: "Nothing", name: null as string | null }, ...TOPPINGS].map((t) => (
+              <button
+                key={t.label}
+                role="radio"
+                aria-checked={topping.name === t.name}
+                onClick={() => setTopping({ ...topping, name: t.name })}
+                className={`rounded-full border px-3 py-1.5 text-sm ${topping.name === t.name ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {topping.name && (
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How much?">
+              {AMOUNTS.map((a) => {
+                const e = toppingEntry({ name: topping.name, amount: a.amount });
+                const on = topping.amount === a.amount;
+                const unit = toppingFood(topping.name!)?.unit ?? "ml";
+                return (
+                  <button
+                    key={a.label}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => setTopping({ ...topping, amount: a.amount })}
+                    className={`rounded-xl border px-2 py-1.5 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+                  >
+                    <span className="block">{a.label[0].toUpperCase() + a.label.slice(1)}</span>
+                    <span className={`block text-xs tabular-nums ${on ? "opacity-80" : "text-muted-foreground"}`}>{a.amount} {unit} · {Math.round(e?.kcal ?? 0)} kcal</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the cereal, and {extra.portion} of {extra.name.toLowerCase()}. Bowl total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
+        </div>
+      )}
+      <NutrientGrid n={extra ? sumNutrients([entry, extra]) : entry} />
       {flags.map((f) => (
         <p key={f.text} role="note" className={`rounded-xl p-3 text-sm ${f.level === "avoid" ? "bg-destructive/10 text-destructive" : "bg-copper/10"}`}>
           {f.text}
@@ -550,7 +604,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       ))}
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => onAdd(entry)}>
+        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => { if (cereal) rememberTopping(topping); onAdd(extra ? [entry, extra] : entry); }}>
           <Plus className="mr-1.5 h-4 w-4" />Add
         </Button>
       </div>
