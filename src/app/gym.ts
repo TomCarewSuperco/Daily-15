@@ -83,7 +83,8 @@ export function planSession(template: ExerciseEntry[], workouts: Workout[], prog
  */
 const HEAVY = /^(back squat|deadlift|bench press|overhead press|bent-over row|romanian deadlift|hip thrust|leg press)$/i;
 const SMALL = /curl|raise|extension|pushdown|face pull|tricep/i;
-export const REST_OPTIONS = [45, 60, 90, 120, 150, 180];
+/** 0 means no rest timer: straight on to the next set. */
+export const REST_OPTIONS = [0, 15, 30, 45, 60, 90, 120, 150, 180];
 
 export function defaultRest(exercise: string): number {
   const eq = findExercise(exercise)?.equipment;
@@ -111,5 +112,6 @@ export function rememberRest(exercise: string, seconds: number): void {
 }
 
 export function restFor(exercise: string, remembered: Record<string, number>): number {
-  return remembered[exercise.trim().toLowerCase()] ?? defaultRest(exercise);
+  const r = remembered[exercise.trim().toLowerCase()];
+  return typeof r === "number" ? r : defaultRest(exercise);
 }

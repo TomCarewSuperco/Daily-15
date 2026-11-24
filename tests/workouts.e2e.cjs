@@ -114,6 +114,10 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
     await p.getByRole("button", { name: "Skip", exact: true }).click();
   }
   ok("next exercise starts from the weight just used", (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "50" && (await p.getByText(/^Bench press$/).count()) >= 1);
+  // 'No rest' goes straight to the next set; the setting is on the set screen too.
+  await p.getByRole("combobox", { name: "Rest after each set" }).selectOption("0");
+  await p.getByRole("button", { name: "Done set" }).click();
+  ok("no rest skips the timer", (await p.getByRole("button", { name: "Skip", exact: true }).count()) === 0 && (await p.getByText(/set 5 of 12/).count()) === 1);
   await p.getByRole("button", { name: "Finish early" }).click();
   await p.getByRole("button", { name: "Discard" }).click();
   await p.getByRole("button", { name: "Tap again to discard" }).click();

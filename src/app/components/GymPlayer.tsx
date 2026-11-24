@@ -61,6 +61,8 @@ export function clearInProgress(): void {
 }
 
 /** Guided gym session: one set at a time, weight and reps to confirm, rest timer between sets. */
+const restLabel = (r: number) => (r === 0 ? "No rest" : r < 60 ? `${r} s` : `${r / 60} min`);
+
 /** '3 sets: 5 × 60 kg' style summary of the sets done: '5 reps, 5 reps' or '30 sec' or '5 × 60 kg'. */
 function setSummary(name: string, sets: { reps: number; weightKg: number }[]): string {
   const timed = findExercise(name)?.timed;
@@ -155,8 +157,10 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
           setEx(i);
           setSet(j);
           const doneName = plan[ex].name;
+          const restSecs = restFor(doneName, rests);
           setRestAfter({ name: doneName, started: Date.now() });
-          setRestUntil(Date.now() + restFor(doneName, rests) * 1000);
+          // 'No rest' goes straight to the next set.
+          setRestUntil(restSecs > 0 ? Date.now() + restSecs * 1000 : null);
           setNow(Date.now());
           return;
         }
@@ -260,7 +264,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
                   setRestUntil(restAfter.started + secs * 1000);
                 }}
               >
-                {REST_OPTIONS.map((r) => <option key={r} value={r}>{r < 60 ? `${r} s` : `${r / 60} min`}</option>)}
+                {REST_OPTIONS.map((r) => <option key={r} value={r}>{restLabel(r)}</option>)}
               </select>
             </label>
           )}
@@ -282,6 +286,20 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
             <Stepper label={unit === "sec" ? "Seconds" : "Reps"} value={s.reps} step={1} onChange={(v) => setVal("reps", v)} />
             {lib?.equipment !== "none" && <Stepper label="Weight (kg)" value={s.weightKg} step={lib?.equipment === "barbell" ? 2.5 : lib?.equipment === "machine" ? 5 : 1} onChange={(v) => setVal("weightKg", v)} />}
           </div>
+          <label className="mt-5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            Rest after each set
+            <select
+              className="rounded-md border bg-card px-2 py-1"
+              aria-label="Rest after each set"
+              value={restFor(current.name, rests)}
+              onChange={(e) => {
+                rememberRest(current.name, Number(e.target.value));
+                setRests(rememberedRests());
+              }}
+            >
+              {REST_OPTIONS.map((r) => <option key={r} value={r}>{restLabel(r)}</option>)}
+            </select>
+          </label>
         </div>
       )}
 
