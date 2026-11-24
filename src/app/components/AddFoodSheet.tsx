@@ -16,6 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
+import { unitsFromOff } from "../offUnits";
 import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
@@ -56,16 +57,7 @@ function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
 }
 
 function fromOff(p: OffProduct): Pending {
-  const units: FoodUnit[] = [];
-  if (p.servingG) units.push({ name: "serving", plural: "servings", g: p.servingG });
-  units.push(...householdUnitsFor(p.name));
-  // Meals and sides in a pack (a pouch, a tray) are often shared: offer half and whole.
-  if (p.packG && p.packG > 0) {
-    if (p.packG >= 150 && !units.length) units.push({ name: "half pack", plural: "half packs", g: Math.round(p.packG / 2) });
-    units.push({ name: `pack (${p.quantity ?? `${p.packG} g`})`, plural: `packs (${p.quantity ?? `${p.packG} g`})`, g: p.packG });
-  }
-  // Nothing on the label: fall back to a typical portion for what the food is.
-  if (!units.length) units.push(...dishUnitsFor(p.name));
+  const units = unitsFromOff(p);
   return { name: p.name, base: p, per: 100, baseUnit: "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true };
 }
 

@@ -42,7 +42,7 @@ export function householdUnitsFor(name: string): FoodUnit[] {
   if (/\boats\b|porridge|granola|muesli|cereal|\bflakes\b|\bbran\b/.test(n)) return [u("bowl", 40), u("tablespoon", 10)];
   if (/\bsugar\b/.test(n)) return [u("teaspoon", 4)];
   // Dried meat snacks come in small bags; a 100 g 'serving' is several bags.
-  if (/biltong|jerky|meat snack|meat stick/.test(n)) return [u("handful", 15), u("snack bag", 30)];
+  if (/bilton|jerky|meat snack|meat stick/.test(n)) return [u("handful", 15), u("snack bag", 30)];
   return [];
 }
 
