@@ -13,7 +13,12 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   await p.getByRole("navigation").getByRole("button", { name: "Progress", exact: true }).click();
   await p.getByText("Measurements", { exact: true }).locator("xpath=..").getByRole("button", { name: "Add" }).click();
   const d = p.getByRole("dialog");
-  const waist = (await d.getByText(/^Waist: at your belly button/).count()) === 1 && (await d.getByRole("img", { name: "Where to measure" }).count()) === 1;
+  const waist = (await d.getByText(/^Waist: halfway between your lowest rib/).count()) === 1 && (await d.getByRole("img", { name: "Where to measure" }).count()) === 1;
+  const waistOnly = (await d.getByRole("spinbutton").count()) === 1;
+  await d.getByRole("spinbutton").first().fill("95");
+  await d.getByRole("button", { name: /More measurements/ }).click();
+  console.log(waistOnly ? "PASS sheet asks for the waist only at first" : "FAIL sheet asks for the waist only at first");
+  if (!waistOnly) process.exitCode = 1;
   await d.getByRole("spinbutton").nth(4).focus();
   const thigh = (await d.getByText(/^Thigh: around the widest part/).count()) === 1;
   await d.getByRole("spinbutton").nth(4).fill("58");
@@ -24,6 +29,9 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   const saved = st.measurements[0]?.thighCm === 57.8 && st.profile.lengthUnit === "in" && shown === "22.75";
   const card = (await p.getByText("22.75 in").count()) === 1;
+  const ratio = (await p.getByText(/Waist-to-height:/).textContent()) || "";
+  console.log(/0\.5[34]/.test(ratio) && /half your height/.test(ratio) ? "PASS waist-to-height shown" : `FAIL waist-to-height shown (${ratio})`);
+  if (!/0\.5[34]/.test(ratio)) process.exitCode = 1;
   console.log(card ? "PASS card shows inches" : "FAIL card shows inches");
   if (!card) process.exitCode = 1;
   if (!saved) console.log(`  thigh ${st.measurements[0]?.thighCm} unit ${st.profile.lengthUnit} shown ${shown}`);

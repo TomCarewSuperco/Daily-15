@@ -4,7 +4,7 @@ export type MeasureKey = keyof Pick<MeasurementEntry, "waistCm" | "chestCm" | "h
 
 /** Where to put the tape, one line each. */
 export const MEASURE_HOW: Record<MeasureKey, string> = {
-  waistCm: "Waist: at your belly button, standing relaxed, after breathing out. Don't pull your stomach in.",
+  waistCm: "Waist: halfway between your lowest rib and the top of your hip bone, often near the belly button. Stand relaxed and breathe out; don't pull your stomach in.",
   chestCm: "Chest: around the fullest part, just under the armpits, arms by your sides.",
   hipsCm: "Hips: around the widest part of your bottom, feet together.",
   armCm: "Upper arm: halfway between shoulder and elbow, arm hanging loose. Same arm each time.",

@@ -98,6 +98,9 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const firstM = measurements[0];
   const lastM = measurements[measurements.length - 1];
   const lengthUnit: LengthUnit = state.profile?.lengthUnit ?? "cm";
+  // Waist-to-height ratio from the latest waist. Not shown in pregnancy or for under-18s, where it doesn't apply.
+  const latestWaist = [...measurements].reverse().find((x) => x.waistCm)?.waistCm;
+  const whtr = latestWaist && state.profile && state.profile.heightCm > 0 && state.profile.age >= 18 && !lifeStageOf(state.profile) ? Math.round((latestWaist / state.profile.heightCm) * 100) / 100 : null;
 
   return (
     <div className="space-y-4">
@@ -322,6 +325,12 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                 );
               })}
             </div>
+            {whtr !== null && (
+              <p className="mt-3 rounded-xl bg-muted p-2.5 text-sm">
+                Waist-to-height: <span className="font-semibold tabular-nums">{whtr.toFixed(2)}</span>.{" "}
+                {whtr < 0.5 ? "Under half your height, the healthy range." : "NHS guidance is to keep your waist under half your height (0.5)."}
+              </p>
+            )}
             <p className="mt-2 text-xs text-muted-foreground">Latest {formatDay(lastM.date)}. Measure every two to four weeks at the same point on the body.</p>
           </>
         ) : (
@@ -351,11 +360,17 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   const [date, setDate] = useState(todayKey());
   const [m, setM] = useState<Record<string, number | "">>({});
   const [active, setActive] = useState<MeasureKey>("waistCm");
+  // Waist is the one that matters for most goals. The rest show muscle gain, so they're open for muscle and strength goals
+  // or for anyone who has recorded them before.
+  const wantsMore = (g?: string) => g === "build-muscle" || g === "strength";
+  const trackedMore = state.measurements.some((x) => x.chestCm || x.hipsCm || x.armCm || x.thighCm);
+  const [more, setMore] = useState(false);
   useEffect(() => {
     if (open) {
       setDate(todayKey());
       setM({});
       setActive("waistCm");
+      setMore(wantsMore(state.profile?.goal) || trackedMore);
     }
   }, [open]);
   const fields: [keyof MeasurementEntry, string][] = [["waistCm", "Waist"], ["chestCm", "Chest"], ["hipsCm", "Hips"], ["armCm", "Upper arm"], ["thighCm", "Thigh"]];
@@ -365,7 +380,7 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Body measurements</DialogTitle>
-          <DialogDescription>Fill in any you track. Use a soft tape, snug but not tight, at the same time of day each time.</DialogDescription>
+          <DialogDescription>Your waist is the measurement that matters most. Use a soft tape, snug but not tight, at the same time of day each time.</DialogDescription>
         </DialogHeader>
         <Field label="Date"><Input type="date" value={date} max={todayKey()} onChange={(e) => setDate(e.target.value || todayKey())} /></Field>
         <Field label="Units">
@@ -373,12 +388,17 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         </Field>
         <MeasureDiagram active={active} />
         <div className="grid grid-cols-2 gap-3">
-          {fields.map(([k, label]) => (
+          {fields.filter(([k]) => k === "waistCm" || more).map(([k, label]) => (
             <div key={k} onFocusCapture={() => setActive(k as MeasureKey)} onPointerDown={() => setActive(k as MeasureKey)}>
               <NumField label={label} value={m[k] ?? ""} onChange={(v) => setM({ ...m, [k]: v })} suffix={unit} step={unit === "cm" ? 0.5 : 0.25} />
             </div>
           ))}
         </div>
+        {!more && (
+          <button className="text-left text-sm underline underline-offset-2" onClick={() => setMore(true)}>
+            More measurements: chest, hips, upper arm, thigh
+          </button>
+        )}
         <Button
           disabled={!any}
           onClick={() => {

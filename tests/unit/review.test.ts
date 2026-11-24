@@ -122,3 +122,31 @@ test("estimated days count in the picture, are reported, and don't unlock target
   assert.ok(r.notes.some((n) => n.includes("4 of 7 days were estimated")));
   assert.equal(r.adjustment, null);
 });
+
+test("weight steady but waist down: progress, and no calorie cut", () => {
+  const s = make({ kgPerWeek: 0, kcal: 2000, calories: 2000 });
+  s.measurements.push({ id: "m1", date: day(30), waistCm: 98 }, { id: "m2", date: day(2), waistCm: 96 });
+  const r = weeklyReview(s, END);
+  assert.match(r.headline, /Weight steady, but your waist is down 2 cm in 4 weeks/);
+  assert.equal(r.adjustment, null);
+  assert.ok(r.notes.some((n) => /target stays/.test(n)));
+});
+
+test("too few weigh-ins: a waist change still gives a headline, in the chosen unit", () => {
+  const s = make({ weighIns: false });
+  s.profile!.lengthUnit = "in";
+  s.measurements.push({ id: "m1", date: day(26), waistCm: 100 }, { id: "m2", date: day(1), waistCm: 97.5 });
+  assert.match(weeklyReview(s, END).headline, /^Your waist is down 1 inch in 4 weeks/);
+});
+
+test("on track: waist loss is a win; no recent waist asks for one", () => {
+  const s = make({ kgPerWeek: -0.6 });
+  s.measurements.push({ id: "m1", date: day(29), waistCm: 98 }, { id: "m2", date: day(1), waistCm: 96.5 });
+  assert.ok(weeklyReview(s, END).wins[0].startsWith("Waist down 1.5 cm"));
+  const none = weeklyReview(make({ kgPerWeek: -0.6 }), END);
+  assert.ok(none.notes.some((n) => /Measure your waist every two to four weeks/.test(n)));
+  // One measurement a week apart is within measuring error: no claim.
+  const close = make({ kgPerWeek: 0, kcal: 2000, calories: 2000 });
+  close.measurements.push({ id: "a", date: day(8), waistCm: 98 }, { id: "b", date: day(1), waistCm: 96 });
+  assert.doesNotMatch(weeklyReview(close, END).headline, /waist/);
+});

@@ -14,6 +14,8 @@ import {
   type Extra,
 } from "./calc";
 import type { AppState, FocusGoal, Targets } from "./types";
+import { lifeStageOf } from "./pregnancy";
+import { formatLength } from "./units";
 
 /*
  * Weekly review: rule-based coaching from the last seven complete days.
@@ -76,6 +78,23 @@ function topContributors(state: AppState, days: string[], field: "kcal" | Extra,
     byName.set(f.name, (byName.get(f.name) ?? 0) + v);
   }
   return [...byName.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([name]) => name.toLowerCase());
+}
+
+/** Waist change between the latest measurement (in the last five weeks) and one three to six weeks before it. */
+export function waistChange(state: AppState, end: string): { cm: number; weeks: number } | null {
+  const ms = state.measurements.filter((m) => m.waistCm && m.date <= end).sort((a, b) => a.date.localeCompare(b.date));
+  const last = ms[ms.length - 1];
+  if (!last || last.date <= addDays(end, -35)) return null;
+  const earlier = ms.filter((m) => m.date <= addDays(last.date, -21) && m.date >= addDays(last.date, -42)).shift();
+  if (!earlier) return null;
+  const days = (new Date(`${last.date}T12:00:00`).getTime() - new Date(`${earlier.date}T12:00:00`).getTime()) / 86400000;
+  return { cm: round(last.waistCm! - earlier.waistCm!, 1), weeks: Math.round(days / 7) };
+}
+
+/** Days since the last waist measurement, or null if there's never been one. */
+function daysSinceWaist(state: AppState, end: string): number | null {
+  const last = state.measurements.filter((m) => m.waistCm && m.date <= end).map((m) => m.date).sort().pop();
+  return last ? Math.round((new Date(`${end}T12:00:00`).getTime() - new Date(`${last}T12:00:00`).getTime()) / 86400000) : null;
 }
 
 /** Reviews the seven days ending `end` (default: yesterday, the last complete day). */
@@ -235,6 +254,35 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   } else {
     headline = activeDays >= 5 ? `Active on ${activeDays} of seven days.` : `A week to build on: active on ${activeDays} of seven days.`;
   }
+  /* ---------- Waist ---------- */
+  // A tape measure is out by a centimetre either way, so only changes over three weeks or more count.
+  // A smaller waist while weight holds usually means fat lost and muscle kept or gained: progress, not a plateau.
+  const pregnant = !!lifeStageOf(p);
+  const unit = p.lengthUnit ?? "cm";
+  const waist = pregnant ? null : waistChange(state, end);
+  if (waist && losing && waist.cm <= -1) {
+    const down = `your waist is down ${formatLength(-waist.cm, unit, true)} in ${waist.weeks} weeks`;
+    if (status === "stalled" || status === "flat-week" || status === "not-enough-data") {
+      headline = status === "not-enough-data" ? `${down[0].toUpperCase()}${down.slice(1)}. That's progress.` : `Weight steady, but ${down}. That's fat loss: keep going.`;
+      if (adjustment && status === "stalled") {
+        adjustment = null;
+        notes.push("A smaller waist while weight holds usually means fat lost and muscle gained, so your target stays as it is.");
+      }
+    } else {
+      wins.push(`Waist down ${formatLength(-waist.cm, unit, true)} in ${waist.weeks} weeks.`);
+    }
+  } else if (waist && losing && waist.cm >= 1 && status !== "on-track") {
+    notes.push(`Your waist is up ${formatLength(waist.cm, unit, true)} in ${waist.weeks} weeks.`);
+  }
+  const since = pregnant ? null : daysSinceWaist(state, end);
+  if (!pregnant && (since === null || since > 28)) {
+    notes.push(
+      since === null
+        ? "Measure your waist every two to four weeks. When weight stalls, a smaller waist shows you're still losing fat."
+        : `Measure your waist: it's been ${Math.round(since / 7)} weeks. When weight stalls, a smaller waist shows you're still losing fat.`,
+    );
+  }
+
   if (recentlyAdjusted && !adjustment && (status === "stalled" || status === "too-fast")) {
     notes.push("You changed your target recently. Give it two weeks before changing it again.");
   }

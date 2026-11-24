@@ -13,9 +13,11 @@ export function toCm(value: number, unit: LengthUnit): number {
   return unit === "cm" ? Math.round(value * 10) / 10 : Math.round(value * CM_PER_INCH * 10) / 10;
 }
 
-export function formatLength(cm: number, unit: LengthUnit): string {
+/** 'in' on cards; 'inch' or 'inches' in sentences, where '1 in in 4 weeks' would misread. */
+export function formatLength(cm: number, unit: LengthUnit, prose = false): string {
   const v = fromCm(cm, unit);
-  return unit === "cm" ? `${v} cm` : `${v} in`;
+  if (unit === "cm") return `${v} cm`;
+  return prose ? `${v} ${v === 1 ? "inch" : "inches"}` : `${v} in`;
 }
 
 /** A change, with its sign: '−2.5 cm', '+1 in'. */
