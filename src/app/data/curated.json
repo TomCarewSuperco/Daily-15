@@ -1811,6 +1811,54 @@
   "salt": 0.18,
   "abv": null
  },
+ "Salami, pre-sliced": {
+  "code": "19-517",
+  "kcal": 438,
+  "protein": 20.9,
+  "carbs": 0.5,
+  "fat": 39.2,
+  "fibre": 0.4,
+  "satFat": 14.6,
+  "sugars": 0.5,
+  "salt": 3.83,
+  "abv": null
+ },
+ "Salami, thick-cut or deli": {
+  "code": "19-517",
+  "kcal": 438,
+  "protein": 20.9,
+  "carbs": 0.5,
+  "fat": 39.2,
+  "fibre": 0.4,
+  "satFat": 14.6,
+  "sugars": 0.5,
+  "salt": 3.83,
+  "abv": null
+ },
+ "Chorizo, sliced": {
+  "code": "19-516",
+  "kcal": 395,
+  "protein": 24.0,
+  "carbs": 2.4,
+  "fat": 32.2,
+  "fibre": 1.0,
+  "satFat": 12.0,
+  "sugars": 1.1,
+  "salt": 3.5,
+  "abv": null
+ },
+ "Salami snack stick": {
+  "code": "19-508",
+  "kcal": 504,
+  "protein": 25.1,
+  "carbs": 1.9,
+  "fat": 44.0,
+  "fibre": 0.5,
+  "satFat": 16.8,
+  "sugars": 1.9,
+  "salt": 4.0,
+  "abv": null
+ },
  "Gin and tonic": {
   "code": "mix",
   "kcal": 51,

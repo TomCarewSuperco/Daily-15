@@ -118,6 +118,13 @@ const BASE: FoodItem[] = [
   food("Ham, gammon joint, carved", "g", 204, 23.3, 0, 12.3, 0, [u("slice", 35)]),
   // The app's estimate from typical UK labels.
   food("Parma or Serrano ham", "g", 240, 27, 0.3, 15, 0, [u("slice", 8)]),
+  // Salami and cured sausage by the slice: CoFID where it exists; pepperoni and bresaola are estimates from typical UK labels.
+  food("Salami, pre-sliced", "g", 438, 20.9, 0.5, 39.2, 0.4, [u("slice", 5), u("portion (6 slices)", 30, "portions (6 slices)")]),
+  food("Salami, thick-cut or deli", "g", 438, 20.9, 0.5, 39.2, 0.4, [u("slice", 10), u("chunk", 20)]),
+  food("Pepperoni", "g", 480, 22, 2, 43, 0, [u("slice", 2), u("handful (10 slices)", 20, "handfuls (10 slices)")]),
+  food("Chorizo, sliced", "g", 395, 24, 2.4, 32.2, 1, [u("slice", 5), u("chunk", 15)]),
+  food("Salami snack stick", "g", 504, 25.1, 1.9, 44, 0.5, [u("stick", 22)]),
+  food("Bresaola", "g", 150, 32, 0.5, 2.5, 0, [u("slice", 7)]),
   food("Chicken breast, cooked", "g", 165, 31, 0, 3.6, 0, [u("breast", 150), u("small breast", 120)]),
   food("Chicken thigh, cooked, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
   food("Beef mince 5% fat, cooked", "g", 175, 27, 0, 7.5, 0, [u("portion", 125)]),
@@ -435,6 +442,8 @@ const EXTRA: Record<string, Extra> = {
   "Bacon, back rasher, grilled": [8, 0, 3.5],
   "Ham, sliced": [1.1, 1, 2],
   "Parma or Serrano ham": [5.5, 0.3, 5],
+  Pepperoni: [16, 1, 4],
+  Bresaola: [1, 0.5, 4],
   "Chicken breast, cooked": [1, 0, 0.18],
   "Chicken thigh, cooked, no skin": [4, 0, 0.25],
   "Beef mince 5% fat, cooked": [3.2, 0, 0.2],

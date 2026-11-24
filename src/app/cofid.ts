@@ -444,6 +444,7 @@ const PHRASES: [RegExp, string][] = [
   [/\b(seedlip|lyre'?s|caleno)\b/, "alcohol free spirit"],
   [/\bmocktails?\b/, "virgin mojito alcohol free"],
   [/\bshreddies\b/, "shredded wheat"],
+  [/\bpep+erami\b/, "salami snack stick"],
   [/\brice (k|c)rispies\b/, "breakfast cereal rice toasted"],
   [/\bpot noodles?\b/, "pot savouries made up"],
   [/\bsuper noodles?\b/, "instant noodles"],

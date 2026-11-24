@@ -129,3 +129,12 @@ test("sausages: venison and others, found by name, compared per sausage", async 
   assert.equal(v.options.length, 7);
   assert.equal(switchTo(pendingOf("Pork sausage, grilled", 0, 2), item("Venison sausage, grilled")).qty, 2);
 });
+
+test("salami by the slice: kinds differ in slice size and fat", async () => {
+  const { searchFoods } = await import("../../src/app/cofid");
+  assert.equal(variantsFor("Salami")!.options.length, 6);
+  assert.equal(searchFoods(FOOD_DB, "peperami", 1)[0].name, "Salami snack stick");
+  const deli = switchTo(pendingOf("Salami, pre-sliced", 0, 4), item("Salami, thick-cut or deli"));
+  assert.equal(deli.qty, 4);
+  assert.equal(amountOf(deli), 40);
+});

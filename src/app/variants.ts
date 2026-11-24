@@ -105,6 +105,17 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "salami", title: "Salami", question: KIND, usual: 0,
+    options: [
+      ["Pre-sliced, thin", "Salami, pre-sliced"],
+      ["Thick-cut or deli", "Salami, thick-cut or deli"],
+      ["Pepperoni", "Pepperoni"],
+      ["Chorizo", "Chorizo, sliced"],
+      ["Snack stick", "Salami snack stick"],
+      ["Bresaola, lean", "Bresaola"],
+    ],
+  },
+  {
     key: "sausage", title: "Sausages", question: KIND, usual: 0,
     options: [
       ["Pork", "Pork sausage, grilled"],
@@ -188,6 +199,9 @@ const ALIASES: [RegExp, string][] = [
   [/^Sausages, premium/, "Premium pork sausage, grilled"],
   [/^Sausages, pork, reduced fat/, "Reduced-fat pork sausage, grilled"],
   [/^Sausages, beef/, "Beef sausage, grilled"],
+  [/^Salami$/, "Salami, pre-sliced"],
+  [/^Chorizo$/, "Chorizo, sliced"],
+  [/^Salami snack$/, "Salami snack stick"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 
