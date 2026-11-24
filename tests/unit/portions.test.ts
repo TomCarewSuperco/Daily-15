@@ -69,3 +69,11 @@ test("cooked meat, fish and puddings get everyday units", () => {
   assert.equal(first("Trifle, homemade", "BRC").name, "bowl");
   assert.notEqual(first("Corned beef hash, homemade", "MRA").name, "slice");
 });
+
+test("whole vegetables are measured as served, not by the spoon", () => {
+  assert.equal(first("Pak choi, steamed", "DG", "fv").name, "head");
+  assert.equal(first("Asparagus, steamed", "DG", "fv").name, "spear");
+  assert.equal(first("Brussels sprouts, boiled in unsalted water", "DG", "fv").name, "sprout");
+  assert.equal(first("Curly kale, boiled in unsalted water", "DG", "fv").name, "serving spoon");
+  assert.equal(first("Peas, boiled in unsalted water", "DG", "fv").name, "heaped tablespoon");
+});

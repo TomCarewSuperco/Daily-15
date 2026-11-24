@@ -281,6 +281,20 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/lemon juice|lime juice/.test(n)) return [u("tablespoon", 15)];
   if (fiveADay === "juice") return [u("glass", 150)];
   if (fiveADay === "dried") return [u("handful", 30)];
+  // Vegetables that come whole or in pieces, measured the way they're served.
+  if (fiveADay === "fv") {
+    if (/^pak choi|^bok choy/.test(n)) return [u("head", 100), u("half head", 50, "half heads")];
+    if (/^asparagus/.test(n)) return [u("spear", 20), u("5-a-day portion (4 spears)", 80, "5-a-day portions")];
+    if (/^brussels sprouts/.test(n)) return [u("sprout", 10), u("5-a-day portion (8 sprouts)", 80, "5-a-day portions")];
+    if (/^(peas, mange-tout|peas, sugar-snap|mange-?tout|sugar ?snap)/.test(n)) return [u("handful", 40), u("5-a-day portion", 80)];
+    if (/^(cabbage|spring greens|curly kale|kale|chard|turnip tops|spinach, (baby|mature), boiled|amaranth leaves|drumstick leaves|taro leaves)/.test(n))
+      return /\braw\b/.test(n) ? [u("handful", 30), u("5-a-day portion", 80)] : [u("serving spoon", 40), u("5-a-day portion (2 serving spoons)", 80, "5-a-day portions")];
+    if (/^(squash|pumpkin|swede|turnip, boiled|celeriac|marrow|kohl rabi|yam|cassava|taro|plantain|salsify|arrowhead|cho cho|matoki)/.test(n) && !/mashed/.test(n))
+      return [u("chunk", 30), u("5-a-day portion", 80), u("serving spoon", 60)];
+    if (/^fennel/.test(n)) return [u("half bulb", 100, "half bulbs"), u("5-a-day portion", 80)];
+    if (/^pepper, capsicum/.test(n)) return [u("half pepper", 80, "half peppers"), u("slice", 10)];
+    if (/^okra/.test(n)) return [u("pod", 10), u("5-a-day portion (8 pods)", 80, "5-a-day portions")];
+  }
   if (fiveADay === "fv" || fiveADay === "pulses")
     return /boiled|steamed|canned|cooked|frozen|microwaved|roast|fried|stir|baked|mashed/.test(n)
       ? [u("heaped tablespoon", 27), u("5-a-day portion (3 heaped tbsp)", 80, "5-a-day portions")]
