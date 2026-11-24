@@ -103,6 +103,13 @@ const BASE: FoodItem[] = [
 
   // Meat, fish and alternatives
   food("Pork sausage, grilled", "g", 290, 14, 9, 23, 0.9, [u("sausage", 45), u("chipolata", 20)]),
+  food("Premium pork sausage, grilled", "g", 275, 19, 2.3, 21.1, 0.6, [u("sausage", 45), u("chipolata", 20)]),
+  food("Reduced-fat pork sausage, grilled", "g", 160, 16.2, 10.7, 6.1, 2.5, [u("sausage", 45), u("chipolata", 20)]),
+  food("Beef sausage, grilled", "g", 265, 17.2, 11, 17.2, 1.6, [u("sausage", 45), u("chipolata", 20)]),
+  // Chicken or turkey and venison: the app's estimates from typical UK supermarket labels.
+  food("Chicken or turkey sausage, grilled", "g", 170, 17, 5, 9, 1, [u("sausage", 45), u("chipolata", 20)]),
+  food("Venison sausage, grilled", "g", 165, 16, 7, 8, 1, [u("sausage", 45), u("chipolata", 20)]),
+  food("Vegetarian sausage, grilled", "g", 179, 14.9, 9.2, 9.4, 2.6, [u("sausage", 45), u("chipolata", 20)]),
   food("Bacon, back rasher, grilled", "g", 287, 23, 0, 22, 0, [u("rasher", 25)]),
   food("Ham, sliced", "g", 107, 18, 1.4, 3.3, 0, [u("slice", 15)]),
   // Kinds of ham slice. Wafer-thin and thick-cut are the same cooked ham, cut differently.
@@ -454,6 +461,8 @@ const EXTRA: Record<string, Extra> = {
   "Mashed potato, with butter and cream": [9.2, 0.8, 0.2],
   "Egg, poached": [2.9, 0, 0.4],
   "Oven chips": [0.7, 0.5, 0.3],
+  "Chicken or turkey sausage, grilled": [2.8, 1, 1.5],
+  "Venison sausage, grilled": [3, 1, 1.5],
   "Oat milk": [0.2, 4, 0.1],
   "Almond milk, unsweetened": [0.1, 0, 0.13],
   "Pasta, cooked, with butter or oil": [1.3, 0.6, 0.1],

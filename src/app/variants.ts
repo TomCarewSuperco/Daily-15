@@ -105,6 +105,18 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "sausage", title: "Sausages", question: KIND, usual: 0,
+    options: [
+      ["Pork", "Pork sausage, grilled"],
+      ["Premium pork", "Premium pork sausage, grilled"],
+      ["Reduced-fat pork", "Reduced-fat pork sausage, grilled"],
+      ["Beef", "Beef sausage, grilled"],
+      ["Chicken or turkey", "Chicken or turkey sausage, grilled"],
+      ["Venison", "Venison sausage, grilled"],
+      ["Vegetarian", "Vegetarian sausage, grilled"],
+    ],
+  },
+  {
     key: "ham", title: "Ham", question: KIND, usual: 1,
     options: [
       ["Wafer-thin", "Ham, wafer-thin"],
@@ -172,6 +184,10 @@ const ALIASES: [RegExp, string][] = [
   [/^Bread, wholemeal, toasted/, "Wholemeal toast"],
   [/^Ham, gammon joint, boiled/, "Ham, gammon joint, carved"],
   [/^Ham$/, "Ham, sliced"],
+  [/^Sausages, pork, (chilled|frozen)/, "Pork sausage, grilled"],
+  [/^Sausages, premium/, "Premium pork sausage, grilled"],
+  [/^Sausages, pork, reduced fat/, "Reduced-fat pork sausage, grilled"],
+  [/^Sausages, beef/, "Beef sausage, grilled"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 

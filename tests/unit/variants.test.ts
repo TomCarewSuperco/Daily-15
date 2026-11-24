@@ -120,3 +120,12 @@ test("dishes can be logged lighter or richer by their fat", async () => {
   assert.equal(restyle(soup, 1).kcal, 79);
   assert.equal(styledName("Soup, vegetable, homemade", -1), "Soup, vegetable, homemade (lighter)");
 });
+
+test("sausages: venison and others, found by name, compared per sausage", async () => {
+  const { searchFoods } = await import("../../src/app/cofid");
+  assert.equal(searchFoods(FOOD_DB, "venison sausage", 1)[0].name, "Venison sausage, grilled");
+  assert.equal(searchFoods(FOOD_DB, "veggie sausage", 1)[0].name, "Vegetarian sausage, grilled");
+  const v = variantsFor("Pork sausage, grilled")!;
+  assert.equal(v.options.length, 7);
+  assert.equal(switchTo(pendingOf("Pork sausage, grilled", 0, 2), item("Venison sausage, grilled")).qty, 2);
+});

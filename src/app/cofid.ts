@@ -364,6 +364,8 @@ const SYNONYMS: Record<string, string[]> = {
   chips: ["chips", "fries"],
   fries: ["chips"],
   granary: ["malted"],
+  veggie: ["vegetarian"],
+  vegan: ["vegetarian"],
   aubergine: ["aubergine", "eggplant"],
   courgette: ["courgette", "zucchini"],
   prawn: ["prawns", "shrimp"],
