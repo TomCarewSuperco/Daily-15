@@ -86,3 +86,9 @@ test("biltong and jerky: built in, by the handful or bag, typos found", async ()
   assert.equal(FOOD_DB.find((f) => f.name === "Biltong")!.units[0].g, 15);
   assert.equal(householdUnitsFor("Brand Biltong Original")[1].g, 30);
 });
+
+test("salad vegetables are common foods with everyday measures", () => {
+  for (const [q, want] of [["cucumber", "Cucumber"], ["peppers", "Red pepper"], ["celery", "Celery"], ["radish", "Radishes"], ["spring onion", "Spring onions"]])
+    assert.equal(searchFoods(FOOD_DB, q, 1)[0]?.name, want, q);
+  assert.equal(FOOD_DB.find((f) => f.name === "Cucumber")!.units[0].name, "slice");
+});

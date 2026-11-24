@@ -552,6 +552,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/coated|covered/.test(name) && !/coated|covered|chocolate|raisin|nut|almond|peanut/.test(qtext)) score -= 15;
     if (/\b(chocolate|kefir|shake)\b/.test(name) && !/chocolate|kefir|shake/.test(qtext)) score -= 10;
     if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
+    if (/\bpepperoni\b/.test(name) && !/pepperoni|salami|pizza/.test(qtext)) score -= 10;
     if (/^(oat|soya|almond) milk/.test(name) && !/oat|soya|soy|almond|plant|vegan|dairy/.test(qtext)) score -= 3;
     if (/rice (cakes?|crackers?)/.test(name) && !/cake|cracker/.test(qtext)) score -= 10;
     // The plain cooked staple ('White rice, cooked') before dishes that contain it.
