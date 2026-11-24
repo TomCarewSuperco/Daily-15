@@ -142,6 +142,23 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("hold timer records the time held", (await p.getByRole("spinbutton", { name: "Seconds" }).inputValue()) === "2");
   await p.getByRole("button", { name: "Close" }).click();
 
+  // Swapping mid-session: gym exercises for the same muscles, daily 15 for the same slot.
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
+  await p.getByRole("button", { name: "Swap this exercise" }).click();
+  await p.getByRole("listitem").filter({ hasText: /^Goblet squat/ }).click();
+  ok("gym exercise swapped mid-session", (await p.getByRole("heading", { name: "Goblet squat" }).count()) === 1);
+  await p.getByRole("button", { name: "Close" }).click();
+  await p.getByRole("button", { name: /Start guided workout|Continue guided workout|Go again/ }).first().click();
+  await p.getByRole("button", { name: "Next exercise" }).click();
+  const before15 = await p.locator("h2").first().textContent();
+  await p.getByRole("button", { name: "Swap this exercise" }).click();
+  await p.getByRole("listitem").first().click();
+  const after15 = await p.locator("h2").first().textContent();
+  ok("daily 15 exercise swapped for today", !!after15 && after15 !== before15);
+  await p.getByRole("button", { name: "Close" }).click();
+
   // Finishing early: go back to the workout, or discard it without logging.
   const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();

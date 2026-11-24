@@ -1,4 +1,4 @@
-import { findExercise } from "./exercises";
+import { EXERCISES, findExercise } from "./exercises";
 import type { ExerciseEntry, Feeling, SetEntry, Workout } from "./types";
 
 /*
@@ -151,4 +151,20 @@ export function warmUpSets(exercise: string, workingKg: number): string[] {
   const round = (kg: number) => (eq === "barbell" ? Math.max(20, Math.round(kg / 2.5) * 2.5) : Math.max(1, Math.round(kg)));
   if (eq === "barbell" && workingKg >= 40) return [`Empty bar (20 kg) × 10`, `${round(workingKg * 0.5)} kg × 5`, `${round(workingKg * 0.75)} kg × 3`];
   return [`${round(workingKg * 0.5)} kg × 10`];
+}
+
+/** Exercises that work the same main muscle, for swapping mid-session (no kit, machine taken, don't like it). */
+export function gymSwaps(exercise: string): { name: string; equipment: string }[] {
+  const cur = findExercise(exercise);
+  if (!cur) return [];
+  const main = cur.muscles.split(",")[0].trim().toLowerCase();
+  // Core moves swap freely between holds and reps; elsewhere a hold only swaps for a hold.
+  const sameKind = (e: (typeof EXERCISES)[number]) => main === "core" || !!e.timed === !!cur.timed;
+  // A deadlift works the back but isn't a stand-in for a row or pulldown.
+  const fair = (e: (typeof EXERCISES)[number]) => !(main === "back" && /deadlift/i.test(e.name) !== /deadlift/i.test(cur.name));
+  const muscles = (e: { muscles: string }) => e.muscles.split(",").map((m) => m.trim().toLowerCase());
+  let found = EXERCISES.filter((e) => e.name !== cur.name && sameKind(e) && fair(e) && muscles(e)[0] === main);
+  // Nothing with the same main muscle (deadlift): anything sharing at least two muscle groups.
+  if (!found.length) found = EXERCISES.filter((e) => e.name !== cur.name && sameKind(e) && muscles(e).filter((m) => muscles(cur).includes(m)).length >= 2);
+  return found.map((e) => ({ name: e.name, equipment: e.equipment }));
 }

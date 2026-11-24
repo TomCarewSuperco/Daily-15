@@ -184,6 +184,19 @@ export const DEMOS: Record<string, Demo> = {
     a: { h: [60, 13], s: [60, 24], p: [60, 52], fe: [66, 36], fh: [68, 48], be: [54, 36], bh: [52, 48], fk: [62, 72], ff: [62, 92], bk: [58, 72], bf: [58, 92] },
     b: { h: [60, 13], s: [60, 24], p: [60, 51], fe: [70, 16], fh: [77, 5], be: [50, 16], bh: [43, 5], fk: [68, 71], ff: [75, 91], bk: [52, 71], bf: [45, 91] },
   },
+  // Step wide to one side, the trailing foot crossing behind, then the other way.
+  skaterStep: {
+    period: 1.6,
+    front: true,
+    a: { h: [52, 16], s: [54, 27], p: [56, 54], fe: [62, 38], fh: [68, 46], be: [48, 36], bh: [42, 42], fk: [60, 72], ff: [62, 92], bk: [50, 74], bf: [68, 90] },
+    b: { h: [68, 16], s: [66, 27], p: [64, 54], fe: [58, 38], fh: [52, 46], be: [72, 36], bh: [78, 42], fk: [60, 72], ff: [58, 92], bk: [70, 74], bf: [52, 90] },
+  },
+  // Staggered stance, alternate straight punches.
+  shadowBox: {
+    period: 1,
+    a: { h: [58, 13], s: [58, 24], p: [58, 52], fe: [70, 26], fh: [83, 24], be: [53, 33], bh: [61, 27], fk: [64, 72], ff: [68, 92], bk: [52, 72], bf: [46, 92] },
+    b: { h: [60, 13], s: [60, 24], p: [58, 52], fe: [65, 33], fh: [67, 26], be: [71, 26], bh: [85, 24], fk: [64, 72], ff: [68, 92], bk: [52, 72], bf: [46, 92] },
+  },
   sidePlank: {
     period: 4,
     prop: "mat",
@@ -346,6 +359,8 @@ const BY_NAME: Record<string, string> = {
   "bird dog": "birdDog",
   "dead bug": "deadBug",
   "jumping jacks": "jumpingJack",
+  "skater steps": "skaterStep",
+  "shadow boxing": "shadowBox",
   "side plank": "sidePlank",
   "single-leg glute bridges": "singleLegBridge",
   "glute bridge march": "bridgeMarch",

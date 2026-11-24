@@ -31,8 +31,21 @@ const VARIANTS: Record<string, Omit<RoutineExercise, "id">[]> = {
   squat: [DEFAULT_ROUTINE.find((e) => e.id === "squat")!, sub("Reverse lunges"), sub("Step-ups")],
   bridge: [DEFAULT_ROUTINE.find((e) => e.id === "bridge")!, sub("Single-leg glute bridges"), sub("Glute bridge march"), sub("Donkey kicks")],
   plank: [DEFAULT_ROUTINE.find((e) => e.id === "plank")!, sub("Dead bug"), sub("Reverse crunches"), sub("Bird dog"), sub("Hollow hold"), sub("Side plank"), sub("Bicycle crunches")],
-  knees: [DEFAULT_ROUTINE.find((e) => e.id === "knees")!, sub("Jumping jacks")],
+  // The warm-up is already marching with high knees, so the cardio slot uses different moves.
+  knees: [sub("Jumping jacks"), sub("Skater steps"), sub("Shadow boxing")],
 };
+
+/**
+ * Other exercises for the same slot, for swapping during a session: the slot's other
+ * versions first, then any of the general swaps. Never the warm-up or cool-down.
+ */
+export function swapOptions(e: RoutineExercise): Omit<RoutineExercise, "id">[] {
+  const slot = e.id.split("~")[0];
+  if (slot === WARM_UP || slot === COOL_DOWN) return [];
+  const own = (VARIANTS[slot] ?? []).filter((x) => x.name !== e.name);
+  const rest = SUBSTITUTES.filter((x) => x.name !== e.name && !own.some((o) => o.name === x.name));
+  return [...own, ...rest];
+}
 
 function dayNumber(date: string): number {
   return Math.floor(fromKey(date).getTime() / 86_400_000);

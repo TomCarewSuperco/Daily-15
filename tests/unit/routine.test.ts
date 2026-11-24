@@ -125,3 +125,14 @@ test("glute and core slots rotate through more exercises; push-ups stay", () => 
   assert.ok(names("plank").size >= 5, [...names("plank")].join(", "));
   assert.deepEqual([...names("pushup")], ["Push-ups"]);
 });
+
+test("the cardio slot never repeats the marching warm-up", async () => {
+  const { buildRoutine, settingsOf } = await import("../../src/app/routine");
+  const { DEFAULT_ROUTINE } = await import("../../src/app/data");
+  const { emptyStateForTests } = await import("./fixtures");
+  const settings = settingsOf(emptyStateForTests());
+  for (let d = 1; d <= 9; d++) {
+    const list = buildRoutine(DEFAULT_ROUTINE, "standard", settings, `2026-11-${String(d).padStart(2, "0")}`);
+    assert.ok(!list.some((e) => e.name === "Standing knee raises"), `day ${d}`);
+  }
+});

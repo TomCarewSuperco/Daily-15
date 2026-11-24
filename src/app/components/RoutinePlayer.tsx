@@ -1,11 +1,11 @@
 import { usePremium } from "../premium/PremiumProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
 import { suggestedIntentions } from "../intentions";
-import { MAX_ROUNDS, TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, type Proposal } from "../routine";
+import { MAX_ROUNDS, TARGET_MINUTES, buildRoutine, mainOnce, proposeAfter, settingsOf, shownAmount, swapOptions, type Proposal } from "../routine";
 import type { Feeling, RoutineSettings } from "../types";
 import { addDays, todayKey } from "../calc";
 import { useDaily15 } from "../store";
@@ -32,7 +32,18 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
   const { state, update } = useDaily15();
   const today = todayKey();
   const settings = settingsOf(state);
-  const list = useMemo(() => routineFor(state.routine, mode, settings, today), [state.routine, mode, settings.level, settings.rounds, settings.variety, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  const baseList = useMemo(() => routineFor(state.routine, mode, settings, today), [state.routine, mode, settings.level, settings.rounds, settings.variety, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Swaps made during this session, by slot, so every round of that slot changes together.
+  const [swaps, setSwaps] = useState<Record<string, Omit<RoutineExercise, "id">>>({});
+  const [swapOpen, setSwapOpen] = useState(false);
+  const list = useMemo(
+    () =>
+      baseList.map((e) => {
+        const sw = swaps[e.id.split("~")[0]];
+        return sw ? { ...sw, id: e.id, round: e.round, amount: shownAmount({ ...sw, id: e.id.split("~")[0] }, settings) } : e;
+      }),
+    [baseList, swaps], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const [finishedScreen, setFinishedScreen] = useState(false);
   const log = state.routineLogs[today];
   const done = new Set(log?.mode === mode ? log.completedIds : []);
@@ -72,7 +83,8 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     setLeft(ex.kind === "time" ? ex.amount : 0);
     setRunning(false);
     setReps(0);
-  }, [idx, ex.kind, ex.amount]);
+    setSwapOpen(false);
+  }, [idx, ex.kind, ex.amount, ex.name]);
 
   useEffect(() => {
     if (!running) return;
@@ -157,6 +169,23 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
         <p className="text-sm text-muted-foreground">{step ? `${ex.name} · ${stepIdx + 1} of ${steps!.length} · ${stepSeconds} s each` : fmtAmount(ex)}</p>
         <h2 className="mt-1 text-4xl leading-tight">{step ? step.name : ex.name}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{step ? step.instructions : ex.instructions}</p>
+        {swapOptions(ex).length > 0 && !running && (
+          <div className="mt-3">
+            <button className="flex items-center gap-1.5 text-sm underline underline-offset-2" onClick={() => setSwapOpen((o) => !o)} aria-expanded={swapOpen}>
+              <ArrowLeftRight className="h-3.5 w-3.5" />Swap this exercise
+            </button>
+            {swapOpen && (
+              <div className="mt-2 flex flex-wrap gap-1.5" role="list" aria-label="Swap for">
+                {swapOptions(ex).slice(0, 8).map((o) => (
+                  <button key={o.name} role="listitem" className="rounded-full border bg-card px-3 py-1.5 text-sm" onClick={() => { setSwaps((x) => ({ ...x, [ex.id.split("~")[0]]: o })); setSwapOpen(false); }}>
+                    {o.name}
+                  </button>
+                ))}
+                <p className="w-full text-xs text-muted-foreground">For today only. To change it for good, use Substitute on the Workouts tab.</p>
+              </div>
+            )}
+          </div>
+        )}
         {steps && (
           <div className="mt-3 flex gap-1.5" aria-hidden>
             {steps.map((st, i) => (

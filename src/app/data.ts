@@ -69,6 +69,8 @@ export const SUBSTITUTES: Omit<RoutineExercise, "id">[] = [
   { name: "Bird dog", kind: "time", amount: 30, instructions: "On all fours, extend the opposite arm and leg. Hold briefly, return and switch sides. Keep your back flat." },
   { name: "Dead bug", kind: "time", amount: 30, instructions: "Lie on your back, arms up, knees at 90 degrees. Lower the opposite arm and leg slowly, keeping your lower back on the floor." },
   { name: "Jumping jacks", kind: "time", amount: 30, instructions: "Jump your feet out while raising your arms, then return. Step side to side for a low-impact version." },
+  { name: "Skater steps", kind: "time", amount: 30, instructions: "Step wide to one side and bring the other foot behind you, then step back the other way. Add a small hop to make it harder, or keep it low impact." },
+  { name: "Shadow boxing", kind: "time", amount: 30, instructions: "Feet staggered, hands up by your chin. Throw alternate straight punches at shoulder height, turning through your hips, and stay light on your feet." },
   { name: "Side plank", kind: "time", amount: 20, instructions: "On one forearm, feet stacked, lift your hips. Split the time between sides." },
   // Glutes
   { name: "Single-leg glute bridges", kind: "reps", amount: 12, instructions: "Lie on your back, one foot flat and the other leg straight. Squeeze your glutes and lift your hips until they line up with the straight leg. Lower slowly. Switch legs halfway." },

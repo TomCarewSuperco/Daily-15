@@ -1,14 +1,14 @@
 import { usePremium } from "../premium/PremiumProvider";
 import { fmtClock } from "./RoutinePlayer";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Minus, Play, Plus, SkipForward, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeftRight, Check, Minus, Play, Plus, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
-import { findExercise } from "../exercises";
+import { EQUIPMENT_LABELS, findExercise } from "../exercises";
 import { cue, primeCue } from "../cue";
-import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, warmUpSets } from "../gym";
+import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, gymSwaps, warmUpSets } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
 import type { Feeling, ExerciseEntry, Intensity, Workout } from "../types";
@@ -103,7 +103,18 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
     clearInProgress();
     onClose();
   };
-  const targets = useMemo(() => session.exercises.map((e) => e.sets.map((s) => s.reps)), [session]);
+  const [targets, setTargets] = useState<number[][]>(() => session.exercises.map((e) => e.sets.map((x) => x.reps)));
+  const [swapOpen, setSwapOpen] = useState(false);
+  // Swap the current exercise for another that works the same muscles. Sets already done stay as they were.
+  const swapTo = (name: string) => {
+    const timed = !!findExercise(name)?.timed;
+    const wasTimed = !!findExercise(plan[ex].name)?.timed;
+    const reps = (r: number) => (timed === wasTimed ? r : timed ? 30 : 10);
+    const fresh = planSession([{ name, sets: plan[ex].sets.map((x) => ({ reps: reps(x.reps), weightKg: 0 })) }], state.workouts, premium)[0];
+    setPlan((p) => p.map((e, i) => (i === ex ? { name, sets: e.sets.map((x, j) => (done[i][j] ? x : fresh.sets[j])) } : e)));
+    setTargets((t) => t.map((row, i) => (i === ex ? row.map(reps) : row)));
+    setSwapOpen(false);
+  };
 
   // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
   useEffect(() => {
@@ -357,6 +368,22 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
           <p className="text-sm text-muted-foreground">Set {set + 1} of {current.sets.length} · target {targets[ex][set]} {unit}</p>
           <h2 className="mt-1 text-4xl leading-tight">{current.name}</h2>
           {lib && <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{lib.instructions}</p>}
+          {gymSwaps(current.name).length > 0 && (
+            <div className="mt-3">
+              <button className="flex items-center gap-1.5 text-sm underline underline-offset-2" onClick={() => setSwapOpen((o) => !o)} aria-expanded={swapOpen}>
+                <ArrowLeftRight className="h-3.5 w-3.5" />Swap this exercise
+              </button>
+              {swapOpen && (
+                <div className="mt-2 flex flex-wrap gap-1.5" role="list" aria-label="Swap for">
+                  {gymSwaps(current.name).map((o) => (
+                    <button key={o.name} role="listitem" className="rounded-full border bg-card px-3 py-1.5 text-left text-sm" onClick={() => swapTo(o.name)}>
+                      {o.name} <span className="text-muted-foreground">· {o.equipment === "none" ? "no kit" : EQUIPMENT_LABELS[o.equipment as keyof typeof EQUIPMENT_LABELS].toLowerCase()}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {last && (
             <p className="mt-3 rounded-lg bg-muted p-2.5 text-sm">
               Last time: {describeLast(last)}
