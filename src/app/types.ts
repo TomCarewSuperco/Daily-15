@@ -124,6 +124,8 @@ export interface Workout {
   notes?: string;
   /** How hard the session felt, asked at the end of a guided session. */
   feeling?: Feeling;
+  /** True when nobody said how hard it was (a guided session saved without answering): intensity is a placeholder. */
+  unrated?: boolean;
 }
 
 export interface WorkoutTemplate {

@@ -63,6 +63,9 @@ export function clearInProgress(): void {
 }
 
 /** Guided gym session: one set at a time, weight and reps to confirm, rest timer between sets. */
+/** A guided session's intensity is how it felt, not the label on the ready-made workout. */
+const FEELING_INTENSITY: Record<Feeling, Intensity> = { easy: "light", right: "moderate", hard: "intense" };
+
 const restLabel = (r: number) => (r === 0 ? "No rest" : r < 60 ? `${r} s` : `${r / 60} min`);
 
 /** '3 sets: 5 × 60 kg' style summary of the sets done: '5 reps, 5 reps' or '30 sec' or '5 × 60 kg'. */
@@ -214,7 +217,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       return;
     }
     const minutes = Math.max(1, Math.round((Date.now() - started.current) / 60000));
-    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: session.intensity, restSec: restFor(plan[0]?.name ?? "", rests), exercises, ...(feeling ? { feeling } : {}) };
+    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: feeling ? FEELING_INTENSITY[feeling] : "moderate", restSec: restFor(plan[0]?.name ?? "", rests), exercises, ...(feeling ? { feeling } : { unrated: true }) };
     update((s) => ({
       ...s,
       workouts: [...s.workouts, workout],

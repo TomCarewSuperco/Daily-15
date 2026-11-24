@@ -70,6 +70,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   const gw = st.workouts.find((w) => w.name === "Lower body, dumbbells");
   ok("feeling saved with the workout", gw && gw.feeling === "right");
+  ok("guided intensity comes from how it felt", gw && gw.intensity === "moderate" && !gw.unrated);
   ok("guided session logged with done sets only", !!gw && gw.exercises.length === 1 && gw.exercises[0].sets.length === 2 && gw.exercises[0].sets[0].weightKg === 16);
   // Next time: last time shown and a heavier weight suggested.
   await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();

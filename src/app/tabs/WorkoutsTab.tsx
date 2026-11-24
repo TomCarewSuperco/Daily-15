@@ -313,7 +313,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
             {pbs.map((pb) => (
               <li key={pb.exercise} className="flex items-center justify-between py-2">
                 <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5 text-copper" />{pb.exercise}</span>
-                <span className="tabular-nums text-muted-foreground">{pb.weightKg > 0 ? `${pb.weightKg} kg × ${pb.reps}` : `${pb.reps} reps`}</span>
+                <span className="tabular-nums text-muted-foreground">{pb.weightKg > 0 ? `${pb.weightKg} kg × ${pb.reps}` : findExercise(pb.exercise)?.timed ? `${pb.reps} s` : `${pb.reps} reps`}</span>
               </li>
             ))}
             {cardio.map((c) => (
@@ -349,12 +349,12 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                   <button className="flex-1 text-left" onClick={() => { setSeed({ workout: w }); setFormOpen(true); }}>
                     <div className="flex items-center gap-2 text-sm font-medium">
                       {w.name}
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${INTENSITY_STYLE[w.intensity]}`}>{w.intensity}</span>
+                      {!w.unrated && <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${INTENSITY_STYLE[w.intensity]}`}>{w.intensity}</span>}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {formatDay(w.date)} · {w.category} · {w.durationMin} min
                       {w.distanceKm ? ` · ${w.distanceKm} km` : ""}
-                      {w.exercises.length ? ` · ${w.exercises.reduce((s, e) => s + e.sets.length, 0)} sets` : ""}
+                      {w.exercises.length ? ` · ${((n) => `${n} ${n === 1 ? "set" : "sets"}`)(w.exercises.reduce((s, e) => s + e.sets.length, 0))}` : ""}
                     </div>
                   </button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => update((s) => ({ ...s, workouts: s.workouts.filter((x) => x.id !== w.id) }))} aria-label="Delete workout">
