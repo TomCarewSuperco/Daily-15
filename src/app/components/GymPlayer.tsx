@@ -145,6 +145,13 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
     for (let i = ex; i < plan.length; i++) {
       for (let j = i === ex ? set + 1 : 0; j < plan[i].sets.length; j++) {
         if (!d[i][j]) {
+          // A new exercise with no weight yet (never done before) starts from the weight just used,
+          // when it's the same kind of equipment: the bar from squats is still loaded for rows.
+          const used = plan[ex].sets[set].weightKg;
+          const sameKit = findExercise(plan[i].name)?.equipment === findExercise(plan[ex].name)?.equipment;
+          if (i !== ex && used > 0 && sameKit && plan[i].sets.every((st) => !st.weightKg)) {
+            setPlan((p) => p.map((e, k) => (k === i ? { ...e, sets: e.sets.map((st) => ({ ...st, weightKg: used })) } : e)));
+          }
           setEx(i);
           setSet(j);
           const doneName = plan[ex].name;

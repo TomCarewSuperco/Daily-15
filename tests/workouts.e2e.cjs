@@ -105,6 +105,19 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Tap again to discard" }).click();
   ok("discarding clears the unfinished session", (await p.getByText(/^Unfinished:/).count()) === 0);
 
+  // Moving to a new barbell exercise with no history keeps the weight on the bar.
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("50");
+  for (let i = 0; i < 3; i++) {
+    await p.getByRole("button", { name: "Done set" }).click();
+    await p.getByRole("button", { name: "Skip", exact: true }).click();
+  }
+  ok("next exercise starts from the weight just used", (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "50" && (await p.getByText(/^Bench press$/).count()) >= 1);
+  await p.getByRole("button", { name: "Finish early" }).click();
+  await p.getByRole("button", { name: "Discard" }).click();
+  await p.getByRole("button", { name: "Tap again to discard" }).click();
+
   // Finishing early: go back to the workout, or discard it without logging.
   const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
