@@ -9,7 +9,7 @@ import { NumField } from "../components/Field";
 import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlayer";
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
-import { GymPlayer, type GymSession } from "../components/GymPlayer";
+import { clearInProgress, GymPlayer, loadInProgress, type GymSession } from "../components/GymPlayer";
 import { EQUIPMENT_LABELS, findExercise, PREBUILT, type Equipment } from "../exercises";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
@@ -35,6 +35,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const [library, setLibrary] = useState<"mine" | "ready">("mine");
   const [equipment, setEquipment] = useState<Equipment | "all">("all");
   const [openPrebuilt, setOpenPrebuilt] = useState<string | null>(null);
+  const [, setTick] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [seed, setSeed] = useState<WorkoutSeed | undefined>();
   const [editing, setEditing] = useState<RoutineExercise | null>(null);
@@ -83,12 +84,29 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   // While a workout runs, show only the player: on iPhone the page behind can show under the status bar.
   if (playing) return <RoutinePlayer mode={mode} onClose={() => setPlaying(false)} />;
   if (gym) return <GymPlayer session={gym} onClose={() => setGym(null)} />;
+  // A gym session interrupted by the phone locking or the app closing.
+  const unfinished = loadInProgress();
 
   return (
     <div className="space-y-4">
       <header className="pt-2">
         <h1 className="text-4xl">Workouts</h1>
       </header>
+
+      {unfinished && (
+        <Card>
+          <p className="font-medium">Unfinished: {unfinished.session.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {unfinished.done.flat().filter(Boolean).length} of {unfinished.done.flat().length} sets done. Pick up where you left off, weights included.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button className="flex-1" onClick={() => setGym({ ...unfinished.session, resume: unfinished })}>
+              <Play className="mr-1 h-3.5 w-3.5" />Resume
+            </Button>
+            <Button variant="outline" onClick={() => { clearInProgress(); setGym(null); setTick((t) => t + 1); }}>Discard</Button>
+          </div>
+        </Card>
+      )}
 
       <Card>
         <CardHeading

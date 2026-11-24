@@ -80,6 +80,26 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("hand-logged exercise starts from last time's weight", carried === "16");
   await p.getByRole("button", { name: "Close" }).first().click();
 
+  // A session interrupted mid-way (phone locks, app closes) can be resumed with its weights.
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.getByRole("button", { name: "All", exact: true }).click();
+  await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("50");
+  await p.getByRole("button", { name: "Done set" }).click();
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
+  await p.getByText(/Unfinished: Gym full body A/).first().waitFor({ timeout: 5000 }).catch(() => {});
+  const offered = (await p.getByText(/Unfinished: Gym full body A/).count()) >= 1;
+  await p.getByRole("button", { name: "Resume" }).click();
+  await p.getByRole("button", { name: "Skip", exact: true }).click().catch(() => {});
+  const resumedWeight = await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue();
+  ok("interrupted session offered on return", offered);
+  ok("resumed session keeps its weights and progress", resumedWeight === "50" && (await p.getByText(/set 2 of 12/).count()) === 1);
+  await p.getByRole("button", { name: "Finish early" }).click();
+  await p.getByRole("button", { name: "Discard" }).click();
+  await p.getByRole("button", { name: "Tap again to discard" }).click();
+  ok("discarding clears the unfinished session", (await p.getByText(/^Unfinished:/).count()) === 0);
+
   // Finishing early: go back to the workout, or discard it without logging.
   const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();

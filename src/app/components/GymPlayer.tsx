@@ -19,9 +19,47 @@ export interface GymSession {
   exercises: ExerciseEntry[];
   /** Offer to save to My workouts at the end (ready-made sessions). */
   offerSave?: boolean;
+  /** Picking up a session that was interrupted. */
+  resume?: InProgress;
 }
 
 const DEFAULT_REST = 90;
+
+/*
+ * The session in progress is kept on the device after every change, so a phone
+ * that locks between sets, or iOS closing the app, doesn't lose it. Cleared on
+ * save or discard; offered for 12 hours.
+ */
+const IN_PROGRESS_KEY = "daily15:gym-in-progress";
+const RESUME_HOURS = 12;
+
+export interface InProgress {
+  session: Omit<GymSession, "resume">;
+  plan: ExerciseEntry[];
+  done: boolean[][];
+  ex: number;
+  set: number;
+  started: number;
+  savedAt: number;
+}
+
+export function loadInProgress(): InProgress | null {
+  try {
+    const raw = localStorage.getItem(IN_PROGRESS_KEY);
+    const v = raw ? (JSON.parse(raw) as InProgress) : null;
+    return v && Date.now() - v.savedAt < RESUME_HOURS * 3600000 && v.done.flat().some(Boolean) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearInProgress(): void {
+  try {
+    localStorage.removeItem(IN_PROGRESS_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 /** Guided gym session: one set at a time, weight and reps to confirm, rest timer between sets. */
 /** '3 sets: 5 × 60 kg' style summary of the sets done: '5 reps, 5 reps' or '30 sec' or '5 × 60 kg'. */
@@ -34,16 +72,30 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   const { state, update } = useDaily15();
   // Without the progression feature, start from last time's weight rather than silently adding to it.
   const { premium } = usePremium();
-  const [plan, setPlan] = useState<ExerciseEntry[]>(() => planSession(session.exercises, state.workouts, premium));
-  const [done, setDone] = useState<boolean[][]>(() => session.exercises.map((e) => e.sets.map(() => false)));
-  const [ex, setEx] = useState(0);
-  const [set, setSet] = useState(0);
+  const r = session.resume;
+  const [plan, setPlan] = useState<ExerciseEntry[]>(() => r?.plan ?? planSession(session.exercises, state.workouts, premium));
+  const [done, setDone] = useState<boolean[][]>(() => r?.done ?? session.exercises.map((e) => e.sets.map(() => false)));
+  const [ex, setEx] = useState(r?.ex ?? 0);
+  const [set, setSet] = useState(r?.set ?? 0);
   const [restUntil, setRestUntil] = useState<number | null>(null);
   const [restLength, setRestLength] = useState(DEFAULT_REST);
   const [now, setNow] = useState(Date.now());
   const [finished, setFinished] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const started = useRef(Date.now());
+  const started = useRef(r?.started ?? Date.now());
+  useEffect(() => {
+    try {
+      const { resume: _r, ...plain } = session;
+      const v: InProgress = { session: plain, plan, done, ex, set, started: started.current, savedAt: Date.now() };
+      localStorage.setItem(IN_PROGRESS_KEY, JSON.stringify(v));
+    } catch {
+      /* storage unavailable: the session still works, it just can't be resumed */
+    }
+  }, [session, plan, done, ex, set]);
+  const close = () => {
+    clearInProgress();
+    onClose();
+  };
   const targets = useMemo(() => session.exercises.map((e) => e.sets.map((s) => s.reps)), [session]);
 
   // Drop focus from any text box so iOS has less to offer to 'undo' when the phone moves.
@@ -108,7 +160,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       .map((e, i) => ({ name: e.name, sets: e.sets.filter((_, j) => done[i][j]) }))
       .filter((e) => e.sets.length);
     if (!exercises.length) {
-      onClose();
+      close();
       return;
     }
     const minutes = Math.max(1, Math.round((Date.now() - started.current) / 60000));
@@ -119,7 +171,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       templates: asTemplate && !s.templates.some((t) => t.name.toLowerCase() === session.name.toLowerCase()) ? [...s.templates, { id: uid(), name: session.name, category: session.category, intensity: session.intensity, exercises: session.exercises }] : s.templates,
     }));
     toast.success(`${session.name} logged: ${minutes} min`);
-    onClose();
+    close();
   };
 
   const totalSets = done.flat().length;
@@ -145,7 +197,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="ghost" onClick={() => { setConfirmDiscard(false); setFinished(false); }}>Back to workout</Button>
             {/* Two taps, so a stray tap doesn't lose the session. */}
-            <Button variant="ghost" className={confirmDiscard ? "text-destructive" : ""} onClick={() => (confirmDiscard ? onClose() : setConfirmDiscard(true))}>
+            <Button variant="ghost" className={confirmDiscard ? "text-destructive" : ""} onClick={() => (confirmDiscard ? close() : setConfirmDiscard(true))}>
               {confirmDiscard ? "Tap again to discard" : "Discard"}
             </Button>
           </div>
@@ -161,7 +213,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   return (
     <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={() => (doneSets ? setFinished(true) : onClose())} aria-label={doneSets ? "Finish early" : "Close"}>
+        <Button variant="ghost" size="icon" onClick={() => (doneSets ? setFinished(true) : close())} aria-label={doneSets ? "Finish early" : "Close"}>
           <X className="h-5 w-5" />
         </Button>
         <span className="text-sm text-muted-foreground">
