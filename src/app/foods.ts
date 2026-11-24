@@ -81,7 +81,7 @@ const BASE: FoodItem[] = [
   food("Egg, poached", "g", 149, 13.3, 0, 10.6, 0, [u("egg", 60)]),
   food("Scrambled eggs, with butter and milk", "g", 160, 10, 1.5, 12, 0, [u("2-egg portion", 120)]),
   food("Scrambled eggs, no butter or milk", "g", 152, 14.6, 0, 10.4, 0, [u("2-egg portion", 105)]),
-  food("Butter", "g", 717, 0.9, 0.1, 81, 0, [u("thin spread", 7), u("tablespoon", 15)]),
+  food("Butter", "g", 717, 0.9, 0.1, 81, 0, [u("thin spread", 5), u("spread", 10), u("thick spread", 15), u("knob", 10)]),
   food("Jam", "g", 250, 0.4, 61, 0, 0.8, [u("teaspoon", 10)]),
   food("Honey", "g", 304, 0.3, 82, 0, 0, [u("teaspoon", 7)]),
   food("Peanut butter", "g", 588, 25, 20, 50, 6, [u("tablespoon", 15), u("teaspoon", 5)]),

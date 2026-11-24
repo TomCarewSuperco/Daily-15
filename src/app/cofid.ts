@@ -36,7 +36,9 @@ export function householdUnitsFor(name: string): FoodUnit[] {
   if (/\bmustard\b/.test(n)) return [u("teaspoon", 5)];
   if (/mayonnaise|\bmayo\b|ketchup|sauce|dressing|relish|chutney|vinaigrette/.test(n)) return [u("tablespoon", 15)];
   if (/\boil\b/.test(n)) return [u("teaspoon", 5), u("tablespoon", 14)];
-  if (/butter|spread|margarine|ghee/.test(n)) return [u("thin spread", 7, "thin spreads"), u("teaspoon", 5)];
+  // Per slice of bread or toast, thin to thick; a knob for vegetables or the pan. Ghee is for cooking.
+  if (/\bghee\b/.test(n)) return [u("teaspoon", 5), u("tablespoon", 14)];
+  if (/butter|spread|margarine/.test(n)) return [u("thin spread", 5), u("spread", 10), u("thick spread", 15), u("knob", 10)];
   if (/\bcream\b/.test(n) && !/ice cream|cream cracker|cream egg/.test(n)) return [u("tablespoon", 15)];
   if (/protein powder|whey|\bprotein\b.*powder/.test(n)) return [u("scoop", 30)];
   if (/\boats\b|porridge|granola|muesli|cereal|\bflakes\b|\bbran\b/.test(n)) return [u("bowl", 40), u("tablespoon", 10)];
@@ -113,7 +115,8 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (group.startsWith("SE")) return /bar\b|bounty|mars|snickers|twix|kit kat/.test(n) ? [u("bar", 45)] : [u("handful", 30)];
   if (/^jam,|^jam$|^marmalade|^honey|^lemon curd|chocolate.*spread|^syrup|^treacle/.test(n)) return [u("teaspoon", 7), u("tablespoon", 20)];
   if (/^sugar/.test(n)) return [u("teaspoon", 4)];
-  if (/^butter|^fat spread|^margarine|^ghee/.test(n)) return [u("thin spread", 7, "thin spreads"), u("teaspoon", 5)];
+  if (/^ghee/.test(n)) return [u("teaspoon", 5), u("tablespoon", 14)];
+  if (/^butter|^fat spread|^margarine/.test(n)) return [u("thin spread", 5), u("spread", 10), u("thick spread", 15), u("knob", 10)];
   if (/^oil,|oil, /.test(n) && group.startsWith("O")) return [u("teaspoon", 5), u("tablespoon", 14)];
   if (/^cream,|^creme fraiche|^cream substitute/.test(n)) return [u("tablespoon", 15), u("portion", 30)];
   if (/^milk,/.test(n) && !/human|dried|condensed|evaporated/.test(n)) return [u("splash", 30, "splashes"), u("glass", 200)];
