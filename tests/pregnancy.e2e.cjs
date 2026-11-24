@@ -8,6 +8,9 @@ const BASE = process.env.BASE_URL || "http://127.0.0.1:8092/";
   const errs = []; p.on("pageerror", (e) => errs.push(e.message));
   const R = []; const ok = (n, c) => R.push(`${c ? "PASS" : "FAIL"} ${n}`);
   const tab = (name) => p.getByRole("navigation").getByRole("button", { name, exact: true }).click();
+  // The routine rotates by date; fix the day so a lying-on-back exercise is in it.
+  const TODAY = new Date("2026-11-23T10:00:00");
+  await p.clock.setFixedTime(TODAY);
   await p.goto(BASE);
   await p.getByRole("button", { name: "Get started" }).click();
   const nums = p.locator("input[type=number]");
@@ -45,7 +48,7 @@ const BASE = process.env.BASE_URL || "http://127.0.0.1:8092/";
 
   // Profile: due date at 20 weeks makes glute bridges show a warning.
   await tab("Profile");
-  const dueDate = new Date(Date.now() + 20 * 7 * 86400000).toISOString().slice(0, 10);
+  const dueDate = new Date(TODAY.getTime() + 20 * 7 * 86400000).toISOString().slice(0, 10);
   await p.locator('input[type="date"]').first().fill(dueDate);
   await tab("Workouts");
   // The glute slot rotates; whichever bridge is on today is done lying on the back.

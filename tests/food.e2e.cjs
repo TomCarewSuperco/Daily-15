@@ -128,6 +128,24 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const remembered = mashRows === 1 && mashOpened === "true" && others === 1;
   console.log(remembered ? "PASS mash shows once and opens on last time's choice" : `FAIL mash shows once and opens on last time's choice (${mashRows}, ${mashOpened}, ${others})`);
   if (!remembered) process.exitCode = 1;
+  // Dishes: lighter or richer by the fat, remembered next time.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("soup vegetable homemade");
+  await p.getByText("Soup, vegetable, homemade", { exact: true }).first().click();
+  await p.getByRole("radio", { name: /Lighter/ }).click();
+  await p.screenshot({ path: OUT + "/f8-soup.png" });
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const soup = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => f.name.startsWith("Soup, vegetable")));
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("soup vegetable homemade");
+  await p.getByRole("list").getByText("Soup, vegetable, homemade", { exact: true }).first().click();
+  const soupAgain = await p.getByRole("radio", { name: /Lighter/ }).getAttribute("aria-checked");
+  await p.getByRole("button", { name: "Back" }).click();
+  await p.keyboard.press("Escape");
+  const soupOk = soup && soup.name === "Soup, vegetable, homemade (lighter)" && soup.kcal < 165 && soupAgain === "true";
+  console.log(soupOk ? "PASS soup logged lighter and remembered" : `FAIL soup logged lighter and remembered (${soup && soup.name} ${soup && soup.kcal} ${soupAgain})`);
+  if (!soupOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();
@@ -143,7 +161,7 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   console.log(unlocked && addBack ? "PASS unlock reopens the day" : "FAIL unlock reopens the day");
   if (!(lockedNow && addHidden && unlocked && addBack)) process.exitCode = 1;
   // Home: tapping yesterday in the week strip shows yesterday's numbers.
-  await p.getByRole("button", { name: "Home" }).click();
+  await p.getByRole("button", { name: "Home", exact: true }).click();
   await p.locator('button[aria-label^="Show "]').nth(5).click();
   const showing = await p.getByText(/^Showing /).count();
   const diaryBtn = await p.getByRole("button", { name: "Open food diary" }).count();

@@ -16,7 +16,7 @@ import type { CustomFood, FiveADayKind, FoodEntry, Meal, Nutrients } from "../ty
 import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type OffProduct } from "./barcode";
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
-import { amountOf, collapse, coveredBy, switchTo, variantsFor, type Option } from "../variants";
+import { amountOf, collapse, coveredBy, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
@@ -41,6 +41,8 @@ export interface Pending {
   fiveADay?: FiveADayKind;
   abv?: number;
   caffeine?: number;
+  /** Logged lighter or richer than the listed recipe; keeps the listed values to switch back. */
+  style?: { level: Style; typical: Nutrients; name: string };
 }
 
 const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
@@ -159,7 +161,13 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
     }
   };
 
-  const pickDb = (f: FoodItem) => setPending(fromItem(f, true));
+  // Dishes open as lighter or richer if that's how this dish was logged last time.
+  const pickDb = (f: FoodItem) => {
+    const p = fromItem(f, true);
+    const last = [...state.foods].reverse().find((e) => e.source?.style?.name === f.name || e.name === f.name);
+    const level = last?.source?.style?.level ?? 0;
+    setPending(level && styleable(f.name, f.fat) ? withStyle(p, level) : p);
+  };
 
   // No food in the built-in lists contains every word typed (likely a brand, such as 'Caramac'):
   // search branded products automatically and show those first.
@@ -384,6 +392,7 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
   return (
     <div className="space-y-4">
       <VariantPicker pending={pending} setPending={setPending} />
+      <StylePicker pending={pending} setPending={setPending} />
       {(pending.units.length > 1 || pending.baseUnit !== "serving") && (
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Measure">
           {pending.units.map((u, i) => (
@@ -437,6 +446,44 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
             {countable ? (q === 0.5 ? "½" : q) : `${q} ${pending.baseUnit}`}
           </Button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** The same dish made lighter or richer. Amount, measures and everything else stay as they are. */
+function withStyle(p: Pending, level: Style): Pending {
+  const typical = p.style?.typical ?? p.base;
+  const name = p.style?.name ?? p.name;
+  return { ...p, base: restyle(typical, level), name: styledName(name, level), style: level === 0 ? undefined : { level, typical, name } };
+}
+
+function StylePicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
+  const typical = pending.style?.typical ?? pending.base;
+  if (pending.baseUnit === "serving" || !styleable(pending.style?.name ?? pending.name, typical.fat)) return null;
+  const current = pending.style?.level ?? 0;
+  const amount = amountOf(pending);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">How was it made?</p>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How was it made?">
+        {([-1, 0, 1] as Style[]).map((level) => {
+          const on = level === current;
+          const [label, hint] = STYLE_LABELS[level];
+          return (
+            <button
+              key={level}
+              role="radio"
+              aria-checked={on}
+              onClick={() => !on && setPending(withStyle(pending, level))}
+              className={`rounded-xl border px-2 py-2 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+            >
+              <span className="block font-medium">{label}</span>
+              <span className={`block tabular-nums ${on ? "" : "text-muted-foreground"}`}>{Math.round((restyle(typical, level).kcal * amount) / pending.per)} kcal</span>
+              <span className={`block text-[11px] leading-tight ${on ? "opacity-80" : "text-muted-foreground"}`}>{hint}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

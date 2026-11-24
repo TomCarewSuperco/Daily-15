@@ -289,3 +289,31 @@ export function switchTo<P extends Portion>(p: P, f: FoodItem): P {
   }
   return { ...p, name: f.name, base: f, per: f.per, baseUnit: f.unit, units: f.units, unitIdx, qty, caffeine: f.caffeine, estimated: true };
 }
+
+/*
+ * Homemade dishes, soups, stews and takeaways vary mostly in how much oil,
+ * butter or cream goes in. Any such food can be logged lighter or richer
+ * than the listed recipe: half the fat, or 60% more. The app's estimate.
+ */
+export type Style = -1 | 0 | 1;
+export const STYLE_LABELS: Record<Style, [label: string, hint: string]> = {
+  [-1]: ["Lighter", "less oil, butter or cream"],
+  0: ["Typical", "as listed"],
+  1: ["Richer", "more oil, butter or cream"],
+};
+const DISH_RE = /homemade|\bsoup\b|stew|casserole|curry|chilli|bolognese|risotto|lasagne|dhal|dahl|takeaway|stir[- ]?fr|\bpie\b|hotpot|tagine|korma|masala|paella|carbonara|moussaka|shepherd|cottage pie|wrap|burrito|fajita|quiche/i;
+
+/** True for dishes whose fat depends on the cook, with enough fat to matter. */
+export function styleable(name: string, fat: number): boolean {
+  return DISH_RE.test(name) && fat >= 1 && !variantsFor(name);
+}
+
+export function restyle<N extends { kcal: number; fat: number; satFat?: number }>(typical: N, level: Style): N {
+  if (level === 0) return typical;
+  const factor = level < 0 ? 0.5 : 1.6;
+  const fat = typical.fat * factor;
+  const kcal = Math.max(0, typical.kcal + (fat - typical.fat) * 9);
+  return { ...typical, fat: Math.round(fat * 10) / 10, kcal: Math.round(kcal), ...(typical.satFat !== undefined ? { satFat: Math.round(typical.satFat * factor * 10) / 10 } : {}) };
+}
+
+export const styledName = (name: string, level: Style) => (level === 0 ? name : `${name} (${level < 0 ? "lighter" : "richer"})`);

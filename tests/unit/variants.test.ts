@@ -108,3 +108,15 @@ test("ham: kinds of slice keep the count of slices", () => {
   assert.equal(carved.qty, 3);
   assert.equal(amountOf(carved), 105);
 });
+
+test("dishes can be logged lighter or richer by their fat", async () => {
+  const { restyle, styleable, styledName } = await import("../../src/app/variants");
+  const soup = { kcal: 55, protein: 1, carbs: 3.7, fat: 4.4, fibre: 1, satFat: 2 };
+  assert.ok(styleable("Soup, vegetable, homemade", soup.fat));
+  assert.ok(!styleable("Banana", 0.3));
+  assert.ok(!styleable("Mashed potato", 4), "foods with their own choice don't get this one");
+  assert.equal(restyle(soup, -1).kcal, 35);
+  assert.equal(restyle(soup, -1).fat, 2.2);
+  assert.equal(restyle(soup, 1).kcal, 79);
+  assert.equal(styledName("Soup, vegetable, homemade", -1), "Soup, vegetable, homemade (lighter)");
+});

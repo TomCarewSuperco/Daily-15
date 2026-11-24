@@ -195,6 +195,8 @@ export interface FoodEntry extends Nutrients {
     fiveADay?: FiveADayKind;
     abv?: number;
     caffeine?: number;
+    /** Logged lighter (-1) or richer (1) than the listed recipe. */
+    style?: { level: -1 | 0 | 1; typical: Nutrients; name: string };
   };
 }
 
