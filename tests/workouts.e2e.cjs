@@ -51,6 +51,8 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("ready-made workout opens to show its exercises", (await opened.getByText(/^1\. Goblet squat$/).count()) === 1 && (await opened.getByText(/\d × \d+/).count()) >= 3);
   await p.screenshot({ path: OUT + "/w-ready-open.png" });
   await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
+  ok("warm-up offered before the first set", (await p.getByText("Warm up first").count()) === 1 && (await p.getByText(/Five minutes of easy cardio/).count()) === 1);
+  await p.getByRole("button", { name: "I'm warm: start the workout" }).click();
   ok("guided set shown", (await p.getByRole("heading", { name: "Goblet squat" }).count()) === 1);
   await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("16");
   await p.getByRole("button", { name: "Done set" }).click();
@@ -62,12 +64,16 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Done set" }).click();
   await p.getByRole("button", { name: "Skip" }).click();
   await p.getByRole("button", { name: "Finish early" }).click();
+  ok("finish asks how it felt and suggests a cool-down", (await p.getByText("How did that feel?").count()) === 1 && (await p.getByText(/^Cool down:/).count()) === 1);
+  await p.getByRole("radio", { name: "About right" }).click();
   await p.getByRole("button", { name: "Save workout" }).click();
   st = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")));
   const gw = st.workouts.find((w) => w.name === "Lower body, dumbbells");
+  ok("feeling saved with the workout", gw && gw.feeling === "right");
   ok("guided session logged with done sets only", !!gw && gw.exercises.length === 1 && gw.exercises[0].sets.length === 2 && gw.exercises[0].sets[0].weightKg === 16);
   // Next time: last time shown and a heavier weight suggested.
   await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
   ok("last time and progression shown", (await p.getByText(/Last time: 2 × 10 at 16 kg/).count()) === 1 && (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "18");
   await p.getByRole("button", { name: "Close" }).click();
 
@@ -84,6 +90,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
   await p.getByRole("button", { name: "All", exact: true }).click();
   await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
   await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("50");
   await p.getByRole("button", { name: "Done set" }).click();
   // Rest after a heavy squat starts at 2.5 minutes; a change is remembered for that exercise.
@@ -108,6 +115,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   // Moving to a new barbell exercise with no history keeps the weight on the bar.
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
   await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
   await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("50");
   for (let i = 0; i < 3; i++) {
     await p.getByRole("button", { name: "Done set" }).click();
@@ -127,6 +135,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
   await p.getByRole("button", { name: "All", exact: true }).click();
   await p.locator("li", { hasText: "Core, no equipment" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
   await p.getByRole("button", { name: "Done set" }).click();
   await p.getByRole("button", { name: "Finish early" }).click();
   const oneSet = (await p.getByText(/^1 set in/).count()) === 1;

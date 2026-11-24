@@ -120,6 +120,8 @@ export interface Workout {
   restSec?: number;
   exercises: ExerciseEntry[];
   notes?: string;
+  /** How hard the session felt, asked at the end of a guided session. */
+  feeling?: Feeling;
 }
 
 export interface WorkoutTemplate {

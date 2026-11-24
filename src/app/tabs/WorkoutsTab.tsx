@@ -10,6 +10,7 @@ import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlaye
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { clearInProgress, GymPlayer, loadInProgress, type GymSession } from "../components/GymPlayer";
+import { sessionMinutes } from "../gym";
 import { EQUIPMENT_LABELS, findExercise, PREBUILT, type Equipment } from "../exercises";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
@@ -270,7 +271,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                         {w.name}
                         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${openPrebuilt === w.id ? "rotate-180" : ""}`} />
                       </div>
-                      <div className={`text-xs text-muted-foreground ${openPrebuilt === w.id ? "" : "truncate"}`}>About {w.minutes} min · {w.exercises.length} exercises · {w.exercises.map((e) => e[0]).join(", ")}</div>
+                      <div className={`text-xs text-muted-foreground ${openPrebuilt === w.id ? "" : "truncate"}`}>About {sessionMinutes(w.exercises, w.category)} min · {w.exercises.length} exercises · {w.exercises.map((e) => e[0]).join(", ")}</div>
                     </button>
                     <Button size="sm" className="h-8" onClick={() => setGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
                       <Play className="mr-1 h-3.5 w-3.5" />Start

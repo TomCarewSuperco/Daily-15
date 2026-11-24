@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { todayKey, uid } from "../calc";
-import { lastTimeFor, planSession } from "../gym";
+import { lastTimeFor, planSession, sessionMinutes } from "../gym";
 import { DISTANCE_CATEGORIES, STRENGTH_CATEGORIES, WORKOUT_CATEGORIES } from "../data";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { EQUIPMENT_LABELS, findExercise, hasDemo, PREBUILT, suggestExercises, type Equipment, type PrebuiltWorkout } from "../exercises";
@@ -85,7 +85,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
   const prebuilt = useMemo(() => PREBUILT.filter((w) => equipment === "all" || w.equipment === equipment), [equipment]);
 
   const pick = (w: PrebuiltWorkout) => {
-    load(undefined, { name: w.name, category: w.category, intensity: w.intensity, exercises: fromPrebuilt(w) }, w.minutes);
+    load(undefined, { name: w.name, category: w.category, intensity: w.intensity, exercises: fromPrebuilt(w) }, sessionMinutes(w.exercises, w.category));
     setSource("blank");
     toast(`${w.name} loaded. Add your weights, then save.`);
   };
@@ -160,7 +160,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
                     <button onClick={() => pick(w)} className="w-full rounded-xl border bg-card p-3 text-left">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="font-medium">{w.name}</span>
-                        <span className="shrink-0 text-xs text-muted-foreground">about {w.minutes} min</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">about {sessionMinutes(w.exercises, w.category)} min</span>
                       </div>
                       <div className="text-xs text-muted-foreground">{EQUIPMENT_LABELS[w.equipment]} · {w.exercises.length} exercises · {w.intensity}</div>
                       <div className="mt-1 text-xs text-muted-foreground">{w.exercises.map((e) => e[0]).join(", ")}</div>

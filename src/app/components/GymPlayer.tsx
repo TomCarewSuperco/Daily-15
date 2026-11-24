@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { findExercise } from "../exercises";
-import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext } from "../gym";
+import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, warmUpSets } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
-import type { ExerciseEntry, Intensity, Workout } from "../types";
+import type { Feeling, ExerciseEntry, Intensity, Workout } from "../types";
 
 export interface GymSession {
   name: string;
@@ -85,6 +85,9 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   const [now, setNow] = useState(Date.now());
   const [finished, setFinished] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [feeling, setFeeling] = useState<Feeling | null>(null);
+  // A warm-up comes first on a fresh session; a resumed one goes straight back to the sets.
+  const [warming, setWarming] = useState(!r);
   const started = useRef(r?.started ?? Date.now());
   useEffect(() => {
     try {
@@ -178,7 +181,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       return;
     }
     const minutes = Math.max(1, Math.round((Date.now() - started.current) / 60000));
-    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: session.intensity, restSec: restFor(plan[0]?.name ?? "", rests), exercises };
+    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: session.intensity, restSec: restFor(plan[0]?.name ?? "", rests), exercises, ...(feeling ? { feeling } : {}) };
     update((s) => ({
       ...s,
       workouts: [...s.workouts, workout],
@@ -193,7 +196,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
 
   if (finished) {
     return (
-      <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
+      <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col overflow-y-auto bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
         <p className="text-sm font-semibold uppercase tracking-widest text-copper">Done</p>
         <h2 className="mt-2 text-4xl leading-tight">{session.name}</h2>
         <p className="mt-2 text-muted-foreground">{doneSets} {doneSets === 1 ? "set" : "sets"} in {Math.max(1, Math.round((Date.now() - started.current) / 60000))} minutes.</p>
@@ -205,6 +208,30 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
             </li>
           ))}
         </ul>
+        <div className="mt-6">
+          <p className="text-sm font-medium">How did that feel?</p>
+          <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="How did that feel?">
+            {(["easy", "right", "hard"] as Feeling[]).map((f) => (
+              <button
+                key={f}
+                role="radio"
+                aria-checked={feeling === f}
+                onClick={() => setFeeling(f)}
+                className={`rounded-xl border py-2 text-sm ${feeling === f ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+              >
+                {f === "easy" ? "Easy" : f === "right" ? "About right" : "Hard"}
+              </button>
+            ))}
+          </div>
+          {feeling && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {feeling === "hard" ? "Next time, the weights stay the same." : "Next time, weights go up where you hit every rep."}
+            </p>
+          )}
+        </div>
+        <p className="mt-6 rounded-xl bg-muted p-3 text-sm">
+          Cool down: three to five minutes of easy walking or cycling, then stretch if it feels good. It won't stop soreness, but it helps you wind down.
+        </p>
         <div className="mt-auto grid gap-2 pt-6">
           {session.offerSave && <Button size="lg" variant="outline" onClick={() => save(true)}>Save and add to My workouts</Button>}
           <Button size="lg" onClick={() => save(false)}>Save workout</Button>
@@ -215,6 +242,42 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
               {confirmDiscard ? "Tap again to discard" : "Discard"}
             </Button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (warming) {
+    // Best practice: 5 to 10 minutes of general warm-up, then lighter sets of the first lift.
+    const firstHeavy = plan.find((e) => findExercise(e.name)?.equipment !== "none" && e.sets[0]?.weightKg > 0);
+    const ramps = firstHeavy ? warmUpSets(firstHeavy.name, firstHeavy.sets[0].weightKg) : [];
+    return (
+      <div className="fixed inset-0 z-50 mx-auto flex h-[100dvh] max-w-md flex-col overflow-y-auto bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
+        <p className="text-sm font-semibold uppercase tracking-widest text-copper">Warm up first</p>
+        <h2 className="mt-2 text-4xl leading-tight">{session.name}</h2>
+        <ol className="mt-6 space-y-4 text-sm">
+          <li>
+            <p className="font-medium">1. Five minutes of easy cardio</p>
+            <p className="text-muted-foreground">Bike, rower, cross-trainer or a brisk walk. Enough to feel warm, not tired.</p>
+          </li>
+          <li>
+            <p className="font-medium">2. Move through today's lifts</p>
+            <p className="text-muted-foreground">Ten bodyweight squats, ten hip hinges, ten arm circles each way and ten slow lunges. Keep moving; save long stretches for afterwards.</p>
+          </li>
+          <li>
+            <p className="font-medium">3. {firstHeavy ? `Lighter sets of ${firstHeavy.name.toLowerCase()}` : "A lighter set of your first exercise"}</p>
+            {ramps.length ? (
+              <ul className="mt-1 space-y-0.5 tabular-nums text-muted-foreground">{ramps.map((x) => <li key={x}>{x}</li>)}</ul>
+            ) : (
+              <p className="text-muted-foreground">One easy set before your working sets.</p>
+            )}
+            <p className="text-muted-foreground">These don't count towards your sets.</p>
+          </li>
+        </ol>
+        <div className="mt-auto grid gap-2 pt-6">
+          <Button size="lg" onClick={() => setWarming(false)}>I'm warm: start the workout</Button>
+          <Button variant="ghost" onClick={() => setWarming(false)}>Skip warm-up</Button>
+          <Button variant="ghost" onClick={close}>Cancel</Button>
         </div>
       </div>
     );

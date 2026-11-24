@@ -56,5 +56,17 @@ test("rest starts by type of exercise", async () => {
   assert.equal(defaultRest("Back squat"), 150);
   assert.equal(defaultRest("Goblet squat"), 90);
   assert.equal(defaultRest("Bicep curl"), 60);
-  assert.equal(defaultRest("Plank"), 60);
+  assert.equal(defaultRest("Plank"), 30);
+  assert.equal(defaultRest("Push-ups"), 60);
+});
+
+test("a session that felt hard holds the weight; warm-up sets ramp to the working weight", async () => {
+  const { suggestNext, warmUpSets, sessionMinutes } = await import("../../src/app/gym");
+  const last = { date: "2026-11-20", sets: [{ reps: 5, weightKg: 60 }, { reps: 5, weightKg: 60 }], feeling: "hard" as const };
+  assert.equal(suggestNext("Back squat", 5, last)!.weightKg, 60);
+  assert.equal(suggestNext("Back squat", 5, { ...last, feeling: "right" })!.weightKg, 62.5);
+  assert.deepEqual(warmUpSets("Back squat", 60), ["Empty bar (20 kg) × 10", "30 kg × 5", "45 kg × 3"]);
+  assert.deepEqual(warmUpSets("Plank", 0), []);
+  // Gym full body A: 12 sets with 2.5-minute rests on the barbell lifts plus warm-up and cool-down.
+  assert.equal(sessionMinutes([["Back squat", 3, 5], ["Bench press", 3, 5], ["Bent-over row", 3, 8], ["Plank", 3, 30]], "Weight training"), 40);
 });
