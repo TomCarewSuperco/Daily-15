@@ -1,12 +1,13 @@
 import { usePremium } from "../premium/PremiumProvider";
 import { fmtClock } from "./RoutinePlayer";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Minus, Plus, SkipForward, X } from "lucide-react";
+import { Check, Minus, Play, Plus, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { findExercise } from "../exercises";
+import { cue, primeCue } from "../cue";
 import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, warmUpSets } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
@@ -126,13 +127,31 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   useEffect(() => {
     if (restUntil && restLeft === 0) {
       setRestUntil(null);
-      try {
-        navigator.vibrate?.([200, 100, 200]);
-      } catch {
-        /* unsupported */
-      }
+      cue();
     }
   }, [restLeft, restUntil]);
+
+  // Hold timer for timed exercises such as the plank: counts down the target, signals, then counts on.
+  const [holdStart, setHoldStart] = useState<number | null>(null);
+  const [holdSignalled, setHoldSignalled] = useState(false);
+  useEffect(() => {
+    if (!holdStart) return;
+    const id = window.setInterval(() => setNow(Date.now()), 200);
+    return () => window.clearInterval(id);
+  }, [holdStart]);
+  const held = holdStart ? Math.floor((now - holdStart) / 1000) : 0;
+  const holdTarget = plan[ex]?.sets[set]?.reps ?? 0;
+  useEffect(() => {
+    if (holdStart && !holdSignalled && holdTarget > 0 && held >= holdTarget) {
+      setHoldSignalled(true);
+      cue();
+    }
+  }, [held, holdStart, holdSignalled, holdTarget]);
+  // A new set starts with the timer stopped.
+  useEffect(() => {
+    setHoldStart(null);
+    setHoldSignalled(false);
+  }, [ex, set]);
 
   const current = plan[ex];
   const lib = findExercise(current.name);
@@ -349,6 +368,23 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
             <Stepper label={unit === "sec" ? "Seconds" : "Reps"} value={s.reps} step={1} onChange={(v) => setVal("reps", v)} />
             {lib?.equipment !== "none" && <Stepper label="Weight (kg)" value={s.weightKg} step={lib?.equipment === "barbell" ? 2.5 : lib?.equipment === "machine" ? 5 : 1} onChange={(v) => setVal("weightKg", v)} />}
           </div>
+          {unit === "sec" && (
+            <div className="mt-6 rounded-2xl bg-muted p-4 text-center" aria-live="polite">
+              {holdStart ? (
+                <>
+                  <div className={`text-6xl font-semibold tabular-nums ${held >= s.reps ? "text-[hsl(var(--d15-done))]" : ""}`}>
+                    {held < s.reps ? `${Math.floor((s.reps - held) / 60)}:${String((s.reps - held) % 60).padStart(2, "0")}` : `+${held - s.reps}s`}
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{held < s.reps ? `Hold for ${s.reps} seconds` : `Target done. Held ${held} seconds.`}</p>
+                  <Button variant="outline" className="mt-3" onClick={() => { setVal("reps", Math.max(1, held)); setHoldStart(null); }}>Stop at {held} s</Button>
+                </>
+              ) : (
+                <Button size="lg" variant="outline" className="w-full" onClick={() => { primeCue(); setHoldSignalled(false); setNow(Date.now()); setHoldStart(Date.now()); }}>
+                  <Play className="mr-1.5 h-4 w-4" />Start {s.reps}-second timer
+                </Button>
+              )}
+            </div>
+          )}
           <label className="mt-5 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             Rest after each set
             <select
@@ -368,7 +404,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
 
       {!restUntil && (
         <div className="grid gap-2">
-          <Button size="lg" onClick={next}>
+          <Button size="lg" onClick={() => { if (holdStart) { setVal("reps", Math.max(1, held)); setHoldStart(null); } next(); }}>
             <Check className="mr-1.5 h-4 w-4" />Done set
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { const d = done.map((r) => [...r]); d[ex] = d[ex].map(() => false); setDone(d); const nextEx = ex + 1 < plan.length ? ex + 1 : ex; if (nextEx === ex) setFinished(true); else { setEx(nextEx); setSet(0); } }}>

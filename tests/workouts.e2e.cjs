@@ -130,6 +130,18 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.getByRole("button", { name: "Discard" }).click();
   await p.getByRole("button", { name: "Tap again to discard" }).click();
 
+  // Timed exercises have a hold timer; stopping records the time held.
+  await p.getByRole("button", { name: "Ready-made", exact: true }).click();
+  await p.locator("li", { hasText: "Core, no equipment" }).getByRole("button", { name: "Start" }).click();
+  await p.getByRole("button", { name: "Skip warm-up" }).click();
+  await p.getByRole("button", { name: "Skip this exercise" }).click();
+  await p.getByRole("button", { name: "Skip this exercise" }).click();
+  await p.getByRole("button", { name: /Start 20-second timer/ }).click();
+  await p.waitForTimeout(2300);
+  await p.getByRole("button", { name: /^Stop at/ }).click();
+  ok("hold timer records the time held", (await p.getByRole("spinbutton", { name: "Seconds" }).inputValue()) === "2");
+  await p.getByRole("button", { name: "Close" }).click();
+
   // Finishing early: go back to the workout, or discard it without logging.
   const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();
