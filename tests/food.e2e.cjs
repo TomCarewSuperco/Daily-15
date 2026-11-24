@@ -18,6 +18,7 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const siteCalls = [];
   await ctx.route("**/api/food-lookup**", (route) => {
     const u = new URL(route.request().url());
+    if (u.searchParams.get("q") === "estrella damm") return route.fulfill({ json: { products: [{ code: "84", product_name: "Estrella Damm", brands: "Damm", quantity: "330ml", categories_tags: ["en:beverages", "en:alcoholic-beverages", "en:beers"], nutriments: { "energy-kcal_100g": 40, alcohol_100g: 4.6 } }] } });
     if (u.searchParams.get("q") !== "sitebrand") return route.fulfill({ status: 404, contentType: "text/html", body: "not found" });
     siteCalls.push(u.search);
     return route.fulfill({ json: { products: [product("9", "Site Bar", "Acme", 500)] } });
@@ -172,6 +173,19 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const saladOk = salad.some((x) => x.startsWith("Mixed salad leaves")) && salad.includes("Vinaigrette|15 g");
   console.log(saladOk ? "PASS salad logs the dressing" : `FAIL salad logs the dressing (${JSON.stringify(salad)})`);
   if (!saladOk) process.exitCode = 1;
+  // A branded beer: bottle, pint or half pint in ml, with alcohol units counted.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("estrella damm");
+  await p.getByText(/Estrella Damm$/).first().click();
+  const beerUnits = await p.getByRole("radiogroup", { name: "Measure" }).getByRole("radio").allTextContents();
+  await p.getByRole("radio", { name: /^pint/ }).click();
+  await p.getByRole("button", { name: "1", exact: true }).click();
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const beer = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((f) => /Estrella Damm/.test(f.name)));
+  const beerOk = beerUnits[0].startsWith("bottle or can (330ml)") && beer && beer.portion === "1 pint (568 ml)" && beer.alcoholUnits === 2.6;
+  console.log(beerOk ? "PASS beer measured by bottle and pint, with alcohol units" : `FAIL beer measured by bottle and pint, with alcohol units (${JSON.stringify(beerUnits)} ${beer && beer.portion} ${beer && beer.alcoholUnits})`);
+  if (!beerOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

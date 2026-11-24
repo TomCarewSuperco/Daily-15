@@ -46,9 +46,17 @@ export interface OffProduct extends Nutrients {
   quantity: string | null;
   /** Pack size in grams (or ml), read from the label text or Open Food Facts. */
   packG: number | null;
+  /** Sold by volume (the pack says ml, cl or litres): measured in millilitres. */
+  liquid?: boolean;
+  /** An alcoholic drink, from the listing's categories or name. */
+  drink?: DrinkKind;
+  /** Alcohol by volume, %; from the listing, or a typical figure for the kind of drink. */
+  abv?: number;
+  /** True when abv is the typical figure, not the listing's. */
+  abvTypical?: boolean;
 }
 
-const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity";
+const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity,categories_tags";
 
 interface RawProduct {
   code?: string;
@@ -63,6 +71,7 @@ interface RawProduct {
   quantity?: string;
   /** Pack size in grams or millilitres, when Open Food Facts has worked it out. */
   product_quantity?: number | string;
+  categories_tags?: string[];
 }
 
 /** Grams (or ml) in label text such as '250g', '2 x 125 g', '1.5kg' or '1 pot (125g)'. */
@@ -76,9 +85,34 @@ export function gramsIn(text: string | undefined | null): number {
   return Math.round(n * f);
 }
 
+export type DrinkKind = "beer" | "cider" | "wine" | "spirit";
+/** Typical strength when a listing doesn't give one. */
+const TYPICAL_ABV: Record<DrinkKind, number> = { beer: 4.5, cider: 4.5, wine: 12.5, spirit: 40 };
+
+/** What kind of alcoholic drink a product is, from its categories, then its name. Alcohol-free drinks aren't. */
+export function drinkKind(name: string, categories: string[] = []): DrinkKind | null {
+  const c = categories.join(" ");
+  const n = name.toLowerCase();
+  if (/alcohol-?free|non-?alcoholic|0\.0|\bzero\b|low-alcohol|dealcoholi/.test(`${c} ${n}`)) return null;
+  if (/en:ciders?\b/.test(c) || /\bcider\b/.test(n)) return "cider";
+  if (/en:(beers|lagers|ales|stouts|pilsners|ipa|craft-beers)/.test(c) || /\b(beer|lager|ale|ipa|stout|porter|pilsner|bitter|pale ale|peroni|estrella|corona|heineken|stella artois|guinness|budweiser|birra moretti|san miguel|carlsberg|madri|asahi|kronenbourg|camden|brewdog|beavertown)\b/.test(n)) return "beer";
+  if (/en:(wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes|proseccos)/.test(c) || /\b(wine|prosecco|champagne|cava|rioja|merlot|sauvignon|chardonnay|pinot|malbec|shiraz)\b/.test(n)) return "wine";
+  if (/en:(spirits|gins|vodkas|whiskies|rums|liqueurs)/.test(c) || /\b(gin|vodka|whisky|whiskey|rum|brandy|tequila|liqueur)\b/.test(n)) return "spirit";
+  return null;
+}
+
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
 /** Undefined when the product doesn't state the value, so it isn't counted as zero. */
 const opt = (v: unknown) => (v === undefined || v === null || v === "" || Number.isNaN(Number(v)) ? undefined : Number(v));
+
+function drinkFields(p: RawProduct, name: string): Pick<OffProduct, "liquid" | "drink" | "abv" | "abvTypical"> {
+  const liquid = /\d\s*(ml|cl|l)\b/i.test(p.quantity ?? "") || /\d\s*(ml|cl)\b/i.test(p.serving_size ?? "");
+  const kind = drinkKind(name, p.categories_tags ?? []);
+  const n = p.nutriments ?? {};
+  const listed = num(n.alcohol_100g) || num(n.alcohol_value) || num(n.alcohol);
+  if (!kind) return liquid ? { liquid } : {};
+  return { liquid: true, drink: kind, abv: listed > 0 && listed < 80 ? listed : TYPICAL_ABV[kind], ...(listed > 0 ? {} : { abvTypical: true }) };
+}
 
 function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
   const n = p.nutriments ?? {};
@@ -94,6 +128,7 @@ function parse(p: RawProduct, fallbackCode = ""): OffProduct | null {
     servingG: (p.serving_quantity ? num(p.serving_quantity) : 0) || gramsIn(p.serving_size) || null,
     quantity: p.quantity?.trim() || null,
     packG: gramsIn(p.quantity) || (p.product_quantity ? num(p.product_quantity) : 0) || null,
+    ...drinkFields(p, name || title),
     kcal: Math.round(kcal),
     protein: num(n.proteins_100g),
     carbs: num(n.carbohydrates_100g),

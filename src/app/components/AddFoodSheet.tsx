@@ -58,7 +58,8 @@ function fromItem(f: FoodItem | CustomFood, estimated: boolean): Pending {
 
 function fromOff(p: OffProduct): Pending {
   const units = unitsFromOff(p);
-  return { name: p.name, base: p, per: 100, baseUnit: "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true };
+  // Drinks are per 100 ml on the label; alcoholic ones carry their strength so units are counted.
+  return { name: p.name, base: p, per: 100, baseUnit: p.liquid ? "ml" : "g", units, unitIdx: units.length ? 0 : -1, qty: units.length ? 1 : 100, estimated: true, ...(p.abv ? { abv: p.abv } : {}) };
 }
 
 /** Amount in the food's base unit, and a readable portion label. */
@@ -190,7 +191,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
               </p>
             )}
             {online.results.map((p) => (
-              <ResultRow key={p.code || p.name} name={p.name} detail={`${p.kcal} kcal per 100 g${p.quantity ? ` · pack ${p.quantity}` : ""}`} onClick={() => setPending(fromOff(p))} />
+              <ResultRow key={p.code || p.name} name={p.name} detail={`${p.kcal} kcal per 100 ${p.liquid ? "ml" : "g"}${p.abv ? ` · ${p.abv}%${p.abvTypical ? " (typical; not on the label)" : ""}` : ""}${p.quantity ? ` · ${p.liquid ? "" : "pack "}${p.quantity}` : ""}`} onClick={() => setPending(fromOff(p))} />
             ))}
           </ResultGroup>
         ) : (

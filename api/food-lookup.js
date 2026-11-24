@@ -4,7 +4,7 @@
 // is sent to Open Food Facts; no user data.
 
 const UA = "DAILY15/0.1 (fitness and food diary app; https://github.com/TomCarewSuperco/Daily-15)";
-const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity";
+const FIELDS = "code,product_name,product_name_en,brands,nutriments,serving_quantity,serving_size,quantity,product_quantity,categories_tags";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS" };
 
 async function get(url, ms) {
