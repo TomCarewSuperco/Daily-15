@@ -21,10 +21,11 @@ import {
   weightSeries,
   activeMinutesOn,
 } from "../calc";
-import { Field, NumField } from "../components/Field";
+import { Choice, Field, NumField } from "../components/Field";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { MeasureDiagram, type MeasureKey } from "../components/MeasureDiagram";
+import { formatLength, formatLengthChange, fromCm, toCm, type LengthUnit } from "../units";
 import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
 import { useDaily15 } from "../store";
@@ -96,6 +97,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const measurements = [...state.measurements].sort((a, b) => a.date.localeCompare(b.date));
   const firstM = measurements[0];
   const lastM = measurements[measurements.length - 1];
+  const lengthUnit: LengthUnit = state.profile?.lengthUnit ?? "cm";
 
   return (
     <div className="space-y-4">
@@ -290,7 +292,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
               ["Average calories", report.avgCalories?.toLocaleString("en-GB") ?? "—"],
               ["Average protein", report.avgProtein !== null ? `${report.avgProtein} g` : "—"],
               ["Weight trend", fmtChange(report.weightChange)],
-              ...report.measurementChanges.map((m) => [`${m.label[0].toUpperCase()}${m.label.slice(1)}`, `${m.change > 0 ? "+" : m.change < 0 ? "−" : ""}${Math.abs(m.change)} cm`]),
+              ...report.measurementChanges.map((m) => [`${m.label[0].toUpperCase()}${m.label.slice(1)}`, formatLengthChange(m.change, lengthUnit)]),
             ] as [string, string | number][]).map(([k, v]) => (
               <div key={k} className="flex justify-between border-b pb-1">
                 <dt className="text-muted-foreground">{k}</dt>
@@ -314,8 +316,8 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                 return (
                   <div key={k} className="rounded-xl bg-muted p-2">
                     <div className="text-[11px] capitalize text-muted-foreground">{k.replace("Cm", "")}</div>
-                    <div className="font-semibold">{lastM[k]} cm</div>
-                    {diff !== 0 && <div className="text-[11px] text-muted-foreground">{diff > 0 ? "+" : "−"}{Math.abs(diff)} since {formatDay(firstM.date, { day: "numeric", month: "short" })}</div>}
+                    <div className="font-semibold">{formatLength(lastM[k]!, lengthUnit)}</div>
+                    {diff !== 0 && <div className="text-[11px] text-muted-foreground">{formatLengthChange(diff, lengthUnit)} since {formatDay(firstM.date, { day: "numeric", month: "short" })}</div>}
                   </div>
                 );
               })}
@@ -338,7 +340,14 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
 }
 
 function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { update } = useDaily15();
+  const { state, update } = useDaily15();
+  const unit: LengthUnit = state.profile?.lengthUnit ?? "cm";
+  // Switching unit converts anything already typed and is remembered for next time.
+  const setUnit = (next: LengthUnit) => {
+    if (next === unit) return;
+    setM((cur) => Object.fromEntries(Object.entries(cur).map(([k, v]) => [k, typeof v === "number" && v > 0 ? fromCm(toCm(v, unit), next) : v])));
+    update((s) => (s.profile ? { ...s, profile: { ...s.profile, lengthUnit: next } } : s));
+  };
   const [date, setDate] = useState(todayKey());
   const [m, setM] = useState<Record<string, number | "">>({});
   const [active, setActive] = useState<MeasureKey>("waistCm");
@@ -359,11 +368,14 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
           <DialogDescription>Fill in any you track. Use a soft tape, snug but not tight, at the same time of day each time.</DialogDescription>
         </DialogHeader>
         <Field label="Date"><Input type="date" value={date} max={todayKey()} onChange={(e) => setDate(e.target.value || todayKey())} /></Field>
+        <Field label="Units">
+          <Choice columns={2} value={unit} onChange={setUnit} options={[{ value: "cm", label: "Centimetres" }, { value: "in", label: "Inches" }]} />
+        </Field>
         <MeasureDiagram active={active} />
         <div className="grid grid-cols-2 gap-3">
           {fields.map(([k, label]) => (
             <div key={k} onFocusCapture={() => setActive(k as MeasureKey)} onPointerDown={() => setActive(k as MeasureKey)}>
-              <NumField label={label} value={m[k] ?? ""} onChange={(v) => setM({ ...m, [k]: v })} suffix="cm" step={0.5} />
+              <NumField label={label} value={m[k] ?? ""} onChange={(v) => setM({ ...m, [k]: v })} suffix={unit} step={unit === "cm" ? 0.5 : 0.25} />
             </div>
           ))}
         </div>
@@ -373,7 +385,7 @@ function MeasureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
             const entry: MeasurementEntry = { id: uid(), date };
             fields.forEach(([k]) => {
               const v = m[k];
-              if (typeof v === "number" && v > 0) (entry as unknown as Record<string, number>)[k] = v;
+              if (typeof v === "number" && v > 0) (entry as unknown as Record<string, number>)[k] = toCm(v, unit);
             });
             update((s) => ({ ...s, measurements: [...s.measurements, entry] }));
             toast.success("Measurements saved");

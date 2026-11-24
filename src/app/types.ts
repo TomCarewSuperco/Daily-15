@@ -37,6 +37,8 @@ export interface HabitAnchor {
 
 export interface Profile {
   name: string;
+  /** Unit for body measurements; stored values are always centimetres. */
+  lengthUnit?: "cm" | "in";
   age: number;
   sex: Sex;
   heightCm: number;
