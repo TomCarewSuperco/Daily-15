@@ -37,7 +37,7 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   // Sausages from the list, switching to grams and back.
   await p.getByRole("button", { name: "Add to breakfast" }).click();
   await p.getByPlaceholder(/Search foods/).fill("sausages");
-  await p.getByText("Pork sausage, grilled").click();
+  await p.getByText("Sausages", { exact: true }).first().click();
   await p.getByRole("button", { name: "2", exact: true }).click();
   await p.getByRole("radio", { name: "grams" }).click();
   ok("switching to grams keeps the amount", (await p.getByRole("textbox", { name: /Amount in g/ }).or(p.locator('input[aria-label="Amount in g"]')).inputValue()) === "90");
