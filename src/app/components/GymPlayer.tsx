@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { findExercise } from "../exercises";
-import { describeLast, lastTimeFor, planSession, suggestNext } from "../gym";
+import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
 import type { ExerciseEntry, Intensity, Workout } from "../types";
@@ -23,7 +23,6 @@ export interface GymSession {
   resume?: InProgress;
 }
 
-const DEFAULT_REST = 90;
 
 /*
  * The session in progress is kept on the device after every change, so a phone
@@ -78,7 +77,9 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
   const [ex, setEx] = useState(r?.ex ?? 0);
   const [set, setSet] = useState(r?.set ?? 0);
   const [restUntil, setRestUntil] = useState<number | null>(null);
-  const [restLength, setRestLength] = useState(DEFAULT_REST);
+  // Rest is per exercise: the one just done decides how long to rest, and a change is remembered for next time.
+  const [rests, setRests] = useState<Record<string, number>>(() => rememberedRests());
+  const [restAfter, setRestAfter] = useState<{ name: string; started: number } | null>(null);
   const [now, setNow] = useState(Date.now());
   const [finished, setFinished] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -146,7 +147,9 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
         if (!d[i][j]) {
           setEx(i);
           setSet(j);
-          setRestUntil(Date.now() + restLength * 1000);
+          const doneName = plan[ex].name;
+          setRestAfter({ name: doneName, started: Date.now() });
+          setRestUntil(Date.now() + restFor(doneName, rests) * 1000);
           setNow(Date.now());
           return;
         }
@@ -164,7 +167,7 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       return;
     }
     const minutes = Math.max(1, Math.round((Date.now() - started.current) / 60000));
-    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: session.intensity, restSec: restLength, exercises };
+    const workout: Workout = { id: uid(), date: todayKey(), category: session.category, name: session.name, durationMin: minutes, intensity: session.intensity, restSec: restFor(plan[0]?.name ?? "", rests), exercises };
     update((s) => ({
       ...s,
       workouts: [...s.workouts, workout],
@@ -237,12 +240,23 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
             </Button>
           </div>
           <p className="mt-8 text-sm text-muted-foreground">Next: {current.name}, set {set + 1} of {current.sets.length}</p>
-          <label className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-            Rest between sets
-            <select className="rounded-md border bg-card px-2 py-1" value={restLength} onChange={(e) => setRestLength(Number(e.target.value))}>
-              {[45, 60, 90, 120, 180].map((r) => <option key={r} value={r}>{r < 60 ? `${r} s` : `${r / 60} min`}</option>)}
-            </select>
-          </label>
+          {restAfter && (
+            <label className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              Rest after {restAfter.name.toLowerCase()}
+              <select
+                className="rounded-md border bg-card px-2 py-1"
+                value={restFor(restAfter.name, rests)}
+                onChange={(e) => {
+                  const secs = Number(e.target.value);
+                  rememberRest(restAfter.name, secs);
+                  setRests(rememberedRests());
+                  setRestUntil(restAfter.started + secs * 1000);
+                }}
+              >
+                {REST_OPTIONS.map((r) => <option key={r} value={r}>{r < 60 ? `${r} s` : `${r / 60} min`}</option>)}
+              </select>
+            </label>
+          )}
         </div>
       ) : (
         <div className="flex flex-1 flex-col overflow-y-auto py-4">

@@ -50,3 +50,11 @@ test("weights carry over between different workouts; without progression they ar
   assert.deepEqual(planSession(template, past, false)[0].sets.map((s) => s.weightKg), [50, 50, 50]);
   assert.deepEqual(planSession(template, past, true)[0].sets.map((s) => s.weightKg), [52.5, 52.5, 52.5]);
 });
+
+test("rest starts by type of exercise", async () => {
+  const { defaultRest } = await import("../../src/app/gym");
+  assert.equal(defaultRest("Back squat"), 150);
+  assert.equal(defaultRest("Goblet squat"), 90);
+  assert.equal(defaultRest("Bicep curl"), 60);
+  assert.equal(defaultRest("Plank"), 60);
+});

@@ -74,3 +74,42 @@ export function planSession(template: ExerciseEntry[], workouts: Workout[], prog
     };
   });
 }
+
+/*
+ * Rest between sets. Starting points by type of exercise (typical strength-training
+ * practice, not a clinical standard): heavy barbell and leg-press work 2.5 minutes,
+ * other weighted exercises 90 seconds, bodyweight, core and small isolation moves
+ * 60 seconds. A rest the person picks for an exercise is remembered on the device.
+ */
+const HEAVY = /^(back squat|deadlift|bench press|overhead press|bent-over row|romanian deadlift|hip thrust|leg press)$/i;
+const SMALL = /curl|raise|extension|pushdown|face pull|tricep/i;
+export const REST_OPTIONS = [45, 60, 90, 120, 150, 180];
+
+export function defaultRest(exercise: string): number {
+  const eq = findExercise(exercise)?.equipment;
+  if (HEAVY.test(exercise.trim())) return 150;
+  if (!eq || eq === "none" || SMALL.test(exercise)) return 60;
+  return 90;
+}
+
+const REST_KEY = "daily15:rest";
+
+export function rememberedRests(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(REST_KEY) ?? "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+export function rememberRest(exercise: string, seconds: number): void {
+  try {
+    localStorage.setItem(REST_KEY, JSON.stringify({ ...rememberedRests(), [exercise.trim().toLowerCase()]: seconds }));
+  } catch {
+    /* storage unavailable: the rest still applies to this session */
+  }
+}
+
+export function restFor(exercise: string, remembered: Record<string, number>): number {
+  return remembered[exercise.trim().toLowerCase()] ?? defaultRest(exercise);
+}

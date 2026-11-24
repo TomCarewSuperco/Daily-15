@@ -86,6 +86,11 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await p.locator("li", { hasText: "Gym full body A" }).getByRole("button", { name: "Start" }).click();
   await p.getByRole("spinbutton", { name: "Weight (kg)" }).fill("50");
   await p.getByRole("button", { name: "Done set" }).click();
+  // Rest after a heavy squat starts at 2.5 minutes; a change is remembered for that exercise.
+  const restSelect = p.getByRole("combobox");
+  ok("heavy lift rests 2.5 minutes", (await restSelect.inputValue()) === "150" && (await p.getByText(/Rest after back squat/).count()) === 1);
+  await restSelect.selectOption("180");
+  ok("rest change remembered for the exercise", await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:rest") || "{}")["back squat"] === 180));
   await p.reload();
   await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
   await p.getByText(/Unfinished: Gym full body A/).first().waitFor({ timeout: 5000 }).catch(() => {});
