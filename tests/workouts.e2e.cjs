@@ -71,6 +71,15 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("last time and progression shown", (await p.getByText(/Last time: 2 × 10 at 16 kg/).count()) === 1 && (await p.getByRole("spinbutton", { name: "Weight (kg)" }).inputValue()) === "18");
   await p.getByRole("button", { name: "Close" }).click();
 
+  // Logging by hand: choosing an exercise copies last time's weights as the starting point.
+  await p.getByRole("button", { name: "Log workout" }).click();
+  await p.getByRole("button", { name: "Blank", exact: true }).click();
+  await p.getByRole("textbox", { name: "Exercise name" }).first().fill("goblet");
+  await p.getByRole("option", { name: /Goblet squat/ }).click();
+  const carried = await p.getByRole("spinbutton", { name: "Set 1 weight" }).inputValue();
+  ok("hand-logged exercise starts from last time's weight", carried === "16");
+  await p.getByRole("button", { name: "Close" }).first().click();
+
   // Finishing early: go back to the workout, or discard it without logging.
   const before = (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts.length));
   await p.getByRole("button", { name: "Ready-made", exact: true }).click();

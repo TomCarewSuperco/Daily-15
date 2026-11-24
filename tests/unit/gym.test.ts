@@ -42,3 +42,11 @@ test("on the same day, the session logged later counts as last time", () => {
   const hist = [w("2026-11-19", "Goblet squat", [[10, 16], [10, 0], [10, 0]]), w("2026-11-19", "Goblet squat", [[10, 16], [10, 16]])];
   assert.equal(lastTimeFor(hist, "Goblet squat")?.sets.length, 2);
 });
+
+test("weights carry over between different workouts; without progression they aren't raised", async () => {
+  const { planSession } = await import("../../src/app/gym");
+  const past = [{ id: "a", date: "2026-11-20", category: "Weight training", name: "Gym full body A", durationMin: 50, intensity: "moderate" as const, exercises: [{ name: "Back squat", sets: [{ reps: 5, weightKg: 50 }, { reps: 5, weightKg: 50 }] }] }];
+  const template = [{ name: "Back squat", sets: [{ reps: 5, weightKg: 0 }, { reps: 5, weightKg: 0 }, { reps: 5, weightKg: 0 }] }];
+  assert.deepEqual(planSession(template, past, false)[0].sets.map((s) => s.weightKg), [50, 50, 50]);
+  assert.deepEqual(planSession(template, past, true)[0].sets.map((s) => s.weightKg), [52.5, 52.5, 52.5]);
+});

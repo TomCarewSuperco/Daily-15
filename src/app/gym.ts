@@ -57,14 +57,17 @@ export function describeLast(last: LastTime): string {
   return last.sets.map((s) => `${s.reps}${s.weightKg ? `×${s.weightKg}` : ""}`).join(", ");
 }
 
-/** Plan for a session: each exercise's sets, pre-filled from the suggestion or last time. */
-export function planSession(template: ExerciseEntry[], workouts: Workout[]): ExerciseEntry[] {
+/**
+ * Plan for a session: each exercise's sets, pre-filled from the last time that exercise was done in any
+ * workout. With `progress`, a weight that was lifted for every rep goes up one step.
+ */
+export function planSession(template: ExerciseEntry[], workouts: Workout[], progress = true): ExerciseEntry[] {
   return template.map((ex) => {
     const last = lastTimeFor(workouts, ex.name);
     return {
       name: ex.name,
       sets: ex.sets.map((s, i) => {
-        const sug = suggestNext(ex.name, s.reps, last);
+        const sug = progress ? suggestNext(ex.name, s.reps, last) : null;
         const lastSet = last?.sets[Math.min(i, last.sets.length - 1)];
         return { reps: s.reps, weightKg: s.weightKg || sug?.weightKg || lastSet?.weightKg || 0 };
       }),

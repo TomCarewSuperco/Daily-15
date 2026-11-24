@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { todayKey, uid } from "../calc";
+import { lastTimeFor, planSession } from "../gym";
 import { DISTANCE_CATEGORIES, STRENGTH_CATEGORIES, WORKOUT_CATEGORIES } from "../data";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { EQUIPMENT_LABELS, findExercise, hasDemo, PREBUILT, suggestExercises, type Equipment, type PrebuiltWorkout } from "../exercises";
@@ -54,7 +55,9 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
     setName(w?.name ?? t?.name ?? "");
     setDuration(w?.durationMin ?? minutes ?? 30);
     setIntensity(w?.intensity ?? t?.intensity ?? "moderate");
-    setExercises(structuredClone(w?.exercises ?? t?.exercises ?? [blankExercise()]));
+    // A workout being logged starts from the weights last used for each exercise; editing keeps what was saved.
+    const base = structuredClone(w?.exercises ?? t?.exercises ?? [blankExercise()]);
+    setExercises(w || asTemplate ? base : planSession(base, state.workouts, false));
   };
 
   useEffect(() => {
@@ -230,7 +233,7 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
                   </Button>
                 </div>
                 {exercises.map((ex, i) => (
-                  <ExerciseCard key={i} ex={ex} onChange={(fn) => setEx(i, fn)} onRemove={() => setExercises((xs) => xs.filter((_, j) => j !== i))} />
+                  <ExerciseCard key={i} ex={ex} workouts={asTemplate ? [] : state.workouts} onChange={(fn) => setEx(i, fn)} onRemove={() => setExercises((xs) => xs.filter((_, j) => j !== i))} />
                 ))}
               </div>
               )}
@@ -256,7 +259,13 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
 }
 
 /** One exercise: name with library suggestions, how-to and drawing, and sets. */
-function ExerciseCard({ ex, onChange, onRemove }: { ex: ExerciseEntry; onChange: (fn: (e: ExerciseEntry) => ExerciseEntry) => void; onRemove: () => void }) {
+function ExerciseCard({ ex, onChange, onRemove, workouts }: { ex: ExerciseEntry; onChange: (fn: (e: ExerciseEntry) => ExerciseEntry) => void; onRemove: () => void; workouts: Workout[] }) {
+  // Picking an exercise with nothing entered yet copies last time's sets, as the starting point to change.
+  const withLast = (x: ExerciseEntry, name: string): ExerciseEntry => {
+    const last = lastTimeFor(workouts, name);
+    const untouched = x.sets.every((st) => !st.weightKg);
+    return last && untouched ? { ...x, name, sets: last.sets.map((st) => ({ ...st })) } : { ...x, name };
+  };
   const [focused, setFocused] = useState(false);
   const [howTo, setHowTo] = useState(false);
   const lib = findExercise(ex.name);
@@ -281,7 +290,7 @@ function ExerciseCard({ ex, onChange, onRemove }: { ex: ExerciseEntry; onChange:
           <ul className="absolute left-0 right-10 top-full z-10 mt-1 divide-y rounded-xl border bg-popover shadow-lg" role="listbox">
             {suggestions.map((s) => (
               <li key={s.name}>
-                <button role="option" aria-selected={false} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange((x) => ({ ...x, name: s.name })); setFocused(false); }}>
+                <button role="option" aria-selected={false} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange((x) => withLast(x, s.name)); setFocused(false); }}>
                   {hasDemo(s.name) ? <ExerciseDemo name={s.name} animate={false} className="h-8 w-10 shrink-0" /> : <span className="h-8 w-10 shrink-0" />}
                   <span className="flex-1">
                     {s.name}

@@ -32,7 +32,9 @@ function setSummary(name: string, sets: { reps: number; weightKg: number }[]): s
 
 export function GymPlayer({ session, onClose }: { session: GymSession; onClose: () => void }) {
   const { state, update } = useDaily15();
-  const [plan, setPlan] = useState<ExerciseEntry[]>(() => planSession(session.exercises, state.workouts));
+  // Without the progression feature, start from last time's weight rather than silently adding to it.
+  const { premium } = usePremium();
+  const [plan, setPlan] = useState<ExerciseEntry[]>(() => planSession(session.exercises, state.workouts, premium));
   const [done, setDone] = useState<boolean[][]>(() => session.exercises.map((e) => e.sets.map(() => false)));
   const [ex, setEx] = useState(0);
   const [set, setSet] = useState(0);
@@ -76,7 +78,6 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
 
   const current = plan[ex];
   const lib = findExercise(current.name);
-  const { premium } = usePremium();
   const last = lastTimeFor(state.workouts, current.name);
   const suggestion = suggestNext(current.name, targets[ex][set] ?? 0, last);
   const unit = lib?.timed ? "sec" : "reps";
