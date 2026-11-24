@@ -88,17 +88,35 @@ export interface ExerciseStep {
   instructions: string;
 }
 
-const STEPS: Record<string, ExerciseStep[]> = {
-  "gentle stretching": [
-    { name: "Hamstrings", instructions: "Put one heel forward with the leg straight and toes up. Hinge at the hips with a straight back until you feel the back of the thigh. Switch legs halfway." },
-    { name: "Quads", instructions: "Stand tall and hold one ankle behind you, knees together and hips pushed slightly forward. Hold a wall for balance if needed. Switch legs halfway." },
-    { name: "Chest", instructions: "Clasp your hands behind your back, straighten your arms and lift them gently while opening your chest. Keep your shoulders down." },
-    { name: "Shoulders", instructions: "Bring one arm across your chest and hold it above the elbow with the other hand. Keep the shoulder down. Switch arms halfway." },
-  ],
+const STRETCH: Record<string, ExerciseStep> = {
+  hamstrings: { name: "Hamstrings", instructions: "Put one heel forward with the leg straight and toes up. Hinge at the hips with a straight back until you feel the back of the thigh. Switch legs halfway." },
+  calves: { name: "Calves", instructions: "Hands on a wall, one foot back with the leg straight and the heel down, front knee bent. Lean in until you feel the calf. Switch legs halfway." },
+  quads: { name: "Quads", instructions: "Face a wall with one hand on it. Hold the other ankle behind you, knees together and hips pushed slightly forward. Switch legs halfway." },
+  hipFlexors: { name: "Hip flexors", instructions: "Kneel on one knee with the other foot flat in front. Tuck your hips under and ease them forward until you feel the front of the back hip. Switch sides halfway." },
+  chest: { name: "Chest", instructions: "Clasp your hands behind your back, straighten your arms and lift them gently while opening your chest. Keep your shoulders down." },
+  shoulders: { name: "Shoulders", instructions: "Bring one arm across your chest and hold it above the elbow with the other hand. Keep the shoulder down. Switch arms halfway." },
+  upperBack: { name: "Upper back", instructions: "Reach both arms forward with your hands together and round your upper back, pushing your hands away. Let your head drop gently." },
 };
 
-export function stepsFor(exerciseName: string): ExerciseStep[] | null {
-  return STEPS[exerciseName.trim().toLowerCase()] ?? null;
+/*
+ * The cool-down stretch covers the whole body every day, one stretch from each area,
+ * rotating so the same pair of legs stretches doesn't come up day after day:
+ * back of the legs, front of the hips and thighs, chest, and shoulders or upper back.
+ */
+const STRETCH_SLOTS: (keyof typeof STRETCH)[][] = [
+  ["hamstrings", "calves"],
+  ["quads", "hipFlexors"],
+  ["chest"],
+  ["shoulders", "upperBack"],
+];
+
+/** The moves inside a combined exercise, such as today's stretches. `date` is YYYY-MM-DD. */
+export function stepsFor(exerciseName: string, date?: string): ExerciseStep[] | null {
+  if (exerciseName.trim().toLowerCase() !== "gentle stretching") return null;
+  const d = date ? new Date(`${date}T12:00:00`) : new Date();
+  const day = Math.floor(d.getTime() / 86_400_000);
+  // Offsets differ per slot so the pairs don't always change together.
+  return STRETCH_SLOTS.map((options, i) => STRETCH[options[(day + Math.floor(day / 2) * i) % options.length]]);
 }
 
 export const MOBILITY_ROUTINE: Omit<RoutineExercise, "id">[] = [

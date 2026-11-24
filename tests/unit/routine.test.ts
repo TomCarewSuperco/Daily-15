@@ -136,3 +136,13 @@ test("the cardio slot never repeats the marching warm-up", async () => {
     assert.ok(!list.some((e) => e.name === "Standing knee raises"), `day ${d}`);
   }
 });
+
+test("cool-down stretches cover every area and change from day to day", async () => {
+  const { stepsFor } = await import("../../src/app/data");
+  const { hasDemo } = await import("../../src/app/exercises");
+  const a = stepsFor("Gentle stretching", "2026-11-23")!.map((x) => x.name);
+  const b = stepsFor("Gentle stretching", "2026-11-24")!.map((x) => x.name);
+  assert.equal(a.length, 4);
+  assert.notDeepEqual(a, b);
+  for (let d = 1; d <= 8; d++) for (const st of stepsFor("Gentle stretching", `2026-11-0${d}`)!) assert.ok(hasDemo(st.name), st.name);
+});

@@ -53,15 +53,16 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   await q.getByRole("button", { name: "Start", exact: true }).click();
   for (let i = 0; i < 11; i++) await q.getByRole("button", { name: "Next exercise" }).click();
   await q.getByText(/12 of 12/).waitFor();
+  // Today's four stretches, one from each area, rotate by day: read them from the chips.
+  const chips = await q.locator("span.rounded-full.px-2").allTextContents();
   const h = await q.locator("h2").allTextContents();
-  if (!h.includes("Hamstrings")) console.log("debug headings:", h, await q.getByText(/of 12/).allTextContents());
-  ok("stretching starts with hamstrings", h.includes("Hamstrings"));
+  ok("stretching shows four stretches and starts with the first", chips.length === 4 && h.includes(chips[0]));
   await q.getByRole("button", { name: /Start timer/ }).click();
   await q.clock.runFor(31_000);
-  ok("moves on to quads after 30 seconds", (await q.getByRole("heading", { name: "Quads" }).count()) === 1);
+  ok("moves on to the second stretch after 30 seconds", (await q.getByRole("heading", { name: chips[1] }).count()) === 1);
   await q.screenshot({ path: OUT + "/routine-stretch.png" });
   await q.clock.runFor(60_000);
-  ok("then shoulders", (await q.getByRole("heading", { name: "Shoulders" }).count()) === 1);
+  ok("then the fourth", (await q.getByRole("heading", { name: chips[3] }).count()) === 1);
   await ctx2.close();
 
   console.log(R.join("\n")); console.log("errors:", errs);

@@ -232,11 +232,37 @@ export const DEMOS: Record<string, Demo> = {
     a: { h: [86, 35], s: [78, 41], p: [56, 54], fe: [80, 54], fh: [81, 66], be: [79, 55], bh: [80, 67], fk: [69, 73], ff: [82, 92], bk: [55, 73], bf: [51, 92] },
     b: { h: [88, 38], s: [80, 44], p: [56, 55], fe: [82, 57], fh: [83, 69], be: [81, 58], bh: [82, 70], fk: [69, 73], ff: [82, 92], bk: [55, 74], bf: [51, 92] },
   },
+  // Facing a wall, one hand on it; the near leg bent behind, hand holding the ankle, knees together.
   quadStretch: {
     period: 5,
-    a: { h: [61, 13], s: [60, 24], p: [59, 52], fe: [55, 40], fh: [50, 56], be: [68, 31], bh: [77, 27], fk: [60, 71], ff: [49, 59], bk: [60, 72], bf: [60, 92] },
-    b: { h: [61, 14], s: [60, 25], p: [59, 52], fe: [55, 41], fh: [49, 55], be: [68, 32], bh: [77, 29], fk: [61, 71], ff: [48, 57], bk: [60, 72], bf: [60, 92] },
+    prop: "wall",
+    a: { h: [80, 13], s: [79, 24], p: [78, 52], fe: [67, 38], fh: [58, 55], be: [90, 27], bh: [100, 26], fk: [73, 72], ff: [57, 59], bk: [80, 72], bf: [80, 92] },
+    b: { h: [81, 13], s: [80, 24], p: [79, 52], fe: [67, 39], fh: [57, 54], be: [91, 27], bh: [100, 26], fk: [72, 72], ff: [56, 58], bk: [81, 72], bf: [81, 92] },
   },
+
+  // Hands on a wall, back leg straight with the heel down, front knee bent.
+  calfStretch: {
+    period: 5,
+    prop: "wall",
+    a: { h: [88, 21], s: [84, 31], p: [66, 54], fe: [92, 32], fh: [100, 29], be: [92, 33], bh: [100, 30], fk: [80, 72], ff: [82, 92], bk: [54, 73], bf: [42, 92] },
+    b: { h: [90, 23], s: [86, 33], p: [68, 55], fe: [93, 34], fh: [100, 31], be: [93, 35], bh: [100, 32], fk: [83, 72], ff: [82, 92], bk: [55, 73], bf: [42, 92] },
+  },
+  // Half-kneeling: back knee down, tuck the hips and press them forward.
+  hipFlexorStretch: {
+    period: 5,
+    prop: "mat",
+    a: { h: [60, 24], s: [60, 35], p: [58, 63], fe: [54, 47], fh: [55, 60], be: [66, 47], bh: [63, 60], fk: [78, 72], ff: [78, 91], bk: [46, 89], bf: [27, 91] },
+    b: { h: [64, 25], s: [64, 36], p: [63, 64], fe: [58, 48], fh: [59, 61], be: [70, 48], bh: [67, 61], fk: [80, 72], ff: [78, 91], bk: [48, 89], bf: [27, 91] },
+  },
+  // Arms reaching forward, hands together, rounding the upper back.
+  upperBackStretch: {
+    period: 5,
+    a: { h: [64, 16], s: [61, 27], p: [58, 52], c: [57, 38], fe: [71, 31], fh: [82, 33], be: [71, 32], bh: [82, 34], fk: [61, 72], ff: [60, 92], bk: [59, 72], bf: [58, 92] },
+    b: { h: [65, 20], s: [62, 29], p: [57, 52], c: [54, 39], fe: [72, 33], fh: [84, 35], be: [72, 34], bh: [84, 36], fk: [61, 72], ff: [60, 92], bk: [59, 72], bf: [58, 92] },
+  },
+
+
+
   chestStretch: {
     period: 5,
     a: { h: [62, 13], s: [60, 24], p: [59, 52], fe: [53, 36], fh: [47, 47], be: [54, 36], bh: [48, 48], fk: [60, 72], ff: [60, 92], bk: [59, 72], bf: [59, 92] },
@@ -376,6 +402,9 @@ const BY_NAME: Record<string, string> = {
   hamstrings: "hamstringStretch",
   quads: "quadStretch",
   chest: "chestStretch",
+  calves: "calfStretch",
+  "hip flexors": "hipFlexorStretch",
+  "upper back": "upperBackStretch",
   shoulders: "shoulderStretch",
   "goblet squat": "gobletSquat",
   "dumbbell romanian deadlift": "dumbbellRdl",
