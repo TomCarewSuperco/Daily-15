@@ -282,5 +282,15 @@
  "Fruit yoghurt, low fat": "12-380",
  "Greek-style yoghurt, fruit": "12-377",
  "Soya yoghurt, fruit": "12-609",
- "Sausage roll": "19-468"
+ "Sausage roll": "19-468",
+ "Chicken breast, roast, skin on": "18-325",
+ "Chicken breast, roast, skin removed": "18-330",
+ "Chicken thigh, roast, skin on": "18-317",
+ "Chicken thigh, roast, skin removed": "18-319",
+ "Chicken drumstick, roast, skin on": "18-335",
+ "Chicken drumstick, roast, skin removed": "18-334",
+ "Chicken leg, roast, skin on": "18-337",
+ "Chicken leg, roast, skin removed": "18-313",
+ "Chicken wing, roast, skin on": "18-339",
+ "Chicken wing, roast, skin removed": "18-320"
 }

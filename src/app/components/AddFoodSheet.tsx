@@ -1,6 +1,6 @@
 import { SwipeRow } from "./SwipeRow";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react";
+import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -507,7 +507,8 @@ function StylePicker({ pending, setPending }: { pending: Pending; setPending: (p
 function VariantPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
   const v = variantsFor(pending.name);
   if (!v) return null;
-  const kcalOf = (o: Option, on: boolean) => Math.round((o.food.kcal * (on ? amountOf(pending) : amountOf(switchTo(pending, o.food)))) / o.food.per);
+  // Parts of a mixed plate start at one of that part; other versions keep the amount.
+  const kcalOf = (o: Option, on: boolean) => Math.round((o.food.kcal * (on ? amountOf(pending) : v.mixable ? o.food.units[0]?.g ?? 100 : amountOf(switchTo(pending, o.food)))) / o.food.per);
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">{v.question}</p>
@@ -519,7 +520,7 @@ function VariantPicker({ pending, setPending }: { pending: Pending; setPending: 
               key={o.food.name}
               role="radio"
               aria-checked={on}
-              onClick={() => !on && setPending(switchTo(pending, o.food))}
+              onClick={() => !on && setPending(v.mixable ? { ...switchTo(pending, o.food), unitIdx: 0, qty: 1 } : switchTo(pending, o.food))}
               className={`flex items-baseline justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm ${on ? "border-foreground bg-foreground text-background" : "bg-card"}`}
             >
               <span>{o.label}</span>
@@ -528,6 +529,27 @@ function VariantPicker({ pending, setPending }: { pending: Pending; setPending: 
           );
         })}
       </div>
+      {v.skin && (
+        <div className="flex items-center gap-2 pt-1" role="radiogroup" aria-label="Skin">
+          <span className="text-sm">Skin</span>
+          {([true, false] as const).map((on) => {
+            const active = v.skin!.on === on;
+            const target = active ? null : v.skin!.other;
+            const kcal = target ? Math.round((target.kcal * amountOf(switchTo(pending, target))) / target.per) : Math.round((pending.base.kcal * amountOf(pending)) / pending.per);
+            return (
+              <button
+                key={String(on)}
+                role="radio"
+                aria-checked={active}
+                onClick={() => target && setPending(switchTo(pending, target))}
+                className={`rounded-full border px-3 py-1.5 text-sm ${active ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+              >
+                {on ? "Eaten" : "Removed"} <span className={active ? "opacity-80" : "text-muted-foreground"}>{kcal} kcal</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
       {v.others && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1" aria-label={v.others.title}>
           <span className="text-xs text-muted-foreground">{v.others.title}:</span>
@@ -558,6 +580,9 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
     return entryFromPending({ ...fromItem(f, true), unitIdx: -1, qty: c.amount });
   };
   const extra = companion ? toppingEntry(topping) : null;
+  // Mixed plates (a slice of breast and a thigh): parts already chosen, added together.
+  const mixable = !!variantsFor(pending.name)?.mixable;
+  const [plate, setPlate] = useState<NewEntry[]>([]);
 
   return (
     <div className="space-y-4">
@@ -608,7 +633,23 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
           {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the {companion.key === "salad" ? "salad" : "cereal"}, and {extra.portion} of {extra.name.toLowerCase()}. Total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
         </div>
       )}
-      <NutrientGrid n={extra ? sumNutrients([entry, extra]) : entry} />
+      {mixable && (
+        <div className="space-y-1.5">
+          {plate.map((e, i) => (
+            <div key={i} className="flex items-center justify-between rounded-lg bg-muted px-3 py-1.5 text-sm">
+              <span>{e.portion} · {e.name.replace(/, roast/, "").toLowerCase()}</span>
+              <span className="flex items-center gap-2 tabular-nums">
+                {Math.round(e.kcal)} kcal
+                <button aria-label={`Remove ${e.name}`} onClick={() => setPlate((xs) => xs.filter((_, j) => j !== i))}><X className="h-3.5 w-3.5" /></button>
+              </span>
+            </div>
+          ))}
+          <button className="text-sm underline underline-offset-2" onClick={() => { setPlate((xs) => [...xs, entry]); setPending({ ...pending, qty: 1 }); }}>
+            + Add this and choose another part
+          </button>
+        </div>
+      )}
+      <NutrientGrid n={sumNutrients([...plate, entry, ...(extra ? [extra] : [])])} />
       {flags.map((f) => (
         <p key={f.text} role="note" className={`rounded-xl p-3 text-sm ${f.level === "avoid" ? "bg-destructive/10 text-destructive" : "bg-copper/10"}`}>
           {f.text}
@@ -616,8 +657,8 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
       ))}
       <div className="flex gap-2">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => { if (companion) rememberChoice(companion, topping); onAdd(extra ? [entry, extra] : entry); }}>
-          <Plus className="mr-1.5 h-4 w-4" />Add
+        <Button className="flex-1" disabled={entry.kcal <= 0 && pending.qty <= 0} onClick={() => { if (companion) rememberChoice(companion, topping); const all = [...plate, entry, ...(extra ? [extra] : [])]; onAdd(all.length > 1 ? all : entry); }}>
+          <Plus className="mr-1.5 h-4 w-4" />{plate.length ? `Add all (${plate.length + 1})` : "Add"}
         </Button>
       </div>
     </div>

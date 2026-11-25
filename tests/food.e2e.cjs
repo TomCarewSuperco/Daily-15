@@ -185,6 +185,20 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const beerOk = beerUnits[0].startsWith("bottle or can (330ml)") && beer && beer.portion === "1 pint (568 ml)" && beer.alcoholUnits === 2.6;
   console.log(beerOk ? "PASS beer measured by bottle and pint, with alcohol units" : `FAIL beer measured by bottle and pint, with alcohol units (${JSON.stringify(beerUnits)} ${beer && beer.portion} ${beer && beer.alcoholUnits})`);
   if (!beerOk) process.exitCode = 1;
+  // Roast chicken: pick parts, skin on or removed, and several parts on one plate.
+  await p.getByRole("button", { name: "Add to dinner" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("chicken");
+  await p.getByText("Chicken", { exact: true }).first().click();
+  await p.getByRole("button", { name: /Add this and choose another part/ }).click();
+  await p.getByRole("radio", { name: /^Thigh/ }).click();
+  await p.getByRole("radio", { name: /^Removed/ }).click();
+  await p.screenshot({ path: OUT + "/f11-chicken.png" });
+  await p.getByRole("button", { name: /Add all \(2\)/ }).click();
+  await p.waitForTimeout(300);
+  const plate = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.filter((f) => f.name.startsWith("Chicken")).map((f) => `${f.name}|${f.portion}`));
+  const plateOk = plate.includes("Chicken breast, roast, skin on|1 slice (30 g)") && plate.includes("Chicken thigh, roast, skin removed|1 thigh (80 g)");
+  console.log(plateOk ? "PASS chicken parts, skin and a mixed plate" : `FAIL chicken parts, skin and a mixed plate (${JSON.stringify(plate)})`);
+  if (!plateOk) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

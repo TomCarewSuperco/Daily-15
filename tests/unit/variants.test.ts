@@ -146,3 +146,12 @@ test("an entry saved with old measures picks up the current ones, keeping the am
   assert.equal(fresh.units[fresh.unitIdx].name, "head");
   assert.equal(amountOf(fresh), 100);
 });
+
+test("chicken by the part, skin on or removed, keeping the count", () => {
+  const v = variantsFor("Chicken thigh, roast, skin on")!;
+  assert.equal(v.options.length, 5);
+  assert.equal(v.mixable, true);
+  assert.equal(v.skin!.other.name, "Chicken thigh, roast, skin removed");
+  assert.ok(v.skin!.other.kcal < item("Chicken thigh, roast, skin on").kcal);
+  assert.equal(switchTo(pendingOf("Chicken thigh, roast, skin on", 0, 2), v.skin!.other).qty, 2);
+});

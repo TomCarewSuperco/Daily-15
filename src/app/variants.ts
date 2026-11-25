@@ -18,6 +18,8 @@ interface Group {
   usual: number;
   /** A wider group this one sits inside (mash and roast are kinds of potato). */
   parent?: string;
+  /** Several of these often go on one plate (a slice of breast and a thigh): offer to add another. */
+  mixable?: boolean;
 }
 
 const MADE = "How was it made?";
@@ -105,6 +107,26 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "chicken", title: "Chicken", question: "Which part?", usual: 0, mixable: true,
+    options: [
+      ["Breast", "Chicken breast, roast, skin on"],
+      ["Thigh", "Chicken thigh, roast, skin on"],
+      ["Drumstick", "Chicken drumstick, roast, skin on"],
+      ["Leg", "Chicken leg, roast, skin on"],
+      ["Wing", "Chicken wing, roast, skin on"],
+    ],
+  },
+  {
+    key: "chicken-no-skin", title: "Chicken, skin removed", question: "Which part?", usual: 0, mixable: true,
+    options: [
+      ["Breast", "Chicken breast, roast, skin removed"],
+      ["Thigh", "Chicken thigh, roast, skin removed"],
+      ["Drumstick", "Chicken drumstick, roast, skin removed"],
+      ["Leg", "Chicken leg, roast, skin removed"],
+      ["Wing", "Chicken wing, roast, skin removed"],
+    ],
+  },
+  {
     key: "yoghurt", title: "Yoghurt", question: KIND, usual: 0,
     options: [
       ["Greek-style, full fat (10%)", "Greek-style yoghurt, full fat (10%)"],
@@ -173,6 +195,15 @@ const GROUPS: Group[] = [
   },
 ];
 
+/** Skin on and skin removed versions of the same part: about a third of the fat is in the skin. */
+const SKIN: [on: string, off: string][] = [
+  ["Chicken breast, roast, skin on", "Chicken breast, roast, skin removed"],
+  ["Chicken thigh, roast, skin on", "Chicken thigh, roast, skin removed"],
+  ["Chicken drumstick, roast, skin on", "Chicken drumstick, roast, skin removed"],
+  ["Chicken leg, roast, skin on", "Chicken leg, roast, skin removed"],
+  ["Chicken wing, roast, skin on", "Chicken wing, roast, skin removed"],
+];
+
 const MILKS: [string, string][] = [["Whole", "whole"], ["Semi-skimmed", "semi-skimmed"], ["Skimmed", "skimmed"], ["Oat", "oat"], ["Soya", "soya"], ["Almond", "almond"]];
 const MILK_RE = /^(.+?)(, | with )(whole|semi-skimmed|skimmed|oat|soya|almond) milk$/;
 
@@ -237,7 +268,15 @@ function groupOf(rawName: string): Group | null {
 const resolve = (g: Group) => g.options.flatMap(([label, n]) => (byName.has(n) ? [{ label, food: byName.get(n)! }] : []));
 
 export interface Option { label: string; food: FoodItem }
-export interface Variants { question: string; options: Option[]; current: number; others?: { title: string; options: Option[] } }
+export interface Variants {
+  question: string;
+  options: Option[];
+  current: number;
+  others?: { title: string; options: Option[] };
+  /** Skin eaten or removed, and the other version. */
+  skin?: { on: boolean; other: FoodItem };
+  mixable?: boolean;
+}
 
 export function variantsFor(rawName: string): Variants | null {
   const name = canonical(rawName);
@@ -249,7 +288,9 @@ export function variantsFor(rawName: string): Variants | null {
   const parent = g.parent ? GROUPS.find((p) => p.key === g.parent) : undefined;
   // The wider group's other kinds, so mash can still become a jacket potato.
   const others = parent ? { title: `Other ${parent.title.toLowerCase()}`, options: resolve(parent).filter((o) => groupOf(o.food.name)?.key !== g.key) } : undefined;
-  return { question: g.question, options, current, ...(others?.options.length ? { others } : {}) };
+  const pair = SKIN.find(([a, b]) => a === name || b === name);
+  const other = pair ? byName.get(pair[0] === name ? pair[1] : pair[0]) : undefined;
+  return { question: g.question, options, current, ...(others?.options.length ? { others } : {}), ...(other ? { skin: { on: pair![0] === name, other } } : {}), ...(g.mixable ? { mixable: true } : {}) };
 }
 
 /**
@@ -296,7 +337,10 @@ export function collapse(results: FoodItem[], query: string, history: readonly {
     const pick = preferred(f.name, history)!;
     const label = resolve(g).find((o) => o.food.name === pick.name)?.label ?? "";
     const chosen = history.some((h) => canonical(h.name) === pick.name || (g.key.startsWith("milk:") && MILK_RE.exec(h.name)?.[3] && pick.name.endsWith(`${MILK_RE.exec(h.name)![3]} milk`)));
-    rows.push({ food: pick, title: g.title, detail: `${g.options.length} kinds · ${chosen ? "last time" : "usually"}: ${label.toLowerCase()}` });
+    const row = { food: pick, title: g.title, detail: `${g.options.length} kinds · ${chosen ? "last time" : "usually"}: ${label.toLowerCase()}` };
+    // Searching exactly the row's name ('chicken', 'yoghurt') puts it first.
+    if (g.title.toLowerCase().replace(/s$/, "") === query.trim().toLowerCase().replace(/s$/, "")) rows.unshift(row);
+    else rows.push(row);
   }
   return rows;
 }
