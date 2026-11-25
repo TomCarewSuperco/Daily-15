@@ -109,6 +109,9 @@ const BASE: FoodItem[] = [
 
   // Meat, fish and alternatives
   food("Pork sausage, grilled", "g", 290, 14, 9, 23, 0.9, [u("sausage", 45), u("chipolata", 20)]),
+  // Bakery sausage rolls: CoFID for the pork one; vegan is the app's estimate from typical UK bakery labels.
+  food("Sausage roll", "g", 352, 8.4, 27, 24.1, 3.4, [u("sausage roll (bakery)", 100), u("mini sausage roll", 20), u("large sausage roll", 150)]),
+  food("Vegan sausage roll", "g", 310, 10, 27, 18, 3, [u("sausage roll (bakery)", 100), u("mini sausage roll", 20)]),
   food("Premium pork sausage, grilled", "g", 275, 19, 2.3, 21.1, 0.6, [u("sausage", 45), u("chipolata", 20)]),
   food("Reduced-fat pork sausage, grilled", "g", 160, 16.2, 10.7, 6.1, 2.5, [u("sausage", 45), u("chipolata", 20)]),
   food("Beef sausage, grilled", "g", 265, 17.2, 11, 17.2, 1.6, [u("sausage", 45), u("chipolata", 20)]),
@@ -512,6 +515,7 @@ const EXTRA: Record<string, Extra> = {
   "Oven chips": [0.7, 0.5, 0.3],
   "Balsamic glaze": [0, 45, 0.1],
   "Chicken or turkey sausage, grilled": [2.8, 1, 1.5],
+  "Vegan sausage roll": [7, 1.5, 1.2],
   "Venison sausage, grilled": [3, 1, 1.5],
   "Oat milk": [0.2, 4, 0.1],
   "Almond milk, unsweetened": [0.1, 0, 0.13],

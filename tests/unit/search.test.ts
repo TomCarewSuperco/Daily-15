@@ -116,3 +116,9 @@ test("lager calories match UK labels (about 40 kcal per 100 ml at 5%)", () => {
   assert.ok(premium.kcal >= 38 && premium.kcal <= 44);
   assert.equal(premium.abv, 5);
 });
+
+test("sausage rolls are found, even half typed, without pushing sausages down", async () => {
+  const { collapse } = await import("../../src/app/variants");
+  assert.equal(searchFoods(FOOD_DB, "Sausage rol", 1)[0].name, "Sausage roll");
+  assert.equal(collapse(searchFoods(FOOD_DB, "sausage", 3), "sausage", [])[0].title, "Sausages");
+});

@@ -574,7 +574,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/\b(chocolate|kefir|shake)\b/.test(name) && !/chocolate|kefir|shake/.test(qtext)) score -= 10;
     if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
     // Dishes that merely contain the vegetable come after the vegetable itself.
-    if (/\b(layer|bake|pie|casserole|curry|soup|sandwich|in cheese sauce|stuffed|fritters|with eggs)\b/.test(name) && !/layer|bake|pie|casserole|curry|soup|sandwich|cheese|stuffed|fritter|egg/.test(qtext)) score -= 6;
+    if (/\b(layer|bake|pie|casserole|curry|soup|sandwich|in cheese sauce|stuffed|fritters|with eggs|rolls?)\b/.test(name) && !/layer|bake|pie|casserole|curry|soup|sandwich|cheese|stuffed|fritter|egg|roll/.test(qtext)) score -= 15;
     if (/\b(dressing|frozen)\b/.test(name) && !/dressing|frozen/.test(qtext) && /yogurt|milk|cream/.test(qtext)) score -= 25;
     if (/\bpepperoni\b/.test(name) && !/pepperoni|salami|pizza/.test(qtext)) score -= 10;
     if (/^(oat|soya|almond) milk/.test(name) && !/oat|soya|soy|almond|plant|vegan|dairy/.test(qtext)) score -= 3;
