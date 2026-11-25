@@ -30,7 +30,7 @@ const COMPANIONS: (Companion & { match: (n: string) => boolean })[] = [
       { label: "Oat", name: "Oat milk" },
       { label: "Soya", name: "Soya milk, unsweetened" },
       { label: "Almond", name: "Almond milk, unsweetened" },
-      { label: "Greek yoghurt", name: "Greek-style yoghurt, full fat" },
+      { label: "Greek yoghurt", name: "Greek-style yoghurt, full fat (10%)" },
       { label: "0% Greek yoghurt", name: "Greek yoghurt, 0% fat" },
     ],
     amounts: [

@@ -263,18 +263,6 @@
   "salt": 0.1,
   "abv": null
  },
- "Greek-style yoghurt, full fat": {
-  "code": "12-555",
-  "kcal": 133,
-  "protein": 5.7,
-  "carbs": 4.8,
-  "fat": 10.2,
-  "fibre": 0.0,
-  "satFat": 6.8,
-  "sugars": 4.5,
-  "salt": 0.17,
-  "abv": null
- },
  "Cheddar cheese": {
   "code": "12-346",
   "kcal": 416,
@@ -2073,6 +2061,78 @@
   "satFat": 0.8,
   "sugars": 2.6,
   "salt": 0.01,
+  "abv": null
+ },
+ "Greek-style yoghurt, full fat (10%)": {
+  "code": "12-555",
+  "kcal": 133,
+  "protein": 5.7,
+  "carbs": 4.8,
+  "fat": 10.2,
+  "fibre": 0.0,
+  "satFat": 6.8,
+  "sugars": 4.5,
+  "salt": 0.17,
+  "abv": null
+ },
+ "Natural yoghurt, whole milk (3%)": {
+  "code": "12-184",
+  "kcal": 79,
+  "protein": 5.7,
+  "carbs": 7.8,
+  "fat": 3.0,
+  "fibre": 0.0,
+  "satFat": 1.9,
+  "sugars": 7.8,
+  "salt": 0.2,
+  "abv": null
+ },
+ "Natural yoghurt, low fat (1%)": {
+  "code": "12-379",
+  "kcal": 57,
+  "protein": 4.8,
+  "carbs": 7.8,
+  "fat": 1.0,
+  "fibre": null,
+  "satFat": 0.7,
+  "sugars": 7.5,
+  "salt": 0.16,
+  "abv": null
+ },
+ "Fruit yoghurt, low fat": {
+  "code": "12-380",
+  "kcal": 78,
+  "protein": 4.2,
+  "carbs": 13.7,
+  "fat": 1.1,
+  "fibre": 0.3,
+  "satFat": 0.8,
+  "sugars": 12.7,
+  "salt": 0.15,
+  "abv": null
+ },
+ "Greek-style yoghurt, fruit": {
+  "code": "12-377",
+  "kcal": 137,
+  "protein": 4.8,
+  "carbs": 11.2,
+  "fat": 8.4,
+  "fibre": 0.0,
+  "satFat": 5.6,
+  "sugars": 10.5,
+  "salt": 0.16,
+  "abv": null
+ },
+ "Soya yoghurt, fruit": {
+  "code": "12-609",
+  "kcal": 72,
+  "protein": 3.3,
+  "carbs": 11.0,
+  "fat": 2.0,
+  "fibre": 1.0,
+  "satFat": 0.3,
+  "sugars": 10.7,
+  "salt": 0.06,
   "abv": null
  },
  "Gin and tonic": {

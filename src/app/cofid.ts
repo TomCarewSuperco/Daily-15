@@ -272,7 +272,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
     if (/brie|camembert|goats?|feta|mozzarella|halloumi|paneer|ricotta|mascarpone|cream cheese|soft/.test(n)) return [u("slice", 30), u("tablespoon", 15)];
     return [u("matchbox-size piece", 30, "matchbox-size pieces"), u("slice", 20), u("grated tablespoon", 7, "grated tablespoons")];
   }
-  if (/^yogurt|^yoghurt/.test(n)) return [u("pot", 125)];
+  if (/^yogurt|^yoghurt/.test(n)) return [u("heaped tablespoon", 30), u("small bowl", 150), u("pot", 125)];
   if (/^ice cream/.test(n)) return [u("scoop", 60)];
   if (/^sauce|\bsauce\b|^dips?\b|horseradish|piccalilli|salad cream|gravy|ketchup|mayonnaise|dressing|chutney|pickle|relish/.test(n)) return [u("tablespoon", 15)];
   if (group.startsWith("M")) return [u("portion", 120)];
@@ -445,7 +445,8 @@ const stems = (w: string) => [w, w.length > 3 && w.endsWith("s") ? w.slice(0, -1
 const forms = (w: string) => [...stems(w), ...(SYNONYMS[w] ?? [])];
 
 /** Matches the start of a word in the name, so 'ale' doesn't find 'Wensleydale'. */
-const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+// One spelling for words with two, so 'yogurt' and 'yoghurt' match each other exactly.
+const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/yoghurt/g, "yogurt");
 /** Brand names joined with '&' ('Bio&Me') also match their parts ('bio me'). */
 const wordsOf = (name: string) => fold(name).split(/[^a-z0-9&]+/).filter(Boolean).flatMap((w) => (/\w&\w/.test(w) ? [w, ...w.split("&")] : [w]));
 const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.some((nw) => nw.startsWith(x)));
@@ -477,7 +478,8 @@ const queryWords = (q: string) => {
   let text = fold(q);
   for (const [re, to] of PHRASES) text = text.replace(re, to);
   // Numbers such as '10' or '10%' (usually fat content) don't have to appear in the name; they rank results instead.
-  const all = text.split(/\s+/).filter((w) => w && !/^\d+(\.\d+)?%?$/.test(w));
+  const pct = /\d\s*(%|percent\b)/.test(text);
+  const all = text.split(/\s+/).filter((w) => w && !/^\d+(\.\d+)?%?$/.test(w) && !(pct && /^(fat|percent)$/.test(w)));
   const kept = all.filter((w) => !FILLER.has(w));
   return kept.length ? kept : all;
 };
@@ -495,7 +497,7 @@ export function matchesAll(name: string, query: string): boolean {
  */
 /** A number in the query, read as a fat percentage ('yogurt 10%', 'milk 1%', 'mince 5%'). */
 const percentHint = (q: string): number | null => {
-  const m = fold(q).match(/(?:^|\s)(\d+(?:\.\d+)?)%?(?=\s|$)/);
+  const m = fold(q).match(/(?:^|\s)(\d+(?:\.\d+)?)\s*(?:%|percent)?(?=\s|$)/);
   return m ? Number(m[1]) : null;
 };
 
@@ -573,6 +575,7 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/\bporridge\b/.test(name) && !/porridge|oat/.test(qtext)) score -= 10;
     // Dishes that merely contain the vegetable come after the vegetable itself.
     if (/\b(layer|bake|pie|casserole|curry|soup|sandwich|in cheese sauce|stuffed|fritters|with eggs)\b/.test(name) && !/layer|bake|pie|casserole|curry|soup|sandwich|cheese|stuffed|fritter|egg/.test(qtext)) score -= 6;
+    if (/\b(dressing|frozen)\b/.test(name) && !/dressing|frozen/.test(qtext) && /yogurt|milk|cream/.test(qtext)) score -= 25;
     if (/\bpepperoni\b/.test(name) && !/pepperoni|salami|pizza/.test(qtext)) score -= 10;
     if (/^(oat|soya|almond) milk/.test(name) && !/oat|soya|soy|almond|plant|vegan|dairy/.test(qtext)) score -= 3;
     if (/rice (cakes?|crackers?)/.test(name) && !/cake|cracker/.test(qtext)) score -= 10;
@@ -580,8 +583,8 @@ function rank(foods: FoodItem[], words: string[], need: number, fuzzy = false): 
     if (/^(white rice|pasta), cooked$|^white (bread|toast)$/.test(name)) score += 6;
     // 'Yogurt 10%': prefer foods whose fat per 100 g is close to the number, or whose name states it.
     if (hint !== null && hint <= 100) {
-      if (name.includes(`${hint}%`)) score += 10;
-      else if (typeof f.fat === "number") score += Math.max(0, 6 - Math.abs(f.fat - hint) * 2);
+      if (name.includes(`${hint}%`)) score += 15;
+      if (typeof f.fat === "number") score += Math.max(0, 20 - Math.abs(f.fat - hint) * 3);
     }
     // Whole-word matches beat prefixes: 'rose' finds rosé wine before rosemary.
     score += words.filter((w) => forms(w).some((x) => nw.includes(x) || nw.includes(`${x}s`) || nw.includes(`${x}es`))).length * 6;

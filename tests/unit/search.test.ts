@@ -65,7 +65,7 @@ test("chocolate-coated nuts and raisins are found", () => {
 });
 
 test("'natural yogurt 10%' finds full-fat Greek-style yoghurt; numbers read as fat", () => {
-  assert.equal(searchFoods(FOOD_DB, "Natural yogurt 10", 1)[0].name, "Greek-style yoghurt, full fat");
+  assert.equal(searchFoods(FOOD_DB, "Natural yogurt 10", 1)[0].name, "Greek-style yoghurt, full fat (10%)");
   assert.equal(searchFoods(FOOD_DB, "natural yogurt 0%", 1)[0].name, "Greek yoghurt, 0% fat");
   assert.equal(searchFoods(FOOD_DB, "milk", 1)[0].name, "Whole milk");
   assert.notEqual(searchFoods(FOOD_DB, "yogurt", 1)[0].name, "Yogurt-coated raisins");
@@ -98,4 +98,13 @@ test("everyday vegetables come up under their plain names, before dishes", async
   const all = [...FOOD_DB, ...(await loadCofid())];
   for (const [q, want] of [["pakchoi", "Pak choi"], ["bok choy", "Pak choi"], ["corn on the cob", "Corn on the cob"], ["lettuce", "Lettuce"], ["leek", "Leeks"], ["green beans", "Green beans"], ["courgette", "Courgette"], ["tenderstem", "Tenderstem broccoli"], ["carrot", "Carrots"], ["sweet potato", "Sweet potato, baked"]])
     assert.equal(searchFoods(all, q, 1)[0]?.name, want, q);
+});
+
+test("yoghurt: '10%' and '0%' find the right one, either spelling", async () => {
+  const { collapse } = await import("../../src/app/variants");
+  assert.equal(searchFoods(FOOD_DB, "10% fat yogurt", 1)[0].name, "Greek-style yoghurt, full fat (10%)");
+  assert.equal(searchFoods(FOOD_DB, "0% yoghurt", 1)[0].name, "Greek yoghurt, 0% fat");
+  const rows = collapse(searchFoods(FOOD_DB, "yogurt", 4), "yogurt", []);
+  assert.equal(rows[0].title, "Yoghurt");
+  assert.equal(FOOD_DB.find((f) => f.name === "Greek-style yoghurt, full fat (10%)")!.units[0].name, "heaped tablespoon");
 });

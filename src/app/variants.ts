@@ -105,6 +105,19 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "yoghurt", title: "Yoghurt", question: KIND, usual: 0,
+    options: [
+      ["Greek-style, full fat (10%)", "Greek-style yoghurt, full fat (10%)"],
+      ["Greek, 0% fat", "Greek yoghurt, 0% fat"],
+      ["Natural, whole milk (3%)", "Natural yoghurt, whole milk (3%)"],
+      ["Natural, low fat (1%)", "Natural yoghurt, low fat (1%)"],
+      ["Skyr", "Skyr, natural"],
+      ["Fruit, low fat", "Fruit yoghurt, low fat"],
+      ["Greek-style, fruit", "Greek-style yoghurt, fruit"],
+      ["Soya, fruit", "Soya yoghurt, fruit"],
+    ],
+  },
+  {
     key: "salami", title: "Salami", question: KIND, usual: 0,
     options: [
       ["Pre-sliced, thin", "Salami, pre-sliced"],
@@ -202,6 +215,7 @@ const ALIASES: [RegExp, string][] = [
   [/^Salami$/, "Salami, pre-sliced"],
   [/^Chorizo$/, "Chorizo, sliced"],
   [/^Salami snack$/, "Salami snack stick"],
+  [/^Yogurt, Greek style, plain/, "Greek-style yoghurt, full fat (10%)"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 
@@ -271,7 +285,8 @@ export function collapse(results: FoodItem[], query: string, history: readonly {
   const rows: Row[] = [];
   for (const f of results) {
     const g = groupOf(f.name);
-    const general = g && matchesAll(g.title, query);
+    // A search naming a fat % ('0% yoghurt') is after one particular version, so it isn't folded into one row.
+    const general = g && matchesAll(g.title, query) && !/\d/.test(query);
     if (!g || !general) {
       rows.push({ food: f });
       continue;

@@ -23,7 +23,6 @@
  "Skimmed milk": "12-307",
  "Whole milk": "12-596",
  "Greek yoghurt, 0% fat": null,
- "Greek-style yoghurt, full fat": "12-555",
  "Cheddar cheese": "12-346",
  "Cottage cheese": "12-539",
  "Single cream": "12-332",
@@ -276,5 +275,11 @@
  "Lettuce": "13-520",
  "Pak choi": "13-516",
  "Beansprouts": "13-426",
- "Edamame beans": "13-667"
+ "Edamame beans": "13-667",
+ "Greek-style yoghurt, full fat (10%)": "12-555",
+ "Natural yoghurt, whole milk (3%)": "12-184",
+ "Natural yoghurt, low fat (1%)": "12-379",
+ "Fruit yoghurt, low fat": "12-380",
+ "Greek-style yoghurt, fruit": "12-377",
+ "Soya yoghurt, fruit": "12-609"
 }
