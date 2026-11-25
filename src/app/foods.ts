@@ -254,6 +254,8 @@ const BASE: FoodItem[] = [
   food("Crisps, ready salted", "g", 530, 6, 53, 32, 4, [u("bag", 25), u("sharing bag", 150)]),
   food("Digestive biscuit", "g", 480, 7, 63, 21, 3.5, [u("biscuit", 15)]),
   food("Milk chocolate", "g", 530, 7.5, 57, 30, 2, [u("standard bar", 45), u("square", 6)]),
+  // KitKat: typical UK label values per 100 g (an estimate; the barcode gives the exact pack). Sizes are the usual UK bars.
+  food("KitKat", "g", 507, 6.5, 61, 26, 1.5, [u("2-finger bar", 21), u("4-finger bar", 42), u("Chunky", 40, "Chunky bars"), u("Chunky Duo", 64, "Chunky Duos"), u("single finger", 10.5)]),
   food("Plain (dark) chocolate", "g", 598, 7.8, 46, 43, 11, [u("square", 10)]),
   food("Protein bar", "g", 360, 30, 35, 12, 8, [u("bar", 60)]),
   food("Rice cakes", "g", 380, 8, 80, 3, 3, [u("rice cake", 8)]),
@@ -583,6 +585,7 @@ const EXTRA: Record<string, Extra> = {
   "Crisps, ready salted": [2.5, 0.5, 1.3],
   "Digestive biscuit": [10, 17, 1.1],
   "Milk chocolate": [18, 56, 0.2],
+  KitKat: [15.5, 48, 0.2],
   "Plain (dark) chocolate": [25, 24, 0.02],
   "Protein bar": [6, 5, 0.5],
   "Rice cakes": [0.6, 0.5, 0.3],
@@ -725,6 +728,7 @@ const CAFFEINE: Record<string, number> = {
   "Energy drink": 32,
   "Plain (dark) chocolate": 50,
   "Milk chocolate": 20,
+  KitKat: 15,
 };
 
 type CofidValues = { ml?: number; code: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fibre: number | null; satFat: number | null; sugars: number | null; salt: number | null; abv: number | null; caffeine?: number; units?: [string, number][] };

@@ -469,6 +469,7 @@ const PHRASES: [RegExp, string][] = [
   [/\bmocktails?\b/, "virgin mojito alcohol free"],
   [/\bshreddies\b/, "shredded wheat"],
   [/\bpep+erami\b/, "salami snack stick"],
+  [/\bkit ?kat\b/, "kitkat"],
   [/\bpak ?choy?i?\b|\bbok ?choy\b/, "pak choi"],
   [/\bmange ?tout\b/, "mange-tout"],
   [/\brice (k|c)rispies\b/, "breakfast cereal rice toasted"],

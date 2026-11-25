@@ -173,7 +173,7 @@ export async function lookupBarcode(code: string): Promise<OffProduct | null> {
  * names write 'Pecan & Almond' and the search wants every word it's given.
  */
 export function searchTerms(query: string): string {
-  return query.replace(/&/g, " ").replace(/\b(and|with|the|of|in|a|n)\b/gi, " ").replace(/\s+/g, " ").trim();
+  return query.replace(/&/g, " ").replace(/\bkitkat\b/gi, "kit kat").replace(/\b(and|with|the|of|in|a|n)\b/gi, " ").replace(/\s+/g, " ").trim();
 }
 
 /**

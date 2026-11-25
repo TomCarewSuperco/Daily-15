@@ -122,3 +122,10 @@ test("sausage rolls are found, even half typed, without pushing sausages down", 
   assert.equal(searchFoods(FOOD_DB, "Sausage rol", 1)[0].name, "Sausage roll");
   assert.equal(collapse(searchFoods(FOOD_DB, "sausage", 3), "sausage", [])[0].title, "Sausages");
 });
+
+test("KitKat is built in with its bar sizes, however it's typed", async () => {
+  const { searchTerms } = await import("../../src/app/components/barcode");
+  for (const q of ["kitkat", "Kit Kat", "kitkat chunky"]) assert.equal(searchFoods(FOOD_DB, q, 1)[0]?.name, "KitKat", q);
+  assert.deepEqual(FOOD_DB.find((f) => f.name === "KitKat")!.units.map((u) => u.name).slice(0, 3), ["2-finger bar", "4-finger bar", "Chunky"]);
+  assert.equal(searchTerms("Kitkat chunky"), "kit kat chunky");
+});
