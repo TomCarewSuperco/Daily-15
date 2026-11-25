@@ -155,3 +155,12 @@ test("chicken by the part, skin on or removed, keeping the count", () => {
   assert.ok(v.skin!.other.kcal < item("Chicken thigh, roast, skin on").kcal);
   assert.equal(switchTo(pendingOf("Chicken thigh, roast, skin on", 0, 2), v.skin!.other).qty, 2);
 });
+
+test("chicken broth by how it's made, measured in mugs and bowls", async () => {
+  const { searchFoods } = await import("../../src/app/cofid");
+  const { collapse } = await import("../../src/app/variants");
+  assert.equal(collapse(searchFoods(FOOD_DB, "chicken broth", 20), "chicken broth", [])[0].title, "Chicken broth");
+  const v = variantsFor("Chicken bone broth, shop-bought")!;
+  assert.equal(v.options.length, 5);
+  assert.equal(item("Chicken bone broth, shop-bought").units[0].name, "mug");
+});

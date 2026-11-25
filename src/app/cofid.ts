@@ -384,6 +384,8 @@ const SYNONYMS: Record<string, string[]> = {
   fries: ["chips"],
   granary: ["malted"],
   veggie: ["vegetarian"],
+  broth: ["stock"],
+  stock: ["broth"],
   bilton: ["biltong"],
   jerkey: ["jerky"],
   vegan: ["vegetarian"],

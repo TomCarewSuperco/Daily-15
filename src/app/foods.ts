@@ -276,6 +276,13 @@ const BASE: FoodItem[] = [
   food("Tomato ketchup", "g", 100, 1.2, 23, 0.1, 0.9, [u("tablespoon", 15)]),
   food("Sugar", "g", 400, 0, 100, 0, 0, [u("teaspoon", 4)]),
   food("Tomato soup, cream of", "g", 57, 0.9, 6.7, 3, 0.5, [u("half tin", 200, "half tins")]),
+  // Chicken broth by how it's made. Ready-made stock is CoFID; the rest are the app's estimates
+  // (typical stock-cube and bone-broth labels; homemade with the fat skimmed off or left in).
+  food("Chicken broth, stock cube or pot", "ml", 7, 0.3, 0.6, 0.3, 0, [u("mug", 250), u("bowl", 300), u("cup", 200)]),
+  food("Chicken stock, ready-made", "ml", 12, 2.3, 0.2, 0.2, 0.3, [u("mug", 250), u("bowl", 300), u("cup", 200)]),
+  food("Chicken bone broth, shop-bought", "ml", 30, 6.5, 0.5, 0.4, 0, [u("mug", 250), u("bowl", 300), u("cup", 200)]),
+  food("Chicken broth, homemade, fat skimmed", "ml", 15, 2.5, 0.5, 0.4, 0, [u("mug", 250), u("bowl", 300), u("cup", 200)]),
+  food("Chicken broth, homemade, fat left in", "ml", 40, 3, 0.5, 3, 0, [u("mug", 250), u("bowl", 300), u("cup", 200)]),
 
   // Newer and international foods not in CoFID 2021: typical UK label or recipe values (estimates).
   food("Kimchi", "g", 25, 1.6, 3.5, 0.4, 2.0, [u("tablespoon", 20), u("side portion", 50)]),
@@ -523,6 +530,10 @@ const EXTRA: Record<string, Extra> = {
   "Balsamic glaze": [0, 45, 0.1],
   "Chicken or turkey sausage, grilled": [2.8, 1, 1.5],
   "Vegan sausage roll": [7, 1.5, 1.2],
+  "Chicken broth, stock cube or pot": [0.1, 0.3, 0.9],
+  "Chicken bone broth, shop-bought": [0.1, 0.2, 0.4],
+  "Chicken broth, homemade, fat skimmed": [0.1, 0.2, 0.3],
+  "Chicken broth, homemade, fat left in": [0.9, 0.2, 0.3],
   "Venison sausage, grilled": [3, 1, 1.5],
   "Oat milk": [0.2, 4, 0.1],
   "Almond milk, unsweetened": [0.1, 0, 0.13],

@@ -107,6 +107,16 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    key: "broth", title: "Chicken broth", question: MADE, usual: 0,
+    options: [
+      ["Stock cube or pot", "Chicken broth, stock cube or pot"],
+      ["Ready-made stock", "Chicken stock, ready-made"],
+      ["Bone broth, shop-bought", "Chicken bone broth, shop-bought"],
+      ["Homemade, fat skimmed", "Chicken broth, homemade, fat skimmed"],
+      ["Homemade, fat left in", "Chicken broth, homemade, fat left in"],
+    ],
+  },
+  {
     key: "chicken", title: "Chicken", question: "Which part?", usual: 0, mixable: true,
     options: [
       ["Breast", "Chicken breast, roast, skin on"],
@@ -252,6 +262,7 @@ const ALIASES: [RegExp, string][] = [
   [/^Chicken thigh, cooked, no skin$/, "Chicken thigh, roast, skin removed"],
   [/^Chicken, breast, grilled (with|without) skin, meat only/, "Chicken breast, roast, skin removed"],
   [/^Chicken, breast, grilled, meat and skin/, "Chicken breast, roast, skin on"],
+  [/^Stock, chicken, ready made/, "Chicken stock, ready-made"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 
