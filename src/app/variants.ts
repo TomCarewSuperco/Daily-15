@@ -1,5 +1,5 @@
 import { FOOD_DB, type FoodItem } from "./foods";
-import { matchesAll } from "./cofid";
+import { matchesAll, unitsFor } from "./cofid";
 
 /*
  * Foods that come in several versions which look alike on the plate but
@@ -362,3 +362,33 @@ export function restyle<N extends { kcal: number; fat: number; satFat?: number }
 }
 
 export const styledName = (name: string, level: Style) => (level === 0 ? name : `${name} (${level < 0 ? "lighter" : "richer"})`);
+
+/**
+ * A saved entry's measures, brought up to date: when the app's measures for that food
+ * have changed since it was logged (pak choi went from tablespoons to heads), use the
+ * new ones, keeping the same named measure if it still exists, or else the nearest
+ * count of the first one. Branded and custom foods keep what they were saved with.
+ */
+export function refreshUnits<P extends Portion & { fiveADay?: FoodItem["fiveADay"] }>(p: P, fresh: FoodItem["units"] | null): P {
+  if (!fresh || !fresh.length || p.baseUnit === "serving") return p;
+  const same = (a: FoodItem["units"], b: FoodItem["units"]) => a.length === b.length && a.every((x, i) => x.name === b[i].name && x.g === b[i].g);
+  if (same(p.units, fresh)) return p;
+  const amount = amountOf(p);
+  const old = p.unitIdx >= 0 ? p.units[p.unitIdx] : null;
+  if (!old) return { ...p, units: fresh };
+  const keep = fresh.findIndex((x) => x.name === old.name);
+  if (keep >= 0) return { ...p, units: fresh, unitIdx: keep, qty: Math.max(0.5, Math.round((amount / fresh[keep].g) * 2) / 2) };
+  return { ...p, units: fresh, unitIdx: 0, qty: Math.max(0.5, Math.round((amount / fresh[0].g) * 2) / 2) };
+}
+
+/** Today's measures for a food by name: the app's list first, then the general rules. */
+export function currentUnitsFor(name: string, unit: "g" | "ml", fiveADay: FoodItem["fiveADay"] | null): FoodItem["units"] | null {
+  const own = byName.get(name) ?? byName.get(canonical(name));
+  if (own) return own.units;
+  return unitsForName(name, unit, fiveADay);
+}
+
+const unitsForName = (name: string, unit: "g" | "ml", fiveADay: FoodItem["fiveADay"] | null) => {
+  const u = unitsFor(name, unit, fiveADay ?? null, "");
+  return u.length ? u : null;
+};

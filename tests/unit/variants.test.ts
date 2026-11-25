@@ -138,3 +138,11 @@ test("salami by the slice: kinds differ in slice size and fat", async () => {
   assert.equal(deli.qty, 4);
   assert.equal(amountOf(deli), 40);
 });
+
+test("an entry saved with old measures picks up the current ones, keeping the amount", async () => {
+  const { refreshUnits, currentUnitsFor } = await import("../../src/app/variants");
+  const old = { name: "Pak choi, steamed", base: { kcal: 14 }, per: 100, baseUnit: "g" as const, units: [{ name: "heaped tablespoon", plural: "heaped tablespoons", g: 27 }, { name: "5-a-day portion (3 heaped tbsp)", plural: "5-a-day portions", g: 80 }], unitIdx: 1, qty: 1, estimated: true, fiveADay: "fv" as const };
+  const fresh = refreshUnits(old, currentUnitsFor(old.name, "g", "fv"));
+  assert.equal(fresh.units[fresh.unitIdx].name, "head");
+  assert.equal(amountOf(fresh), 100);
+});

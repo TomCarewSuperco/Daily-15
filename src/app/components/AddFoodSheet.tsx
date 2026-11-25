@@ -18,7 +18,7 @@ import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 import { unitsFromOff } from "../offUnits";
 import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
-import { amountOf, collapse, coveredBy, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
+import { amountOf, collapse, coveredBy, currentUnitsFor, refreshUnits, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
@@ -291,7 +291,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                           key={f.id}
                           name={f.name}
                           detail={`${f.kcal} kcal · ${f.portion}`}
-                          onClick={() => (f.source ? setPending({ ...f.source }) : add((({ id: _i, date: _d, meal: _m, ...rest }) => rest)(f)))}
+                          onClick={() => (f.source ? setPending(withCurrentUnits({ ...f.source }, isOwnOrBranded(f.source, state.customFoods ?? []))) : add((({ id: _i, date: _d, meal: _m, ...rest }) => rest)(f)))}
                         />
                       ))}
                     </ResultGroup>
@@ -359,6 +359,17 @@ function ResultRow({ name, detail, onClick, onDelete }: { name: string; detail: 
       )}
     </li>
   );
+}
+
+/** Branded products (from a listing) and the person's own foods keep the measures they were saved with. */
+export function isOwnOrBranded(p: Pending, customFoods: { name: string }[]): boolean {
+  return "code" in (p.base as object) || customFoods.some((c) => c.name === p.name);
+}
+
+/** A saved portion with today's measures for that food, unless it's the person's own food. */
+export function withCurrentUnits(p: Pending, own = false): Pending {
+  if (own || p.baseUnit === "serving") return p;
+  return refreshUnits(p, currentUnitsFor(p.name, p.baseUnit, p.fiveADay ?? null));
 }
 
 /** Builds a diary entry from a chosen portion, keeping the source so the amount can be changed later. */

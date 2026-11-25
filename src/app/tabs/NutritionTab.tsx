@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { addDays, ALCOHOL_UNITS_PER_WEEK, alcoholUnits, coverage, FIVE_A_DAY, fiveADayOn, foodsOn, formatDay, lastNDays, limitsFor, sumNutrients, todayKey, uid } from "../calc";
-import { AddFoodSheet, entryFromPending, MEALS, NutrientGrid, PortionPicker, type Pending } from "../components/AddFoodSheet";
+import { AddFoodSheet, entryFromPending, isOwnOrBranded, withCurrentUnits, MEALS, NutrientGrid, PortionPicker, type Pending } from "../components/AddFoodSheet";
 import { Choice, Field, NumField } from "../components/Field";
 import { Bar, Ring } from "../components/Ring";
 import { Card, CardHeading, Estimate } from "../components/Section";
@@ -319,12 +319,12 @@ function MacroSplit({ n }: { n: Nutrients }) {
 }
 
 function EditFoodDialog({ entry, onClose }: { entry: FoodEntry | null; onClose: () => void }) {
-  const { update } = useDaily15();
+  const { state, update } = useDaily15();
   const [e, setE] = useState<FoodEntry | null>(entry);
   const [pending, setPending] = useState<Pending | null>(null);
   useEffect(() => {
     setE(entry);
-    setPending(entry?.source ? { ...entry.source } : null);
+    setPending(entry?.source ? withCurrentUnits({ ...entry.source }, isOwnOrBranded(entry.source, state.customFoods ?? [])) : null);
   }, [entry]);
   if (!e || !entry) return null;
   const set = (k: keyof Nutrients, v: number | "") => setE({ ...e, [k]: typeof v === "number" ? v : k === "satFat" || k === "sugars" || k === "salt" ? undefined : 0 });
