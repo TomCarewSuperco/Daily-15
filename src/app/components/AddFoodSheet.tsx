@@ -369,7 +369,10 @@ export function isOwnOrBranded(p: Pending, customFoods: { name: string }[]): boo
 /** A saved portion with today's measures for that food, unless it's the person's own food. */
 export function withCurrentUnits(p: Pending, own = false): Pending {
   if (own || p.baseUnit === "serving") return p;
-  return refreshUnits(p, currentUnitsFor(p.name, p.baseUnit, p.fiveADay ?? null));
+  // Built-in foods also take today's values, so a corrected figure (lager) applies when an entry is reopened.
+  const f = FOOD_DB.find((x) => x.name === p.name);
+  const current = f ? { ...p, base: f, ...(f.abv ? { abv: f.abv } : {}) } : p;
+  return refreshUnits(current, currentUnitsFor(p.name, p.baseUnit, p.fiveADay ?? null));
 }
 
 /** Builds a diary entry from a chosen portion, keeping the source so the amount can be changed later. */

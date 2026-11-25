@@ -108,3 +108,11 @@ test("yoghurt: '10%' and '0%' find the right one, either spelling", async () => 
   assert.equal(rows[0].title, "Yoghurt");
   assert.equal(FOOD_DB.find((f) => f.name === "Greek-style yoghurt, full fat (10%)")!.units[0].name, "heaped tablespoon");
 });
+
+test("lager calories match UK labels (about 40 kcal per 100 ml at 5%)", () => {
+  const lager = FOOD_DB.find((f) => f.name === "Lager")!;
+  const premium = FOOD_DB.find((f) => f.name === "Lager, premium")!;
+  assert.ok(lager.kcal >= 30 && lager.kcal <= 36);
+  assert.ok(premium.kcal >= 38 && premium.kcal <= 44);
+  assert.equal(premium.abv, 5);
+});

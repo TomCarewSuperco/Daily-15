@@ -385,8 +385,10 @@ const BASE: FoodItem[] = [
   food("Virgin mojito", "ml", 30, 0, 7.5, 0, 0, [u("glass", 250)]),
   food("Ginger beer", "ml", 40, 0, 10, 0, 0, [u("can", 330)]),
   food("Elderflower pressé", "ml", 30, 0, 7.5, 0, 0, [u("bottle", 275)]),
-  food("Lager", "ml", 24, 0.3, 1.5, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330)]),
-  food("Lager, premium", "ml", 29, 0.3, 2.4, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330)]),
+  // Lager: typical UK label values. CoFID 2021 lists no carbohydrate for lager, which puts it
+  // about a third below what brewers declare (a 4.6% lager is about 40 kcal per 100 ml).
+  food("Lager", "ml", 33, 0.3, 2.5, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330), u("large bottle", 620)]),
+  food("Lager, premium", "ml", 41, 0.4, 3, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 330), u("large bottle", 620)]),
   food("Cider", "ml", 36, 0, 2.6, 0, 0, [u("pint", 568), u("can", 440), u("bottle", 500)]),
   food("Stout", "ml", 37, 0.3, 3, 0, 0, [u("pint", 568), u("can", 440)]),
   food("Prosecco or sparkling wine", "ml", 84, 0.3, 5, 0, 0, [u("glass", 125), u("bottle", 750)]),
@@ -667,6 +669,8 @@ const EXTRA: Record<string, Extra> = {
   "Diet cola": [0, 0, 0.02],
   "Beer, bitter": [0, 0, 0, null, 4],
   "Red wine": [0, 0.6, 0, null, 13],
+  Lager: [0, 0.5, 0.01, null, 4],
+  "Lager, premium": [0, 0.5, 0.01, null, 5],
   "Alcohol-free sparkling wine": [0, 4, 0.01, null],
   "Alcohol-free white wine": [0, 4, 0.01, null],
   "Alcohol-free red wine": [0, 4.5, 0.01, null],
@@ -715,6 +719,9 @@ const GENERATED: FoodItem[] = Object.entries(COFID)
   .filter(([name, c]) => c.units && !baseNames.has(name))
   .map(([name, c]) => ({ ...food(name, "ml", 0, 0, 0, 0, 0, c.units!.map(([n, ml]) => u(n, ml))), ...(c.caffeine ? { caffeine: c.caffeine } : {}) }));
 
+/** Foods whose CoFID values don't match what's sold (see the note on lager), so the app's own values are used. */
+const APP_VALUES = new Set(["Lager", "Lager, premium"]);
+
 export const FOOD_DB: FoodItem[] = [...BASE, ...GENERATED].map((f) => {
   const x = EXTRA[f.name];
   const caffeine = CAFFEINE[f.name] ?? f.caffeine;
@@ -724,6 +731,8 @@ export const FOOD_DB: FoodItem[] = [...BASE, ...GENERATED].map((f) => {
     item = { ...item, satFat, sugars, salt, ...(fiveADay ? { fiveADay } : {}), ...(abv ? { abv } : {}) };
   }
   const c = COFID[f.name];
+  // The app's own figures where the CoFID entry is known to be off; the CoFID code still hides the duplicate.
+  if (c && APP_VALUES.has(f.name)) return { ...item, ...(c.code !== "mix" ? { cofid: c.code } : {}), abv: item.abv ?? c.abv ?? undefined };
   if (c) {
     const keep = (v: number | null, fallback: number) => (v === null ? fallback : v);
     item = {
