@@ -255,7 +255,7 @@ const BASE: FoodItem[] = [
   food("Digestive biscuit", "g", 480, 7, 63, 21, 3.5, [u("biscuit", 15)]),
   food("Milk chocolate", "g", 530, 7.5, 57, 30, 2, [u("standard bar", 45), u("square", 6)]),
   // KitKat: typical UK label values per 100 g (an estimate; the barcode gives the exact pack). Sizes are the usual UK bars.
-  food("KitKat", "g", 507, 6.5, 61, 26, 1.5, [u("2-finger bar", 21), u("4-finger bar", 42), u("Chunky", 40, "Chunky bars"), u("Chunky Duo", 64, "Chunky Duos"), u("single finger", 10.5)]),
+  food("KitKat", "g", 507, 6.5, 61, 26, 1.5, [u("2-finger bar", 21), u("4-finger bar", 42), u("Chunky", 40, "Chunky bars"), u("Chunky Duo", 64, "Chunky Duo packs"), u("single finger", 10.5)]),
   food("Plain (dark) chocolate", "g", 598, 7.8, 46, 43, 11, [u("square", 10)]),
   food("Protein bar", "g", 360, 30, 35, 12, 8, [u("bar", 60)]),
   food("Rice cakes", "g", 380, 8, 80, 3, 3, [u("rice cake", 8)]),
