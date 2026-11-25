@@ -137,8 +137,6 @@ const BASE: FoodItem[] = [
   // Dried meat snacks: the app's estimates from typical UK labels. Jerky is usually sweetened; biltong isn't.
   food("Biltong", "g", 260, 52, 3, 4.5, 0, [u("handful", 15), u("snack bag", 30), u("large bag", 70)]),
   food("Beef jerky", "g", 270, 40, 15, 5, 0.5, [u("handful", 15), u("snack bag", 25), u("large bag", 70)]),
-  food("Chicken breast, cooked", "g", 165, 31, 0, 3.6, 0, [u("breast", 150), u("small breast", 120)]),
-  food("Chicken thigh, cooked, no skin", "g", 230, 25, 0, 14, 0, [u("thigh", 90)]),
   // Roast chicken by the part, skin on or removed (CoFID; thigh and leg without skin use casseroled values, the nearest CoFID has).
   food("Chicken breast, roast, skin on", "g", 173, 28.9, 0, 6.4, 0, [u("slice", 30), u("half breast", 75, "half breasts"), u("breast", 150)]),
   food("Chicken breast, roast, skin removed", "g", 153, 30.2, 0, 3.6, 0, [u("slice", 30), u("half breast", 75, "half breasts"), u("breast", 150)]),
@@ -491,8 +489,6 @@ const EXTRA: Record<string, Extra> = {
   Bresaola: [1, 0.5, 4],
   Biltong: [2, 2, 4.5],
   "Beef jerky": [2, 12, 4.5],
-  "Chicken breast, cooked": [1, 0, 0.18],
-  "Chicken thigh, cooked, no skin": [4, 0, 0.25],
   "Beef mince 5% fat, cooked": [3.2, 0, 0.2],
   "Turkey mince, cooked": [1.8, 0, 0.2],
   "Beef burger, grilled": [7.5, 1, 1],

@@ -247,6 +247,11 @@ const ALIASES: [RegExp, string][] = [
   [/^Chorizo$/, "Chorizo, sliced"],
   [/^Salami snack$/, "Salami snack stick"],
   [/^Yogurt, Greek style, plain/, "Greek-style yoghurt, full fat (10%)"],
+  // Chicken logged before parts and skin were offered, and CoFID's grilled breast.
+  [/^Chicken breast, cooked$/, "Chicken breast, roast, skin removed"],
+  [/^Chicken thigh, cooked, no skin$/, "Chicken thigh, roast, skin removed"],
+  [/^Chicken, breast, grilled (with|without) skin, meat only/, "Chicken breast, roast, skin removed"],
+  [/^Chicken, breast, grilled, meat and skin/, "Chicken breast, roast, skin on"],
   [/^Porridge oats, unfortified, cooked, made up with semi-skimmed milk/, "Porridge, made with semi-skimmed milk"],
 ];
 
