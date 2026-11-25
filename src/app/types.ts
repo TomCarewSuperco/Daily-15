@@ -271,6 +271,8 @@ export interface AppState {
   routineSettings?: RoutineSettings;
   routineLogs: Record<string, RoutineLog>;
   restDays: string[];
+  /** Rest days taken because of illness: they don't count towards the weekly allowance. Nothing else about the reason is kept. */
+  sickDays?: string[];
   workouts: Workout[];
   templates: WorkoutTemplate[];
   foods: FoodEntry[];

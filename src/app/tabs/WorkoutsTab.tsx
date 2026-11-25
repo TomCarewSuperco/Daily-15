@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, ChevronDown, Pencil, Play, Plus, Star, Trash2, Trophy, Wind } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Moon, Pencil, Play, Plus, Star, Trash2, Trophy, Wind } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { NumField } from "../components/Field";
 import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlayer";
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
+import { NotTodaySheet } from "../components/NotTodaySheet";
 import { clearInProgress, GymPlayer, loadInProgress, type GymSession } from "../components/GymPlayer";
 import { sessionMinutes } from "../gym";
 import { EQUIPMENT_LABELS, findExercise, PREBUILT, type Equipment } from "../exercises";
@@ -30,8 +31,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const { state, update } = useDaily15();
   const today = todayKey();
   const log = state.routineLogs[today];
+  const restToday = state.restDays.includes(today);
   const [mode, setMode] = useState<RoutineMode>(log?.mode ?? "standard");
   const [playing, setPlaying] = useState(false);
+  const [notToday, setNotToday] = useState(false);
   const [gym, setGym] = useState<GymSession | null>(null);
   const [library, setLibrary] = useState<"mine" | "ready">("mine");
   const [equipment, setEquipment] = useState<Equipment | "all">("all");
@@ -46,6 +49,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
 
   useEffect(() => {
     if (intent === "start-routine") setPlaying(true);
+    if (intent === "start-recovery") {
+      setMode("recovery");
+      setPlaying(true);
+    }
     if (intent === "log-workout") {
       setSeed(undefined);
       setFormOpen(true);
@@ -204,6 +211,18 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
           <Play className="mr-1.5 h-4 w-4" />
           {log?.finished && log.mode === mode ? "Go again" : done.size > 0 ? "Continue guided workout" : "Start guided workout"}
         </Button>
+        {!log?.finished && (
+          restToday ? (
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Resting today.{" "}
+              <button className="underline underline-offset-2" onClick={() => update((s) => ({ ...s, restDays: s.restDays.filter((d) => d !== today), sickDays: (s.sickDays ?? []).filter((d) => d !== today) }))}>Undo</button>
+            </p>
+          ) : (
+            <Button variant="ghost" className="mt-1 w-full text-muted-foreground" onClick={() => setNotToday(true)}>
+              <Moon className="mr-1.5 h-4 w-4" />Not today
+            </Button>
+          )
+        )}
         {customised && (
           <Button variant="link" size="sm" className="mt-1 w-full text-xs text-muted-foreground" onClick={() => saveRoutine(DEFAULT_ROUTINE)}>
             Reset to the default routine
@@ -371,6 +390,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </Card>
 
       <WorkoutForm open={formOpen} onOpenChange={setFormOpen} seed={seed} />
+      <NotTodaySheet open={notToday} onOpenChange={setNotToday} onRecovery={() => { setMode("recovery"); setPlaying(true); }} />
       <AdjustDialog
         exercise={editing}
         shown={editing ? shownAmount(editing, settingsOf(state)) : 0}

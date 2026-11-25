@@ -21,6 +21,7 @@ import { Bar, Ring } from "../components/Ring";
 import { Card, CardHeading, Estimate } from "../components/Section";
 import type { Navigate } from "../nav";
 import { useDaily15 } from "../store";
+import { NotTodaySheet } from "../components/NotTodaySheet";
 import { PregnancyCard } from "../components/PregnancyCard";
 import { RoughDay } from "../components/RoughDay";
 import { ANCHORS, anchorPhrase, withAnchor } from "../anchor";
@@ -107,7 +108,8 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
 
   const addWater = (ml: number) => update((s) => ({ ...s, water: { ...s.water, [view]: Math.max(0, (s.water[view] ?? 0) + ml) } }));
   const toggleRest = () =>
-    update((s) => ({ ...s, restDays: s.restDays.includes(today) ? s.restDays.filter((d) => d !== today) : [...s.restDays, today] }));
+    update((s) => ({ ...s, restDays: s.restDays.filter((d) => d !== today), sickDays: (s.sickDays ?? []).filter((d) => d !== today) }));
+  const [notToday, setNotToday] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -162,9 +164,9 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
             </Button>
           )}
           {!routine?.finished && (
-            <Button variant="ghost" className="text-background hover:bg-background/10 hover:text-background" onClick={toggleRest}>
+            <Button variant="ghost" className="text-background hover:bg-background/10 hover:text-background" onClick={() => (restToday ? toggleRest() : setNotToday(true))}>
               <Moon className="mr-1.5 h-4 w-4" />
-              {restToday ? "Undo rest" : "Rest day"}
+              {restToday ? "Undo rest" : "Not today"}
             </Button>
           )}
         </div>
@@ -366,6 +368,7 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
 
       <WeightDialog open={weightOpen} onOpenChange={setWeightOpen} />
       <StepsDialog open={stepsOpen} onOpenChange={setStepsOpen} initialDate={view} />
+      <NotTodaySheet open={notToday} onOpenChange={setNotToday} onRecovery={() => onNavigate("workouts", "start-recovery")} />
     </div>
   );
 }
