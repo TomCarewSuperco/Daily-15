@@ -168,8 +168,31 @@ export async function lookupBarcode(code: string): Promise<OffProduct | null> {
  * allows about ten searches a minute per user, so call this on an explicit
  * search, never on every keystroke.
  */
+/**
+ * The words worth sending: '&' and small words like 'and' go, because product
+ * names write 'Pecan & Almond' and the search wants every word it's given.
+ */
+export function searchTerms(query: string): string {
+  return query.replace(/&/g, " ").replace(/\b(and|with|the|of|in|a|n)\b/gi, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Searches branded products. If nothing matches every word, tries again without the
+ * last word or two, so 'bio me pecan almond granola' can still find 'Bio&Me Pecan Granola'.
+ */
 export async function searchProducts(query: string, signal?: AbortSignal): Promise<OffProduct[]> {
-  const q = query.trim();
+  const terms = searchTerms(query);
+  const words = terms.split(" ");
+  const tries = [terms, ...(words.length > 2 ? [words.slice(0, -1).join(" ")] : []), ...(words.length > 3 ? [words.slice(0, -2).join(" ")] : [])];
+  for (const t of tries) {
+    const found = await searchOnce(t, query, signal);
+    if (found.length) return found;
+  }
+  return [];
+}
+
+async function searchOnce(term: string, original: string, signal?: AbortSignal): Promise<OffProduct[]> {
+  const q = term.trim();
   if (q.length < 2) return [];
   // One oddly shaped product shouldn't lose the whole list.
   const safeParse = (p: RawProduct) => {
@@ -179,7 +202,7 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
       return null;
     }
   };
-  const keep = (products: RawProduct[]) => rankByQuery(products.map(safeParse).filter((p): p is OffProduct => !!p && p.kcal > 0), q);
+  const keep = (products: RawProduct[]) => rankByQuery(products.map(safeParse).filter((p): p is OffProduct => !!p && p.kcal > 0), searchTerms(original));
   try {
     const site = await viaSite<{ products: RawProduct[] }>({ q }, signal);
     if (site) return keep(site.products ?? []);

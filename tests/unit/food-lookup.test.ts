@@ -82,3 +82,8 @@ test("a branded meal with no serving size gets half pack, or a typical portion",
   assert.equal(dishUnitsFor("Heinz Cream of Tomato Soup")[0].name, "bowl");
   assert.deepEqual(dishUnitsFor("Something unusual"), []);
 });
+
+test("branded search drops '&' and small words the product names don't use", async () => {
+  const { searchTerms } = await import("../../src/app/components/barcode");
+  assert.equal(searchTerms("Bio&me pecan and almond"), "Bio me pecan almond");
+});
