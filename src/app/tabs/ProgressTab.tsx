@@ -25,6 +25,7 @@ import { Choice, Field, NumField } from "../components/Field";
 import { StepsDialog, WeightDialog } from "../components/QuickLog";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { MeasureDiagram, type MeasureKey } from "../components/MeasureDiagram";
+import { ACTIVITY_KINDS, activityWeek, savedByTraining } from "../activity";
 import { formatLength, formatLengthChange, fromCm, toCm, type LengthUnit } from "../units";
 import { Card, CardHeading, Empty, Stat } from "../components/Section";
 import type { Intent } from "../nav";
@@ -38,6 +39,9 @@ import { lifeStageOf, pregnancyReview } from "../pregnancy";
 import { PreviewBadge } from "../components/PregnancyCard";
 
 const AXIS = { fontSize: 11, fill: "hsl(var(--muted-foreground))" };
+const WORDS = ["none", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const words = (n: number) => (n >= 0 && n < 10 ? WORDS[n] : String(n));
+const cap = (t: string) => t[0].toUpperCase() + t.slice(1);
 const tooltipStyle = { background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 12 };
 
 export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearIntent: () => void }) {
@@ -81,6 +85,12 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const loggedDays = stepsData.filter((d) => d.steps > 0).length;
   const weekDistance = week.reduce((s, d) => s + (state.activity[d]?.distanceKm ?? 0), 0);
   const weekActive = week.reduce((s, d) => s + activeMinutesOn(state, d), 0);
+  const actWeek = activityWeek(state, week[week.length - 1]);
+  const actData = actWeek.map((d) => ({ ...d, label: formatDay(d.date, { weekday: "short" }) }));
+  const actTotal = actWeek.reduce((t, d) => t + d.total, 0);
+  const actTarget = p.targets.activeMinutes * 7;
+  const actDays = actWeek.filter((d) => d.total >= p.targets.activeMinutes).length;
+  const saved = savedByTraining(actWeek, p.targets.steps, p.targets.activeMinutes);
   const stepGoalDays = stepsData.filter((d) => d.steps >= p.targets.steps).length;
 
   const report = useMemo(() => weeklyReport(state, addDays(todayKey(), -1)), [state]);
@@ -183,6 +193,45 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             </ul>
           </details>
         )}
+      </Card>
+
+      {/* All activity: the daily 15, strength, cardio and walking together. */}
+      <Card>
+        <CardHeading>Activity this week</CardHeading>
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-semibold tabular-nums">{actTotal}</span>
+          <span className="text-sm text-muted-foreground">active minutes · target {actTarget}</span>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {cap(words(actDays))} of seven days at your {p.targets.activeMinutes}-minute target.
+          {saved > 0 ? ` Steps were low on ${saved === 1 ? "one of them" : `${words(saved)} of them`}, but your training made up for it.` : ""}
+        </p>
+        <div className="mt-3 h-44" aria-hidden>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={actData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="label" tick={AXIS} tickLine={false} axisLine={false} />
+              <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
+              <ReferenceLine y={p.targets.activeMinutes} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
+              <Tooltip cursor={{ fill: "hsl(var(--muted))" }} contentStyle={tooltipStyle} formatter={(v: number, name: string) => [`${v} min`, ACTIVITY_KINDS.find((k) => k.key === name)?.label ?? name]} />
+              {ACTIVITY_KINDS.map((k, i) => (
+                <RBar key={k.key} dataKey={k.key} stackId="a" fill={k.colour} stroke="hsl(var(--card))" strokeWidth={2} maxBarSize={28} radius={i === ACTIVITY_KINDS.length - 1 ? [4, 4, 0, 0] : 0} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Legend and the numbers behind the chart, so colour isn't the only way to read it. */}
+        <table className="mt-3 w-full text-sm tabular-nums">
+          <tbody>
+            {ACTIVITY_KINDS.map((k) => (
+              <tr key={k.key} className="border-b last:border-0">
+                <td className="py-1.5"><span className="mr-2 inline-block h-2.5 w-2.5 rounded-sm align-middle" style={{ background: k.colour }} />{k.label}</td>
+                <td className="py-1.5 text-right">{actWeek.reduce((t, d) => t + d[k.key], 0)} min</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-muted-foreground">Walking is your logged walks plus everyday steps, estimated as about 5 minutes per 1,000 steps over 5,000 unless your watch gives active minutes. Dashed line: your daily target.</p>
       </Card>
 
       {/* Steps */}

@@ -21,6 +21,12 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   const w = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts);
   const swim = w.length === 1 && w[0].category === "Swimming" && w[0].durationMin === 30 && w[0].intensity === "light" && w[0].exercises.length === 0 && w[0].kcalBurned === 210;
   const minutes = await p.locator("div", { hasText: /^Active minutes$/ }).locator("xpath=following-sibling::div").first().textContent();
+  const card = await p.getByRole("row", { name: /Cardio and sport/ }).textContent().catch(() => "");
+  await p.getByText("Activity this week").scrollIntoViewIfNeeded();
+  await p.screenshot({ path: OUT + "/activity-card.png" });
+  const cardOk = /Cardio and sport\s*30 min/.test(card || "");
+  console.log(cardOk ? "PASS swim shows in the activity card" : `FAIL swim shows in the activity card (${(card || "").slice(0, 200)})`);
+  if (!cardOk) process.exitCode = 1;
   console.log(exercisesHidden ? "PASS activity form has no exercise list" : "FAIL activity form has no exercise list");
   console.log(swim ? "PASS swim logged as a light 30-minute workout" : `FAIL swim logged as a light 30-minute workout ${JSON.stringify(w)}`);
   console.log(Number(minutes) >= 30 ? "PASS swim counts towards active minutes" : `FAIL swim counts towards active minutes (${minutes})`);
