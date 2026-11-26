@@ -1,6 +1,6 @@
 import { SwipeRow } from "./SwipeRow";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Barcode, Camera, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { Barcode, Camera, Check, ChefHat, Globe, Minus, PenLine, Plus, Search, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,7 @@ import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type Of
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 import { unitsFromOff } from "../offUnits";
+import { batchOf, BUILDS, buildFor, INGREDIENTS, partsOf, piecesFrom, remember, startingPoint, toCustomFood, type Amounts, type Build, type Part } from "../homemade";
 import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, currentUnitsFor, refreshUnits, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
@@ -89,6 +90,7 @@ function defaultMeal(): Meal {
 export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { open: boolean; onOpenChange: (o: boolean) => void; date: string; meal?: Meal }) {
   const { state, update } = useDaily15();
   const [mode, setMode] = useState<Mode>("search");
+  const [recipeStart, setRecipeStart] = useState<string | undefined>();
   const [meal, setMeal] = useState<Meal>(defaultMeal());
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState<Pending | null>(null);
@@ -98,6 +100,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
   useEffect(() => {
     if (open) {
       setMode("search");
+      setRecipeStart(undefined);
       setQuery("");
       setPending(null);
       setOnline({ query: "", status: "idle", results: [] });
@@ -129,6 +132,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
     return cofid && q.length >= 2 ? searchFoods(cofid, q, 20).filter((f) => !covered(f.name)).slice(0, 15) : [];
   }, [cofid, q, dbRows]);
   const myFoods = (state.customFoods ?? []).filter((f) => !q || matches(f.name)).slice(0, q ? 20 : 8);
+  const homemade = buildFor(q);
   const savedResults = state.savedMeals.filter((m) => !q || m.name.toLowerCase().includes(q));
   const recentResults = recent.filter((f) => !q || f.name.toLowerCase().includes(q)).slice(0, q ? 10 : 8);
 
@@ -302,6 +306,21 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                       {dbRows.map((r) => <ResultRow key={r.title ?? r.food.name} name={r.title ?? r.food.name} detail={r.detail ?? unitHint(r.food)} onClick={() => pickDb(r.food)} />)}
                     </ResultGroup>
                   )}
+                  {homemade && (
+                    <button
+                      onClick={() => {
+                        setRecipeStart(homemade.key);
+                        setMode("recipe");
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-copper/40 bg-copper/5 p-3 text-left text-sm"
+                    >
+                      <ChefHat className="h-5 w-5 shrink-0 text-copper" />
+                      <span>
+                        <span className="font-medium">Made {homemade.title.toLowerCase()} yourself?</span>
+                        <span className="block text-xs text-muted-foreground">Tick what went in and choose the {homemade.piece} size.</span>
+                      </span>
+                    </button>
+                  )}
                   {q.length >= 3 && MEALS_OUT.some((m) => matchesAll(m.name, q)) && (
                     <button onClick={() => setMode("out")} className="flex w-full items-center gap-3 rounded-xl border border-copper/40 bg-copper/5 p-3 text-left text-sm">
                       <UtensilsCrossed className="h-5 w-5 shrink-0 text-copper" />
@@ -327,7 +346,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
               {mode === "out" && <EatingOutStep onAdd={add} />}
               {mode === "barcode" && <BarcodeStep onFound={setPending} />}
               {mode === "manual" && <ManualStep onNext={setPending} />}
-              {mode === "recipe" && <RecipeStep onSaved={() => setMode("search")} />}
+              {mode === "recipe" && <RecipeStep initial={recipeStart} onSaved={() => setMode("search")} onLog={setPending} />}
             </>
           )}
         </div>
@@ -821,7 +840,158 @@ function ManualStep({ onNext }: { onNext: (p: Pending) => void }) {
   );
 }
 
-function RecipeStep({ onSaved }: { onSaved: () => void }) {
+/** Recipe tab: a homemade build (protein balls, flapjack) or a free recipe. */
+function RecipeStep({ initial, onSaved, onLog }: { initial?: string; onSaved: () => void; onLog: (p: Pending) => void }) {
+  const [kind, setKind] = useState<string>(initial ?? "own");
+  const build = BUILDS.find((b) => b.key === kind);
+  return (
+    <div className="space-y-4">
+      <Field label="Start from">
+        <Choice value={kind} onChange={setKind} options={[...BUILDS.map((b) => ({ value: b.key, label: b.title })), { value: "own", label: "Own recipe" }]} />
+      </Field>
+      {build ? <BuildStep key={build.key} build={build} onLog={onLog} /> : <OwnRecipe onSaved={onSaved} />}
+    </div>
+  );
+}
+
+function Stepper({ value, step, onChange, label }: { value: number; step: number; onChange: (v: number) => void; label: string }) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onChange(Math.max(0, value - step))} aria-label={`Less ${label}`}><Minus className="h-3.5 w-3.5" /></Button>
+      <span className="w-8 text-center text-sm tabular-nums">{value % 1 === 0.5 ? `${value > 1 ? Math.floor(value) : ""}½` : value}</span>
+      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onChange(value + step)} aria-label={`More ${label}`}><Plus className="h-3.5 w-3.5" /></Button>
+    </div>
+  );
+}
+
+/** Tick what went in, count spoons and scoops, choose a size. Saved to My foods per ball or piece. */
+function BuildStep({ build, onLog }: { build: Build; onLog: (p: Pending) => void }) {
+  const { state, update } = useDaily15();
+  const start = useMemo(() => startingPoint(build), [build]);
+  const [amounts, setAmounts] = useState<Amounts>(start.amounts);
+  const [size, setSize] = useState(start.size);
+  const [name, setName] = useState(build.name);
+  const [query, setQuery] = useState("");
+  const [extras, setExtras] = useState<{ food: FoodItem; qty: number; unit: string; g: number }[]>([]);
+  const offered = [...build.usual.map(([k]) => k), ...Object.keys(amounts).filter((k) => !build.usual.some(([u]) => u === k))];
+  const q = query.trim();
+  const results = q.length >= 2 ? searchFoods(FOOD_DB, q, 5) : [];
+  const extraParts: Part[] = extras.map((x) => ({ label: x.food.name, qty: x.qty, g: x.g, n: scaleNutrients(x.food, 100 / x.food.per) }));
+  const { grams, per100 } = batchOf([...partsOf(amounts), ...extraParts]);
+  const piece = build.sizes[size];
+  const count = piecesFrom(grams, piece.g);
+  const each = scaleNutrients(per100, piece.g / 100);
+  const set = (k: string, v: number) => setAmounts((a) => ({ ...a, [k]: v }));
+  const unitText = (qty: number, unit: string, plural: string) => (qty === 1 ? unit : plural);
+
+  const save = () => {
+    const existing = (state.customFoods ?? []).find((f) => f.name.toLowerCase() === name.trim().toLowerCase());
+    const food = toCustomFood(build, name.trim(), per100, piece.g, existing?.id ?? uid());
+    update((s) => ({ ...s, customFoods: [...(s.customFoods ?? []).filter((f) => f.name.toLowerCase() !== food.name.toLowerCase()), food] }));
+    remember(build, { amounts: Object.fromEntries(Object.entries(amounts).filter(([, v]) => v > 0)), size });
+    return food;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Field label="What went in?" hint="Tap to tick or untick. Count spoons, scoops and handfuls for the whole batch.">
+        <ul className="divide-y rounded-xl border">
+          {offered.map((k) => {
+            const i = INGREDIENTS[k];
+            const qty = amounts[k] ?? 0;
+            const on = qty > 0;
+            const usual = build.usual.find(([u]) => u === k)?.[1] || i.step * 2;
+            return (
+              <li key={k} className="flex items-center gap-2 px-3 py-2">
+                <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => set(k, on ? 0 : usual)} aria-pressed={on}>
+                  <span aria-hidden className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? "border-foreground bg-foreground text-background" : "border-muted-foreground/50"}`}>{on && <Check className="h-3 w-3" />}</span>
+                  <span className={`truncate text-sm ${on ? "" : "text-muted-foreground"}`}>
+                    {i.label}
+                    {on && <span className="block text-xs text-muted-foreground">{unitText(qty, i.unit, i.plural)}</span>}
+                  </span>
+                </button>
+                {on && <Stepper value={qty} step={i.step} label={i.label.toLowerCase()} onChange={(v) => set(k, v)} />}
+              </li>
+            );
+          })}
+          {extras.map((x, idx) => (
+            <li key={`x-${idx}`} className="flex items-center gap-2 px-3 py-2">
+              <span className="min-w-0 flex-1 truncate text-sm">
+                {x.food.name}
+                <span className="block text-xs text-muted-foreground">{x.unit}</span>
+              </span>
+              <Stepper value={x.qty} step={x.unit === "g" || x.unit === "ml" ? 10 : 1} label={x.food.name.toLowerCase()} onChange={(v) => setExtras((e) => (v > 0 ? e.map((y, j) => (j === idx ? { ...y, qty: v } : y)) : e.filter((_, j) => j !== idx)))} />
+            </li>
+          ))}
+        </ul>
+      </Field>
+      <Field label="Anything else?">
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search, e.g. flaxseed" aria-label="Add another ingredient" />
+      </Field>
+      {results.length > 0 && (
+        <ul className="divide-y rounded-xl border">
+          {results.map((f) => {
+            const u = f.units[0];
+            return (
+              <ResultRow
+                key={f.name}
+                name={f.name}
+                detail={u ? `per ${u.name}` : `per ${f.unit}`}
+                onClick={() => {
+                  setExtras((e) => [...e, u ? { food: f, qty: 1, unit: u.name, g: u.g } : { food: f, qty: f.typical, unit: f.unit, g: 1 }]);
+                  setQuery("");
+                }}
+              />
+            );
+          })}
+        </ul>
+      )}
+      <Field label={`${build.piece === "ball" ? "Ball" : "Piece"} size`}>
+        <div className="grid grid-cols-3 gap-2">
+          {build.sizes.map((z, i) => (
+            <button
+              key={z.label}
+              type="button"
+              onClick={() => setSize(i)}
+              aria-pressed={size === i}
+              className={`rounded-xl border px-2 py-2.5 text-left text-sm ${size === i ? "border-foreground bg-foreground text-background" : "bg-card hover:bg-muted"}`}
+            >
+              {z.label}
+              <span className={`block text-[11px] ${size === i ? "text-background/75" : "text-muted-foreground"}`}>{z.hint}</span>
+            </button>
+          ))}
+        </div>
+      </Field>
+      {grams > 0 && (
+        <>
+          <p className="text-sm">
+            Makes about {count} {count === 1 ? build.piece : build.pieces}. Each is about {each.kcal} kcal and {Math.round(each.protein)} g protein
+            <Estimate />
+          </p>
+          <NutrientGrid n={each} />
+        </>
+      )}
+      <Field label="Save as"><Input value={name} onChange={(e) => setName(e.target.value)} aria-label="Save as" /></Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          disabled={!name.trim() || !grams}
+          onClick={() => {
+            save();
+            toast.success("Saved to My foods");
+          }}
+        >
+          Save
+        </Button>
+        <Button disabled={!name.trim() || !grams} onClick={() => onLog(fromItem(save(), true))}>
+          Save and log
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function OwnRecipe({ onSaved }: { onSaved: () => void }) {
   const { update } = useDaily15();
   const [name, setName] = useState("");
   const [servings, setServings] = useState<number | "">(2);

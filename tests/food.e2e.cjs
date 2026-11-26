@@ -199,6 +199,28 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const plateOk = plate.includes("Chicken breast, roast, skin on|1 slice (30 g)") && plate.includes("Chicken thigh, roast, skin removed|1 thigh (80 g)");
   console.log(plateOk ? "PASS chicken parts, skin and a mixed plate" : `FAIL chicken parts, skin and a mixed plate (${JSON.stringify(plate)})`);
   if (!plateOk) process.exitCode = 1;
+  // Homemade protein balls: tick ingredients, choose a ball size, save and log one ball.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("protein balls");
+  await p.getByRole("button", { name: /Made protein balls yourself/ }).click();
+  await p.getByRole("button", { name: /Chia seeds/ }).click();
+  await p.getByRole("button", { name: "More protein powder" }).click();
+  await p.getByRole("button", { name: /^Large/ }).click();
+  const makes = await p.getByText(/Makes about \d+ balls/).textContent();
+  await p.screenshot({ path: OUT + "/f-protein-balls.png", fullPage: true });
+  await p.getByRole("button", { name: "Save and log" }).click();
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const ball = await p.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("daily15:v1"));
+    const f = s.customFoods.find((x) => x.name === "Protein balls, homemade");
+    const e = s.foods.find((x) => x.name === "Protein balls, homemade");
+    return { unit: f?.units?.[0], portion: e?.portion, kcal: e?.kcal };
+  });
+  // 1 mug oats, 3 scoops whey, 4 tbsp peanut butter, 3 tbsp honey, 2 tbsp chia: 338 g makes 8 large balls.
+  const okBall = /Makes about 8 balls/.test(makes) && ball.unit?.name === "ball" && ball.unit?.g === 40 && /1 ball/.test(ball.portion ?? "") && ball.kcal > 140 && ball.kcal < 200;
+  console.log(okBall ? "PASS homemade protein balls build and log per ball" : `FAIL homemade protein balls build and log per ball (${makes}, ${JSON.stringify(ball)})`);
+  if (!okBall) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();
