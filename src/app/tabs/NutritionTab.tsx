@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookmarkPlus, CheckCircle2, ChevronLeft, ChevronRight, Lock, Plus, Trash2 } from "lucide-react";
 import { toast } from "../notify";
 import { SwipeRow } from "../components/SwipeRow";
@@ -18,6 +18,21 @@ import { useDaily15 } from "../store";
 import type { FoodEntry, Meal, Nutrients } from "../types";
 import { CAFFEINE_LIMIT_MG, caffeineOn, flagsForFood, lifeStageOf } from "../pregnancy";
 import { TriangleAlert } from "lucide-react";
+import { listNames, strip, usualFor, type Item } from "../usual";
+
+function UsualRow({ meal, usual, onAdd }: { meal: string; usual: { items: Item[]; total: Nutrients }; onAdd: () => void }) {
+  return (
+    <div className="mb-2 flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">Your usual {meal.toLowerCase()}</div>
+        <div className="text-xs text-muted-foreground">{listNames(usual.items)} · {usual.total.kcal} kcal</div>
+      </div>
+      <Button size="sm" onClick={onAdd} aria-label={`Add your usual ${meal.toLowerCase()}`}>
+        <Plus className="mr-1 h-3.5 w-3.5" />Add
+      </Button>
+    </div>
+  );
+}
 
 export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearIntent: () => void }) {
   const { state, update } = useDaily15();
@@ -67,6 +82,8 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
   }, [intent, clearIntent]);
 
   const foods = foodsOn(state, date);
+  const usuals = useMemo(() => Object.fromEntries(MEALS.map(({ value }) => [value, usualFor(state, value, date)])), [state, date]);
+  const usual = (m: Meal) => usuals[m];
   const total = sumNutrients(foods);
   // Missed or half-logged days: offer an estimate (today only from the evening).
   const [restOpen, setRestOpen] = useState(false);
@@ -81,9 +98,19 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
 
   const saveMealGroup = (meal: Meal, items: FoodEntry[]) => {
     const n = sumNutrients(items);
-    const name = `${formatDay(date, { day: "numeric", month: "short" })} ${meal}`;
-    update((s) => ({ ...s, savedMeals: [...s.savedMeals, { id: uid(), name: items.map((i) => i.name).slice(0, 3).join(", ") || name, portion: "1 meal", ...n }] }));
-    toast.success("Meal saved for quick logging");
+    const label = MEALS.find((m) => m.value === meal)?.label ?? meal;
+    const name = `${label}: ${listNames(items)}`;
+    const saved = { id: uid(), name, portion: `${items.length} items`, ...n, items: items.map(strip) };
+    update((s) => ({ ...s, savedMeals: [...s.savedMeals.filter((m) => m.name !== name), saved] }));
+    toast.success("Saved. Search for it next time, or find it under saved meals.");
+  };
+
+  // Log a usual meal as separate entries, so each one can still be changed.
+  const addUsual = (meal: Meal, items: Item[]) => {
+    const added = items.map((i) => ({ ...i, id: uid(), date, meal }));
+    const ids = new Set(added.map((a) => a.id));
+    update((s) => ({ ...s, foods: [...s.foods, ...added] }));
+    toast.undo(`Added your usual ${MEALS.find((m) => m.value === meal)?.label.toLowerCase()}`, () => update((s) => ({ ...s, foods: s.foods.filter((f) => !ids.has(f.id)) })));
   };
 
   return (
@@ -240,6 +267,9 @@ export function NutritionTab({ intent, clearIntent }: { intent: Intent; clearInt
                   </li>
                 ))}
               </ul>
+            )}
+            {!locked && items.length === 0 && date <= todayKey() && usual(meal) && (
+              <UsualRow meal={label} usual={usual(meal)!} onAdd={() => addUsual(meal, usual(meal)!.items)} />
             )}
             {!locked && (
               <Button variant="outline" size="sm" className="w-full" onClick={() => setSheet({ open: true, meal })}>

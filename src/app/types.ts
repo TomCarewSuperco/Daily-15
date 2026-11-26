@@ -226,6 +226,8 @@ export interface SavedMeal extends Nutrients {
   id: string;
   name: string;
   portion: string;
+  /** The foods in a saved meal, logged as separate entries. Absent on recipes and older saves. */
+  items?: Omit<FoodEntry, "id" | "date" | "meal">[];
 }
 
 export interface ActivityDay {

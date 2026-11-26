@@ -282,7 +282,7 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                           key={m.id}
                           name={m.name}
                           detail={`${m.kcal} kcal · ${m.portion}`}
-                          onClick={() => setPending({ name: m.name, base: m, per: 1, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated: false })}
+                          onClick={() => (m.items?.length ? add(m.items) : setPending({ name: m.name, base: m, per: 1, baseUnit: "serving", units: [SERVING], unitIdx: 0, qty: 1, estimated: false }))}
                           onDelete={() => update((s) => ({ ...s, savedMeals: s.savedMeals.filter((x) => x.id !== m.id) }))}
                         />
                       ))}
