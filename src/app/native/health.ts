@@ -63,6 +63,13 @@ const CATEGORY: Partial<Record<WorkoutType, string>> = {
   crossTraining: "Circuit training",
   mixedCardio: "Circuit training",
   coreTraining: "Home workout",
+  stairClimbing: "Stair climber",
+  stairClimbingMachine: "Stair climber",
+  stairs: "Stair climber",
+  stepTraining: "Stair climber",
+  elliptical: "Cross-trainer",
+  rowing: "Rowing machine",
+  rowingMachine: "Rowing machine",
 };
 
 function intensityFor(minutes: number, kcal: number | undefined): Intensity {

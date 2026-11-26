@@ -142,6 +142,9 @@ export const WORKOUT_CATEGORIES = [
   "Cycling",
   "Swimming",
   "Walking",
+  "Stair climber",
+  "Cross-trainer",
+  "Rowing machine",
   "Boxing",
   "Yoga",
   "Pilates",
@@ -149,7 +152,7 @@ export const WORKOUT_CATEGORIES = [
   "Sport or other",
 ] as const;
 
-export const DISTANCE_CATEGORIES = new Set(["Running", "Cycling", "Swimming", "Walking"]);
+export const DISTANCE_CATEGORIES = new Set(["Running", "Cycling", "Swimming", "Walking", "Rowing machine"]);
 export const STRENGTH_CATEGORIES = new Set(["Weight training", "Circuit training", "Home workout", "HIIT"]);
 
 export { FOOD_DB, type FoodItem, type FoodUnit } from "./foods";
