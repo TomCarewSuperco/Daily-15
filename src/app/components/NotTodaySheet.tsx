@@ -45,7 +45,7 @@ export function NotTodaySheet({ open, onOpenChange, onRecovery }: { open: boolea
             <p className="text-sm font-medium">If you'd like to say why</p>
             <p className="text-xs text-muted-foreground">Optional, and only used for the note below. It isn't saved.</p>
             <div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Why">
-              {REST_REASONS.map((r) => (
+              {REST_REASONS.filter((r) => r.id !== "period" || state.profile?.sex !== "male").map((r) => (
                 <button
                   key={r.id}
                   role="radio"

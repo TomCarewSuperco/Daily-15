@@ -25,6 +25,12 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "female", heightCm
   ok("resting shown with undo", (await p.getByText(/Resting today/).count()) === 1);
   await p.getByRole("button", { name: "Undo" }).click();
   ok("undo clears it", (await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).restDays.length)) === 0);
+  // Men aren't offered the period option.
+  await p.evaluate(() => { const st = JSON.parse(localStorage.getItem("daily15:v1")); st.profile.sex = "male"; localStorage.setItem("daily15:v1", JSON.stringify(st)); });
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Workouts", exact: true }).click();
+  await p.getByRole("button", { name: "Not today" }).click();
+  ok("no period option for men", (await p.getByRole("radio", { name: "On my period" }).count()) === 0 && (await p.getByRole("radio", { name: "Feeling unwell" }).count()) === 1);
   console.log(R.join("\n")); console.log("errors:", errs);
   if (R.some((r) => r.startsWith("FAIL")) || errs.length) process.exitCode = 1;
   await b.close();
