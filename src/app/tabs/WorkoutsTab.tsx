@@ -6,11 +6,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cardioBests, formatDay, formatPace, personalBests, restAdvice, todayKey } from "../calc";
 import { DEFAULT_ROUTINE, MODE_INFO, stepsFor, SUBSTITUTES } from "../data";
 import { NumField } from "../components/Field";
-import { RoutinePlayer, fmtAmount, routineFor } from "../components/RoutinePlayer";
+import { fmtAmount, routineFor } from "../components/RoutinePlayer";
+import { useSession } from "../session";
 import { Card, CardHeading, Empty } from "../components/Section";
 import { WorkoutForm, type WorkoutSeed } from "../components/WorkoutForm";
 import { NotTodaySheet } from "../components/NotTodaySheet";
-import { clearInProgress, GymPlayer, loadInProgress, type GymSession } from "../components/GymPlayer";
+import { clearInProgress, loadInProgress } from "../components/GymPlayer";
 import { sessionMinutes } from "../gym";
 import { EQUIPMENT_LABELS, findExercise, PREBUILT, type Equipment } from "../exercises";
 import type { Intent } from "../nav";
@@ -33,9 +34,9 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const log = state.routineLogs[today];
   const restToday = state.restDays.includes(today);
   const [mode, setMode] = useState<RoutineMode>(log?.mode ?? "standard");
-  const [playing, setPlaying] = useState(false);
+  // Workouts run above the tabs, so they carry on while you log food or check progress.
+  const { active, startRoutine, startGym } = useSession();
   const [notToday, setNotToday] = useState(false);
-  const [gym, setGym] = useState<GymSession | null>(null);
   const [library, setLibrary] = useState<"mine" | "ready">("mine");
   const [equipment, setEquipment] = useState<Equipment | "all">("all");
   const [openPrebuilt, setOpenPrebuilt] = useState<string | null>(null);
@@ -48,10 +49,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const [historyCount, setHistoryCount] = useState(10);
 
   useEffect(() => {
-    if (intent === "start-routine") setPlaying(true);
+    if (intent === "start-routine") startRoutine(mode);
     if (intent === "start-recovery") {
       setMode("recovery");
-      setPlaying(true);
+      startRoutine("recovery");
     }
     if (intent === "log-workout") {
       setSeed(undefined);
@@ -91,10 +92,8 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
   const saveRoutine = (r: RoutineExercise[]) => update((s) => ({ ...s, routine: r }));
 
   // While a workout runs, show only the player: on iPhone the page behind can show under the status bar.
-  if (playing) return <RoutinePlayer mode={mode} onClose={() => setPlaying(false)} />;
-  if (gym) return <GymPlayer session={gym} onClose={() => setGym(null)} />;
   // A gym session interrupted by the phone locking or the app closing.
-  const unfinished = loadInProgress();
+  const unfinished = active?.kind === "gym" ? null : loadInProgress();
 
   return (
     <div className="space-y-4">
@@ -109,10 +108,10 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
             {unfinished.done.flat().filter(Boolean).length} of {unfinished.done.flat().length} sets done. Pick up where you left off, weights included.
           </p>
           <div className="mt-3 flex gap-2">
-            <Button className="flex-1" onClick={() => setGym({ ...unfinished.session, resume: unfinished })}>
+            <Button className="flex-1" onClick={() => startGym({ ...unfinished.session, resume: unfinished })}>
               <Play className="mr-1 h-3.5 w-3.5" />Resume
             </Button>
-            <Button variant="outline" onClick={() => { clearInProgress(); setGym(null); setTick((t) => t + 1); }}>Discard</Button>
+            <Button variant="outline" onClick={() => { clearInProgress(); setTick((t) => t + 1); }}>Discard</Button>
           </div>
         </Card>
       )}
@@ -207,7 +206,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
             </li>
           ))}
         </ul>
-        <Button className="mt-3 w-full" size="lg" onClick={() => setPlaying(true)}>
+        <Button className="mt-3 w-full" size="lg" onClick={() => startRoutine(mode)}>
           <Play className="mr-1.5 h-4 w-4" />
           {log?.finished && log.mode === mode ? "Go again" : done.size > 0 ? "Continue guided workout" : "Start guided workout"}
         </Button>
@@ -262,7 +261,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                     <div className="flex items-center gap-1.5 font-medium"><Star className="h-3.5 w-3.5 fill-copper text-copper" />{t.name}</div>
                     <div className="truncate text-xs text-muted-foreground">{t.exercises.map((e) => e.name).join(", ")}</div>
                   </button>
-                  <Button size="sm" className="h-8" onClick={() => setGym({ name: t.name, category: t.category, intensity: t.intensity, exercises: t.exercises })}>
+                  <Button size="sm" className="h-8" onClick={() => startGym({ name: t.name, category: t.category, intensity: t.intensity, exercises: t.exercises })}>
                     <Play className="mr-1 h-3.5 w-3.5" />Start
                   </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => update((s) => ({ ...s, templates: s.templates.filter((x) => x.id !== t.id) }))} aria-label={`Remove ${t.name}`}>
@@ -293,7 +292,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                       </div>
                       <div className={`text-xs text-muted-foreground ${openPrebuilt === w.id ? "" : "truncate"}`}>About {sessionMinutes(w.exercises, w.category)} min · {w.exercises.length} exercises · {w.exercises.map((e) => e[0]).join(", ")}</div>
                     </button>
-                    <Button size="sm" className="h-8" onClick={() => setGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
+                    <Button size="sm" className="h-8" onClick={() => startGym({ name: w.name, category: w.category, intensity: w.intensity, offerSave: true, exercises: w.exercises.map(([name, sets, reps]) => ({ name, sets: Array.from({ length: sets }, () => ({ reps, weightKg: 0 })) })) })}>
                       <Play className="mr-1 h-3.5 w-3.5" />Start
                     </Button>
                   </div>
@@ -390,7 +389,7 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
       </Card>
 
       <WorkoutForm open={formOpen} onOpenChange={setFormOpen} seed={seed} />
-      <NotTodaySheet open={notToday} onOpenChange={setNotToday} onRecovery={() => { setMode("recovery"); setPlaying(true); }} />
+      <NotTodaySheet open={notToday} onOpenChange={setNotToday} onRecovery={() => { setMode("recovery"); startRoutine("recovery"); }} />
       <AdjustDialog
         exercise={editing}
         shown={editing ? shownAmount(editing, settingsOf(state)) : 0}

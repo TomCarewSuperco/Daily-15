@@ -26,6 +26,7 @@ OUT="$OUT" node tests/rough.e2e.cjs
 OUT="$OUT" node tests/activity.e2e.cjs
 OUT="$OUT" node tests/measure.e2e.cjs
 OUT="$OUT" node tests/rest.e2e.cjs
+OUT="$OUT" node tests/session.e2e.cjs
 OUT="$OUT" node tests/join.e2e.cjs
 OUT="$OUT" node tests/update.e2e.cjs
 OUT="$OUT" node tests/auth.e2e.cjs

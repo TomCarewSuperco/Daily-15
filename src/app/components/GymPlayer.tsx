@@ -1,7 +1,7 @@
 import { usePremium } from "../premium/PremiumProvider";
 import { fmtClock } from "./RoutinePlayer";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, Check, Minus, Play, Plus, SkipForward, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Minus, Play, Plus, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
@@ -9,6 +9,7 @@ import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { EQUIPMENT_LABELS, findExercise } from "../exercises";
 import { cue, primeCue } from "../cue";
 import { useWakeLock } from "../wakeLock";
+import { useSessionStatus } from "../session";
 import { describeLast, lastTimeFor, planSession, rememberedRests, rememberRest, REST_OPTIONS, restFor, suggestNext, gymSwaps, warmUpSets } from "../gym";
 import { toast } from "../notify";
 import { useDaily15 } from "../store";
@@ -74,7 +75,7 @@ function setSummary(name: string, sets: { reps: number; weightKg: number }[]): s
   return sets.map((x) => (timed ? `${x.reps} sec` : x.weightKg ? `${x.reps} × ${x.weightKg} kg` : `${x.reps} reps`)).join(", ");
 }
 
-export function GymPlayer({ session, onClose }: { session: GymSession; onClose: () => void }) {
+export function GymPlayer({ session, onClose, minimised = false, onMinimise }: { session: GymSession; onClose: () => void; minimised?: boolean; onMinimise?: () => void }) {
   const { state, update } = useDaily15();
   // Without the progression feature, start from last time's weight rather than silently adding to it.
   const { premium } = usePremium();
@@ -126,12 +127,13 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
     (document.activeElement as HTMLElement | null)?.blur?.();
   }, []);
   useEffect(() => {
+    if (minimised) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, []);
+  }, [minimised]);
 
   // Wall-clock timer so it keeps time if the phone locks or the app goes to the background.
   const [holdStart, setHoldStart] = useState<number | null>(null);
@@ -153,6 +155,14 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
       cue();
     }
   }, [restLeft, restUntil]);
+
+  // What the minimised bar shows.
+  const setStatus = useSessionStatus();
+  const doneCount = done.flat().filter(Boolean).length;
+  useEffect(() => {
+    const total = done.flat().length;
+    setStatus(restUntil ? `Rest ${Math.floor(restLeft / 60)}:${String(restLeft % 60).padStart(2, "0")} · next ${plan[ex]?.name ?? ""}` : `${plan[ex]?.name ?? ""} · set ${Math.min(total, doneCount + 1)} of ${total}`);
+  }, [restUntil, restLeft, ex, plan, doneCount, done, setStatus]);
 
   // Hold timer for timed exercises such as the plank: counts down the target, signals, then counts on.
 
@@ -332,7 +342,9 @@ export function GymPlayer({ session, onClose }: { session: GymSession; onClose: 
         <span className="text-sm text-muted-foreground">
           {session.name} · set {doneSets + 1} of {totalSets} · <span className="tabular-nums" aria-label="Time so far">{fmtClock(Math.floor((now - started.current) / 1000))}</span>
         </span>
-        <span className="w-10" />
+        <Button variant="ghost" size="icon" onClick={onMinimise} aria-label="Minimise" disabled={!onMinimise}>
+          <ChevronDown className="h-5 w-5" />
+        </Button>
       </div>
       <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
         <div className="h-full bg-foreground transition-all" style={{ width: `${(doneSets / totalSets) * 100}%` }} />

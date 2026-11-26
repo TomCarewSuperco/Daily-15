@@ -1,6 +1,6 @@
 import { usePremium } from "../premium/PremiumProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X } from "lucide-react";
 import { toast } from "../notify";
 import { Button } from "@/components/ui/button";
 import { MODE_INFO, stepsFor } from "../data";
@@ -12,6 +12,7 @@ import { useDaily15 } from "../store";
 import { ExerciseDemo } from "../demos/ExerciseDemo";
 import { cue, primeCue } from "../cue";
 import { useWakeLock } from "../wakeLock";
+import { useSessionStatus } from "../session";
 import { exerciseWarning, lifeStageOf } from "../pregnancy";
 import type { RoutineExercise, RoutineMode } from "../types";
 
@@ -30,7 +31,7 @@ export function fmtAmount(e: Pick<RoutineExercise, "kind" | "amount">): string {
 }
 
 /** Full-screen guided routine: one exercise at a time with a timer or rep counter. */
-export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: () => void }) {
+export function RoutinePlayer({ mode, onClose, minimised = false, onMinimise }: { mode: RoutineMode; onClose: () => void; minimised?: boolean; onMinimise?: () => void }) {
   const { state, update } = useDaily15();
   const today = todayKey();
   const settings = settingsOf(state);
@@ -75,13 +76,20 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
     (document.activeElement as HTMLElement | null)?.blur?.();
   }, []);
   useEffect(() => {
+    if (minimised) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.scrollTo(0, 0);
     return () => {
       document.body.style.overflow = prev;
     };
-  }, []);
+  }, [minimised]);
+
+  // What the minimised bar shows.
+  const setStatus = useSessionStatus();
+  useEffect(() => {
+    setStatus(`${ex.name} · ${ex.kind === "time" ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}${running ? "" : " paused"}` : fmtAmount(ex)}`);
+  }, [ex, left, running, setStatus]);
 
   useEffect(() => {
     setLeft(ex.kind === "time" ? ex.amount : 0);
@@ -162,7 +170,9 @@ export function RoutinePlayer({ mode, onClose }: { mode: RoutineMode; onClose: (
           {" · "}
           <span className="tabular-nums" aria-label="Time so far">{fmtClock(total)}</span>
         </span>
-        <span className="w-10" />
+        <Button variant="ghost" size="icon" onClick={onMinimise} aria-label="Minimise" disabled={!onMinimise}>
+          <ChevronDown className="h-5 w-5" />
+        </Button>
       </div>
       <div className="mt-3 flex gap-1" aria-hidden>
         {list.map((e, i) => (

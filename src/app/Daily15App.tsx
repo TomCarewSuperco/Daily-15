@@ -9,6 +9,7 @@ import { useReminders } from "./components/useReminders";
 import { useHealthSync } from "./native/useHealthSync";
 import type { Intent, TabId } from "./nav";
 import { Daily15Provider, useDaily15 } from "./store";
+import { ActiveSessionProvider, useSession } from "./session";
 import { AuthScreen, ResetPasswordScreen } from "./tabs/Auth";
 import { HomeTab } from "./tabs/HomeTab";
 import { Onboarding } from "./tabs/Onboarding";
@@ -56,10 +57,21 @@ function Shell() {
   if (!state.profile) return <Onboarding />;
 
   return (
-    <>
+    <ActiveSessionProvider>
+      <Tabs tab={tab} navigate={navigate} intent={intent} clearIntent={clearIntent} />
+    </ActiveSessionProvider>
+  );
+}
+
+/** The tabs and tab bar. Hidden (kept mounted) while a workout fills the screen; a minimised workout sits above the tab bar. */
+function Tabs({ tab, navigate, intent, clearIntent }: { tab: TabId; navigate: (t: TabId, i?: Intent) => void; intent: Intent; clearIntent: () => void }) {
+  const { active, minimised } = useSession();
+  const covered = !!active && !minimised;
+  return (
+    <div className={covered ? "hidden" : ""}>
       {/* Covers the strip under the iPhone status bar so scrolled content doesn't show behind the clock. */}
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-background" />
-      <main className="px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
+      <main className={`px-4 pt-[max(1rem,env(safe-area-inset-top))] ${active ? "pb-44" : "pb-28"}`}>
         <ErrorBoundary resetKey={tab}>
         <Suspense fallback={<p className="pt-8 text-center text-sm text-muted-foreground">Loading</p>}>
         {tab === "home" && <HomeTab onNavigate={navigate} />}
@@ -86,7 +98,7 @@ function Shell() {
           ))}
         </ul>
       </nav>
-    </>
+    </div>
   );
 }
 

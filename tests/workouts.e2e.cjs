@@ -51,6 +51,7 @@ const seed = { version: 1, profile: { name: "", age: 36, sex: "male", heightCm: 
   ok("ready-made workout opens to show its exercises", (await opened.getByText(/^1\. Goblet squat$/).count()) === 1 && (await opened.getByText(/\d × \d+/).count()) >= 3);
   await p.screenshot({ path: OUT + "/w-ready-open.png" });
   await p.locator("li", { hasText: "Lower body, dumbbells" }).getByRole("button", { name: "Start" }).click();
+  await p.getByText("Warm up first").waitFor({ timeout: 5000 }).catch(() => {});
   ok("warm-up offered before the first set", (await p.getByText("Warm up first").count()) === 1 && (await p.getByText(/Five minutes of easy cardio/).count()) === 1);
   await p.getByRole("button", { name: "I'm warm: start the workout" }).click();
   ok("guided set shown", (await p.getByRole("heading", { name: "Goblet squat" }).count()) === 1);
