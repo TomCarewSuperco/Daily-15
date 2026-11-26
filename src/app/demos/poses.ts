@@ -186,11 +186,15 @@ export const DEMOS: Record<string, Demo> = {
   },
   // Step wide to one side, the trailing foot crossing behind, then the other way.
   skaterStep: {
-    period: 1.6,
+    // Front view: bound from side to side. Land on one bent leg, the other foot swept behind it off
+    // the floor, arms swinging across like a skater; then push off to the other side.
+    period: 1.8,
     front: true,
-    a: { h: [52, 16], s: [54, 27], p: [56, 54], fe: [62, 38], fh: [68, 46], be: [48, 36], bh: [42, 42], fk: [60, 72], ff: [62, 92], bk: [50, 74], bf: [68, 90] },
-    b: { h: [68, 16], s: [66, 27], p: [64, 54], fe: [58, 38], fh: [52, 46], be: [72, 36], bh: [78, 42], fk: [60, 72], ff: [58, 92], bk: [70, 74], bf: [52, 90] },
+    a: { h: [80, 23], s: [78, 33], p: [75, 58], fe: [70, 42], fh: [63, 49], be: [86, 41], bh: [93, 34], fk: [84, 74], ff: [88, 92], bk: [70, 74], bf: [80, 85] },
+    b: { h: [40, 23], s: [42, 33], p: [45, 58], fe: [34, 41], fh: [27, 34], be: [50, 42], bh: [57, 49], fk: [50, 74], ff: [40, 85], bk: [36, 74], bf: [32, 92] },
   },
+
+
   // Staggered stance, alternate straight punches.
   shadowBox: {
     period: 1,
