@@ -124,6 +124,7 @@ export async function pullHealth(days = 14): Promise<HealthSyncResult> {
           durationMin,
           intensity: intensityFor(durationMin, w.totalEnergyBurned),
           distanceKm: w.totalDistance ? Math.round((w.totalDistance / 1000) * 100) / 100 : undefined,
+          ...(w.totalEnergyBurned ? { kcalBurned: Math.round(w.totalEnergyBurned) } : {}),
           exercises: [],
           notes: `Imported from ${healthName}`,
         };

@@ -119,6 +119,10 @@ export interface Workout {
   durationMin: number;
   intensity: Intensity;
   distanceKm?: number;
+  /** Floors climbed, for stair climbers. */
+  floors?: number;
+  /** Calories burned as shown by the machine or a watch. For the record only: not added to the food budget. */
+  kcalBurned?: number;
   restSec?: number;
   exercises: ExerciseEntry[];
   notes?: string;

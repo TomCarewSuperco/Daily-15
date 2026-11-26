@@ -372,6 +372,8 @@ export function WorkoutsTab({ intent, clearIntent }: { intent: Intent; clearInte
                     <div className="text-xs text-muted-foreground">
                       {formatDay(w.date)} · {w.category} · {w.durationMin} min
                       {w.distanceKm ? ` · ${w.distanceKm} km` : ""}
+                      {w.floors ? ` · ${w.floors} floors` : ""}
+                      {w.kcalBurned ? ` · ${w.kcalBurned} kcal` : ""}
                       {w.exercises.length ? ` · ${((n) => `${n} ${n === 1 ? "set" : "sets"}`)(w.exercises.reduce((s, e) => s + e.sets.length, 0))}` : ""}
                     </div>
                   </button>

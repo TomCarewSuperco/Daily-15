@@ -45,6 +45,8 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
   const [duration, setDuration] = useState<number | "">(30);
   const [intensity, setIntensity] = useState<Intensity>("moderate");
   const [distance, setDistance] = useState<number | "">("");
+  const [floors, setFloors] = useState<number | "">("");
+  const [kcalBurned, setKcalBurned] = useState<number | "">("");
   const [rest, setRest] = useState<number | "">("");
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
   const [notes, setNotes] = useState("");
@@ -65,6 +67,8 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
     const w = seed?.workout;
     setDate(w?.date ?? todayKey());
     setDistance(w?.distanceKm ?? "");
+    setFloors(w?.floors ?? "");
+    setKcalBurned(w?.kcalBurned ?? "");
     setRest(w?.restSec ?? "");
     setNotes(w?.notes ?? "");
     setSave(asTemplate);
@@ -111,6 +115,8 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
       durationMin: duration,
       intensity,
       distanceKm: showDistance && typeof distance === "number" ? distance : undefined,
+      ...(category === "Stair climber" && typeof floors === "number" && floors > 0 ? { floors } : {}),
+      ...(typeof kcalBurned === "number" && kcalBurned > 0 ? { kcalBurned } : {}),
       restSec: typeof rest === "number" ? rest : undefined,
       exercises: cleaned,
       notes: notes.trim() || undefined,
@@ -219,6 +225,15 @@ export function WorkoutForm({ open, onOpenChange, seed }: { open: boolean; onOpe
                   <NumField label="Distance" value={distance} onChange={setDistance} suffix="km" step={0.01} />
                   <div className="pb-2 text-sm text-muted-foreground">{pace ? `Pace ${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")} /km` : ""}</div>
                 </div>
+              )}
+              {!asTemplate && (
+                <div className="grid grid-cols-2 gap-3">
+                  {category === "Stair climber" && <NumField label="Floors" value={floors} onChange={setFloors} suffix="floors" />}
+                  <NumField label="Calories burned" value={kcalBurned} onChange={setKcalBurned} suffix="kcal" />
+                </div>
+              )}
+              {!asTemplate && typeof kcalBurned === "number" && kcalBurned > 0 && (
+                <p className="-mt-2 text-xs text-muted-foreground">Calories from the machine or your watch are kept with the workout for your record. They aren't added to your food budget: machines tend to overestimate, and your target already allows for your activity level.</p>
               )}
               <Field label="Intensity">
                 <Choice columns={3} value={intensity} onChange={setIntensity} options={[{ value: "light", label: "Light" }, { value: "moderate", label: "Moderate" }, { value: "intense", label: "Intense" }]} />

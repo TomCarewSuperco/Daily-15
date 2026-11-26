@@ -14,11 +14,12 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   await p.getByRole("button", { name: /Swim, ride, class or sport/ }).click();
   const exercisesHidden = (await p.getByText("Exercises", { exact: true }).count()) === 0;
   await p.getByRole("radio", { name: "Light" }).click().catch(() => p.getByRole("button", { name: "Light", exact: true }).click());
+  await p.getByRole("spinbutton", { name: "Calories burned" }).fill("210");
   await p.screenshot({ path: OUT + "/activity-swim.png" });
   await p.getByRole("button", { name: /^(Save|Log workout|Save workout)/ }).last().click();
   await p.waitForTimeout(400);
   const w = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).workouts);
-  const swim = w.length === 1 && w[0].category === "Swimming" && w[0].durationMin === 30 && w[0].intensity === "light" && w[0].exercises.length === 0;
+  const swim = w.length === 1 && w[0].category === "Swimming" && w[0].durationMin === 30 && w[0].intensity === "light" && w[0].exercises.length === 0 && w[0].kcalBurned === 210;
   const minutes = await p.locator("div", { hasText: /^Active minutes$/ }).locator("xpath=following-sibling::div").first().textContent();
   console.log(exercisesHidden ? "PASS activity form has no exercise list" : "FAIL activity form has no exercise list");
   console.log(swim ? "PASS swim logged as a light 30-minute workout" : `FAIL swim logged as a light 30-minute workout ${JSON.stringify(w)}`);

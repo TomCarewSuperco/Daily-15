@@ -32,6 +32,7 @@ export function NumField({ label, value, onChange, suffix, step = 1, hint, min =
           step={step}
           min={min}
           value={value ?? ""}
+          aria-label={label}
           onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
           className={suffix ? "pr-12" : ""}
         />
