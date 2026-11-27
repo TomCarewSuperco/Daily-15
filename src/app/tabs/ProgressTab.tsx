@@ -105,11 +105,13 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const fmtChange = (v: number | null) => (v === null ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)} kg`);
 
   const measurements = [...state.measurements].sort((a, b) => a.date.localeCompare(b.date));
-  const firstM = measurements[0];
   const lastM = measurements[measurements.length - 1];
   const lengthUnit: LengthUnit = state.profile?.lengthUnit ?? "cm";
   // Waist-to-height ratio from the latest waist. Not shown in pregnancy or for under-18s, where it doesn't apply.
   const latestWaist = [...measurements].reverse().find((x) => x.waistCm)?.waistCm;
+  const waistReadings = measurements.filter((m) => m.waistCm);
+  const waistSpanDays = waistReadings.length > 1 ? Math.round((new Date(`${waistReadings[waistReadings.length - 1].date}T12:00:00`).getTime() - new Date(`${waistReadings[0].date}T12:00:00`).getTime()) / 86400000) : 0;
+  const halfHeight = Math.round((state.profile?.heightCm ?? 0) / 2);
   const whtr = latestWaist && state.profile && state.profile.heightCm > 0 && state.profile.age >= 18 && !lifeStageOf(state.profile) ? Math.round((latestWaist / state.profile.heightCm) * 100) / 100 : null;
 
   return (
@@ -362,22 +364,44 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         {lastM ? (
           <>
             <div className="grid grid-cols-3 gap-2 text-center text-sm tabular-nums">
-              {(["waistCm", "chestCm", "hipsCm", "armCm", "thighCm"] as const).filter((k) => lastM[k]).map((k) => {
-                const first = measurements.find((m) => m[k])?.[k];
-                const diff = first && lastM[k] ? Math.round((lastM[k]! - first) * 10) / 10 : 0;
+              {(["waistCm", "chestCm", "hipsCm", "armCm", "thighCm"] as const).map((k) => {
+                // Each measurement's own latest and first readings: not every entry has every measurement.
+                const readings = measurements.filter((m) => m[k]);
+                if (!readings.length) return null;
+                const first = readings[0];
+                const last = readings[readings.length - 1];
+                const diff = Math.round((last[k]! - first[k]!) * 10) / 10;
+                const since = formatDay(first.date, { day: "numeric", month: "short" });
                 return (
                   <div key={k} className="rounded-xl bg-muted p-2">
                     <div className="text-[11px] capitalize text-muted-foreground">{k.replace("Cm", "")}</div>
-                    <div className="font-semibold">{formatLength(lastM[k]!, lengthUnit)}</div>
-                    {diff !== 0 && <div className="text-[11px] text-muted-foreground">{formatLengthChange(diff, lengthUnit)} since {formatDay(firstM.date, { day: "numeric", month: "short" })}</div>}
+                    <div className="font-semibold">{formatLength(last[k]!, lengthUnit)}</div>
+                    {readings.length > 1 && <div className="text-[11px] text-muted-foreground">{fromCm(Math.abs(diff), lengthUnit) === 0 ? "No change" : formatLengthChange(diff, lengthUnit)} since {since}</div>}
                   </div>
                 );
               })}
             </div>
+            {waistReadings.length > 1 && (
+              <div className="mt-3">
+                <div className="mb-1 text-xs text-muted-foreground">Waist readings</div>
+                <div className="flex flex-wrap gap-1.5 text-xs tabular-nums">
+                  {waistReadings.slice(-6).map((m) => (
+                    <span key={m.id ?? m.date} className="rounded-full border px-2 py-0.5">
+                      {formatDay(m.date, { day: "numeric", month: "short" })}: {formatLength(m.waistCm!, lengthUnit)}
+                    </span>
+                  ))}
+                </div>
+                {waistSpanDays < 14 && (
+                  <p className="mt-1.5 text-xs text-muted-foreground">These are {waistSpanDays === 1 ? "a day" : `${waistSpanDays} days`} apart. A tape varies by about 1 cm between readings, so a real change shows after two to four weeks. The weekly review uses readings three to six weeks apart.</p>
+                )}
+              </div>
+            )}
             {whtr !== null && (
               <p className="mt-3 rounded-xl bg-muted p-2.5 text-sm">
                 Waist-to-height: <span className="font-semibold tabular-nums">{whtr.toFixed(2)}</span>.{" "}
-                {whtr < 0.5 ? "Under half your height, the healthy range." : "NHS guidance is to keep your waist under half your height (0.5)."}
+                {whtr < 0.5
+                  ? "Under half your height, the healthy range."
+                  : `NHS guidance is to keep your waist under half your height (0.5). That's ${formatLength(halfHeight, lengthUnit)} for you, about ${formatLength(Math.max(0.5, latestWaist! - halfHeight), lengthUnit)} from here.`}
               </p>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Latest {formatDay(lastM.date)}. Measure every two to four weeks at the same point on the body.</p>

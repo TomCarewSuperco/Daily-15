@@ -39,5 +39,18 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   console.log(thigh ? "PASS focusing a field shows its instruction" : "FAIL focusing a field shows its instruction");
   console.log(saved && !errs.length ? "PASS inches convert and save in centimetres" : `FAIL inches convert and save in centimetres ${errs}`);
   if (!waist || !thigh || !saved || errs.length) process.exitCode = 1;
+  // A second, waist-only reading three days later: the thigh stays, the waist says no change, with a note on timing.
+  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("daily15:v1")); const d = new Date(); d.setDate(d.getDate() - 3); s.measurements[0].date = d.toLocaleDateString("en-CA"); localStorage.setItem("daily15:v1", JSON.stringify(s)); });
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Progress", exact: true }).click();
+  await p.getByText("Measurements", { exact: true }).locator("xpath=..").getByRole("button", { name: "Add" }).click();
+  await p.getByRole("dialog").getByRole("spinbutton").first().fill("37.4");
+  await p.getByRole("dialog").getByRole("button", { name: "Save" }).click();
+  await p.waitForTimeout(300);
+  const second = { thigh: await p.getByText("22.75 in").count(), same: await p.getByText(/^No change since/).count(), history: await p.getByText("Waist readings").count(), note: await p.getByText(/These are 3 days apart/).count() };
+  await p.screenshot({ path: OUT + "/measure-history.png", fullPage: true });
+  const okSecond = second.thigh === 1 && second.same >= 1 && second.history === 1 && second.note === 1;
+  console.log(okSecond ? "PASS second reading keeps others and shows the change" : `FAIL second reading keeps others and shows the change ${JSON.stringify(second)}`);
+  if (!okSecond) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.slice(0, 300)); process.exit(1); });
