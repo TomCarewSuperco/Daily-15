@@ -210,7 +210,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
   if (/spring roll/.test(n)) return [u("spring roll", 60)];
   if (/prawn crackers/.test(n)) return [u("bowl", 30)];
   if (/black pudding|white pudding/.test(n)) return [u("slice", 40)];
-  if (/chicken wings/.test(n)) return [u("wing", 35), u("portion of 6", 210, "portions of 6")];
+  if (/chicken wings/.test(n)) return [u("wing piece", 25, "wing pieces"), u("portion of 6", 150, "portions of 6")];
   if (/satay/.test(n)) return [u("skewer", 40)];
   if (/doner kebabs?, meat only/.test(n)) return [u("portion", 150)];
   if (/skin, (casseroled|roasted)/.test(n)) return [u("portion", 30)];
