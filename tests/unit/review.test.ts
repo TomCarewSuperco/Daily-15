@@ -196,3 +196,11 @@ test("drinks: a pattern over weeks adds the health line; heavy days are noted", 
   assert.match(a.detail!, /had 8 units or more/);
   assert.match(a.detail!, /lower-strength beer/);
 });
+
+test("a steps gap isn't buried under focus-area food advice", () => {
+  const s = make({ focus: ["cholesterol"], extra: { satFat: 38, fibre: 5 } });
+  for (let n = 0; n < 21; n++) s.activity[day(n)] = { date: day(n), steps: 6200, distanceKm: 4, activeMinutes: 40, activityKcal: 200 };
+  const r = weeklyReview(s, END);
+  const order = [r.tryThis!, ...r.moreIdeas].map((x) => x.id);
+  assert.ok(order.indexOf("steps") <= 1, order.join(", "));
+});

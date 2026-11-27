@@ -69,7 +69,7 @@ export interface WeeklyReview {
 }
 
 const STEP_KCAL = 150;
-const FOCUS_BOOST = 50;
+const FOCUS_BOOST = 25;
 const MIN_FOOD_DAYS = 4;
 const MIN_WEIGH_INS = 3;
 /** The first three weeks: weight isn't judged while the body adjusts to new training and eating. */
@@ -398,7 +398,14 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   }
   if (avgSteps !== null && avgSteps < t.steps * 0.9) {
     const gap = Math.min(2000, Math.round((t.steps - avgSteps) / 250) * 250);
-    add(moreOf, { id: "steps", priority: losing ? 50 : 40, text: `Steps: averaged ${fmt(avgSteps)} against ${fmt(t.steps)}`, action: "A 15-minute walk every day", detail: `Add about ${fmt(gap)} a day. A 15-minute walk is roughly 1,500 steps.` });
+    // Steps are the movement that matters most for fat loss: easy to keep up, and they don't drive hunger the way hard exercise can.
+    add(moreOf, {
+      id: "steps",
+      priority: losing ? 60 : 40,
+      text: `Steps: averaged ${fmt(avgSteps)} against ${fmt(t.steps)}`,
+      action: gap >= 1500 ? "A 10-minute walk after two meals a day" : "A 15-minute walk every day",
+      detail: `Add about ${fmt(gap)} a day. Without a commute, steps have to be planned: a 10-minute walk after a meal is about 1,000 steps and helps blood sugar too. Walking phone calls, a fixed walk at the same time each day, or parking further away all add up.`,
+    });
   }
   if (activeDays < 5) add(moreOf, { id: "active-days", priority: 55, text: `Active days: ${activeDays} of seven`, action: "Do my 15, even in light mode", detail: "Light or recovery mode counts. Aim for one more day next week." });
   if ((losing || p.goal === "build-muscle" || p.goal === "strength") && strengthSessions === 0) {
@@ -524,6 +531,10 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
 
   const order = (xs: ReviewPoint[]) => [...xs].sort((a, b) => b.priority - a.priority).slice(0, 3);
   const ideas = [...moreOf, ...lessOf].sort((a, b) => b.priority - a.priority);
+  // Keep a balance: the top movement idea is never buried below two food ones.
+  const MOVEMENT = new Set(["steps", "active-days", "strength"]);
+  const firstMove = ideas.findIndex((x) => MOVEMENT.has(x.id));
+  if (firstMove > 1) ideas.splice(1, 0, ...ideas.splice(firstMove, 1));
   return {
     start,
     end,
