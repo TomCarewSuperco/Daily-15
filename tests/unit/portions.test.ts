@@ -62,7 +62,7 @@ test("branded products get spoon measures from their name", async () => {
 
 test("cooked meat, fish and puddings get everyday units", () => {
   assert.equal(first("Beef, fore-rib/rib-roast, roasted, lean", "MAC").name, "slice");
-  assert.equal(first("Chicken, breast, grilled, meat and skin", "MCC").g, 140);
+  assert.equal(first("Chicken, breast, grilled, meat and skin", "MCC").g, 150);
   assert.equal(first("Lamb, loin chops, grilled, lean", "MBG").name, "chop");
   assert.equal(first("Chorizo", "MI").g, 5);
   assert.equal(first("Cheesecake, homemade", "BRC").name, "slice");

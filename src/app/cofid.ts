@@ -231,7 +231,7 @@ export function unitsFor(name: string, unit: "g" | "ml", fiveADay: FiveADayKind 
     if (/chops?\b|cutlets?/.test(n)) return [u("chop", 130)];
     if (/gammon|bacon loin steak/.test(n)) return [u("steak", 150)];
     if (/steak/.test(n) && !/braising|stewing|pudding|pie/.test(n)) return [u("steak", 200), u("small steak", 150)];
-    if (/chicken.*breast|breast.*chicken|turkey.*breast/.test(n) && !/coated|slices/.test(n)) return [u("breast", 140), u("half breast", 70, "half breasts")];
+    if (/chicken.*breast|breast.*chicken|turkey.*breast/.test(n) && !/coated|slices/.test(n)) return [u("breast", 150), u("small breast", 120, "small breasts"), u("large breast", 200, "large breasts")];
     if (/thigh/.test(n)) return [u("thigh", 75)];
     if (/drumstick|leg quarter/.test(n)) return [u(/leg quarter/.test(n) ? "leg quarter" : "drumstick", /leg quarter/.test(n) ? 200 : 60)];
     if (/coated|nuggets|goujons|dippers|battered|portions/.test(n)) return [u("piece", /portions|battered/.test(n) ? 120 : 30), u("portion", 150)];

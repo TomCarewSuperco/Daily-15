@@ -138,8 +138,8 @@ const BASE: FoodItem[] = [
   food("Biltong", "g", 260, 52, 3, 4.5, 0, [u("handful", 15), u("snack bag", 30), u("large bag", 70)]),
   food("Beef jerky", "g", 270, 40, 15, 5, 0.5, [u("handful", 15), u("snack bag", 25), u("large bag", 70)]),
   // Roast chicken by the part, skin on or removed (CoFID; thigh and leg without skin use casseroled values, the nearest CoFID has).
-  food("Chicken breast, roast, skin on", "g", 173, 28.9, 0, 6.4, 0, [u("slice", 30), u("half breast", 75, "half breasts"), u("breast", 150)]),
-  food("Chicken breast, roast, skin removed", "g", 153, 30.2, 0, 3.6, 0, [u("slice", 30), u("half breast", 75, "half breasts"), u("breast", 150)]),
+  food("Chicken breast, roast, skin on", "g", 173, 28.9, 0, 6.4, 0, [u("slice", 30), u("small breast", 120, "small breasts"), u("breast", 150), u("large breast", 200, "large breasts")]),
+  food("Chicken breast, roast, skin removed", "g", 153, 30.2, 0, 3.6, 0, [u("slice", 30), u("small breast", 120, "small breasts"), u("breast", 150), u("large breast", 200, "large breasts")]),
   food("Chicken thigh, roast, skin on", "g", 233, 21.5, 0, 16.3, 0, [u("thigh", 80)]),
   food("Chicken thigh, roast, skin removed", "g", 180, 25.6, 0, 8.6, 0, [u("thigh", 80)]),
   food("Chicken drumstick, roast, skin on", "g", 185, 25.8, 0, 9.1, 0, [u("drumstick", 50)]),
