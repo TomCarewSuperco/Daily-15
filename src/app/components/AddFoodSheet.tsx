@@ -17,7 +17,7 @@ import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type Of
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 import { unitsFromOff } from "../offUnits";
-import { batchOf, BUILDS, buildFor, INGREDIENTS, partsOf, piecesFrom, remember, startingPoint, toCustomFood, type Amounts, type Build, type Part } from "../homemade";
+import { batchOf, bowlParts, BUILDS, buildFor, INGREDIENTS, partsOf, piecesFrom, remember, startingPoint, toCustomFood, type Amounts, type Build, type Part } from "../homemade";
 import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, currentUnitsFor, refreshUnits, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
@@ -316,8 +316,8 @@ export function AddFoodSheet({ open, onOpenChange, date, meal: initialMeal }: { 
                     >
                       <ChefHat className="h-5 w-5 shrink-0 text-copper" />
                       <span>
-                        <span className="font-medium">Made {homemade.title.toLowerCase()} yourself?</span>
-                        <span className="block text-xs text-muted-foreground">Tick what went in and choose the {homemade.piece} size.</span>
+                        <span className="font-medium">{homemade.prompt ?? `Made ${homemade.title.toLowerCase()} yourself?`}</span>
+                        <span className="block text-xs text-muted-foreground">{homemade.kind === "bowl" ? "Choose the broth, tick what went in and say how much." : `Tick what went in and choose the ${homemade.piece} size.`}</span>
                       </span>
                     </button>
                   )}
@@ -873,28 +873,39 @@ function BuildStep({ build, onLog }: { build: Build; onLog: (p: Pending) => void
   const [name, setName] = useState(build.name);
   const [query, setQuery] = useState("");
   const [extras, setExtras] = useState<{ food: FoodItem; qty: number; unit: string; g: number }[]>([]);
-  const offered = [...build.usual.map(([k]) => k), ...Object.keys(amounts).filter((k) => !build.usual.some(([u]) => u === k))];
+  const bowl = build.kind === "bowl";
+  const baseKeys = build.base ?? [];
+  const [leftSome, setLeftSome] = useState(!!start.leftSome);
+  const offered = [...build.usual.map(([k]) => k), ...Object.keys(amounts).filter((k) => !build.usual.some(([u]) => u === k))].filter((k) => !baseKeys.includes(k));
+  const chosenBase = baseKeys.find((k) => (amounts[k] ?? 0) > 0) ?? baseKeys[0];
   const q = query.trim();
   const results = q.length >= 2 ? searchFoods(FOOD_DB, q, 5) : [];
   const extraParts: Part[] = extras.map((x) => ({ label: x.food.name, qty: x.qty, g: x.g, n: scaleNutrients(x.food, 100 / x.food.per) }));
-  const { grams, per100 } = batchOf([...partsOf(amounts), ...extraParts]);
   const piece = build.sizes[size];
+  const { grams, per100 } = batchOf([...(bowl ? bowlParts(build, amounts, piece.g, leftSome) : partsOf(amounts)), ...extraParts]);
   const count = piecesFrom(grams, piece.g);
-  const each = scaleNutrients(per100, piece.g / 100);
+  // A bowl is logged whole; a batch is cut into pieces of the chosen size.
+  const unitG = bowl ? Math.round(grams) : piece.g;
+  const each = scaleNutrients(per100, unitG / 100);
   const set = (k: string, v: number) => setAmounts((a) => ({ ...a, [k]: v }));
   const unitText = (qty: number, unit: string, plural: string) => (qty === 1 ? unit : plural);
 
   const save = () => {
     const existing = (state.customFoods ?? []).find((f) => f.name.toLowerCase() === name.trim().toLowerCase());
-    const food = toCustomFood(build, name.trim(), per100, piece.g, existing?.id ?? uid());
+    const food = toCustomFood(build, name.trim(), per100, unitG, existing?.id ?? uid());
     update((s) => ({ ...s, customFoods: [...(s.customFoods ?? []).filter((f) => f.name.toLowerCase() !== food.name.toLowerCase()), food] }));
-    remember(build, { amounts: Object.fromEntries(Object.entries(amounts).filter(([, v]) => v > 0)), size });
+    remember(build, { amounts: Object.fromEntries(Object.entries(amounts).filter(([, v]) => v > 0)), size, ...(bowl ? { leftSome } : {}) });
     return food;
   };
 
   return (
     <div className="space-y-4">
-      <Field label="What went in?" hint="Tap to tick or untick. Count spoons, scoops and handfuls for the whole batch.">
+      {bowl && (
+        <Field label="Which broth?">
+          <Choice value={chosenBase} onChange={(k) => setAmounts((a) => ({ ...a, ...Object.fromEntries(baseKeys.map((b) => [b, b === k ? 1 : 0])) }))} options={baseKeys.map((k) => ({ value: k, label: INGREDIENTS[k].label }))} />
+        </Field>
+      )}
+      <Field label={bowl ? "What else went in?" : "What went in?"} hint={bowl ? "Tap to tick or untick. Count what went in this bowl." : "Tap to tick or untick. Count spoons, scoops and handfuls for the whole batch."}>
         <ul className="divide-y rounded-xl border">
           {offered.map((k) => {
             const i = INGREDIENTS[k];
@@ -946,7 +957,7 @@ function BuildStep({ build, onLog }: { build: Build; onLog: (p: Pending) => void
           })}
         </ul>
       )}
-      <Field label={`${build.piece === "ball" ? "Ball" : "Piece"} size`}>
+      <Field label={bowl ? "How much broth?" : `${build.piece === "ball" ? "Ball" : "Piece"} size`}>
         <div className="grid grid-cols-3 gap-2">
           {build.sizes.map((z, i) => (
             <button
@@ -962,7 +973,21 @@ function BuildStep({ build, onLog }: { build: Build; onLog: (p: Pending) => void
           ))}
         </div>
       </Field>
-      {grams > 0 && (
+      {bowl && (
+        <Field label="Drink all the broth?" hint={leftSome ? "Half the broth and three quarters of any oil are counted, as oil floats and coats the bowl." : undefined}>
+          <Choice value={leftSome ? "some" : "all"} onChange={(v) => setLeftSome(v === "some")} options={[{ value: "all", label: "All of it" }, { value: "some", label: "Left some" }]} />
+        </Field>
+      )}
+      {grams > 0 && bowl && (
+        <>
+          <p className="text-sm">
+            This bowl is about {each.kcal} kcal and {Math.round(each.protein)} g protein{(each.salt ?? 0) >= 1 ? `, with ${Math.round((each.salt ?? 0) * 10) / 10} g salt` : ""}.
+            <Estimate />
+          </p>
+          <NutrientGrid n={each} />
+        </>
+      )}
+      {grams > 0 && !bowl && (
         <>
           <p className="text-sm">
             Makes about {count} {count === 1 ? build.piece : build.pieces}. Each is about {each.kcal} kcal and {Math.round(each.protein)} g protein

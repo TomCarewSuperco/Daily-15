@@ -21,9 +21,11 @@ export interface Ingredient {
   /** Stepper increment. */
   step: number;
   n: Per100;
+  /** Oil floats, so some stays in the bowl when broth is left. */
+  oil?: boolean;
 }
 
-const I = (key: string, label: string, unit: string, plural: string, g: number, n: Per100, step = 1): Ingredient => ({ key, label, unit, plural, g, step, n });
+const I = (key: string, label: string, unit: string, plural: string, g: number, n: Per100, step = 1, oil = false): Ingredient => ({ key, label, unit, plural, g, step, n, ...(oil ? { oil } : {}) });
 
 export const INGREDIENTS: Record<string, Ingredient> = Object.fromEntries(
   [
@@ -44,6 +46,27 @@ export const INGREDIENTS: Record<string, Ingredient> = Object.fromEntries(
     I("butter", "Butter", "quarter block", "quarter blocks", 62.5, [744, 0.6, 0.6, 82.2, 0, 52.1, 0.6, 1.82], 0.5),
     I("syrup", "Golden syrup", "tablespoon", "tablespoons", 20, [298, 0.3, 79, 0, 0, 0, 79, 0.68]),
     I("sugar", "Brown sugar", "tablespoon", "tablespoons", 12, [380, 0.1, 101.3, 0, 0, 0, 101.3, 0.08]),
+    // Broth bowls. The broth itself is per ml (g = 1) and measured by the bowl size.
+    I("brothCube", "Stock cube or pot", "ml", "ml", 1, [7, 0.3, 0.6, 0.3, 0, 0.1, 0.3, 0.9]),
+    I("brothBone", "Bone broth, shop-bought", "ml", "ml", 1, [30, 6.5, 0.5, 0.4, 0, 0.1, 0.2, 0.4]),
+    I("brothSkimmed", "Homemade, fat skimmed", "ml", "ml", 1, [15, 2.5, 0.5, 0.4, 0, 0.1, 0.2, 0.3]),
+    I("brothFat", "Homemade, fat left in", "ml", "ml", 1, [40, 3, 0.5, 3, 0, 0.9, 0.2, 0.3]),
+    I("chicken", "Shredded chicken", "handful", "handfuls", 40, [153, 30.2, 0, 3.6, 0, 1, 0, 0.15], 0.5),
+    I("egg", "Boiled egg", "egg", "eggs", 50, [143, 14.1, 0, 9.6, 0, 2.7, 0, 0.38], 0.5),
+    I("tofu", "Tofu", "handful", "handfuls", 50, [144, 15, 3, 8.7, 2.3, 1.3, 0.5, 0.02], 0.5),
+    I("eggNoodles", "Egg noodles", "nest", "nests", 160, [143, 5, 30.7, 0.9, 2.6, 0.1, 0, 0.3], 0.5),
+    I("riceNoodles", "Rice noodles", "nest", "nests", 150, [89, 1.9, 21.3, 0.2, 1.1, 0.1, 0, 0.01], 0.5),
+    I("pakChoi", "Pak choi", "half head", "half heads", 50, [14, 1.5, 1.9, 0.1, 2, 0, 1.5, 0.1]),
+    I("mushrooms", "Mushrooms", "handful", "handfuls", 60, [7, 1, 0.3, 0.2, 0.7, 0, 0.3, 0.01]),
+    I("spinach", "Spinach or greens", "handful", "handfuls", 30, [25, 2.8, 1.6, 0.8, 2.1, 0.1, 1.5, 0.35]),
+    I("beansprouts", "Beansprouts", "handful", "handfuls", 40, [31, 2.9, 4, 0.5, 1.5, 0.1, 2.2, 0.01]),
+    I("sweetcorn", "Sweetcorn", "heaped tablespoon", "heaped tablespoons", 27, [78, 2.6, 13.9, 1.7, 3.1, 0.3, 7.5, 0]),
+    I("springOnion", "Spring onion", "spring onion", "spring onions", 15, [23, 2, 3, 0.5, 1.5, 0.1, 2.8, 0.02]),
+    I("soy", "Soy sauce", "tablespoon", "tablespoons", 15, [79, 3, 17.9, 0, 0, 0, 16.4, 13.75], 0.5),
+    I("miso", "Miso paste", "tablespoon", "tablespoons", 18, [200, 12, 26, 6, 5, 1, 6, 11], 0.5),
+    I("sesameOil", "Sesame oil", "teaspoon", "teaspoons", 5, [898, 0.2, 0, 99.7, 0, 14.6, 0, 0.01], 1, true),
+    // Chilli oil or crisp: an average of label values, mostly oil.
+    I("chilliOil", "Chilli oil or crisp", "teaspoon", "teaspoons", 5, [830, 1, 5, 90, 1, 12, 1, 1.5], 1, true),
   ].map((i) => [i.key, i]),
 );
 
@@ -56,6 +79,11 @@ export interface PieceSize {
 export interface Build {
   key: string;
   title: string;
+  /** A batch cut into pieces, or one bowl measured by how much broth. */
+  kind?: "batch" | "bowl";
+  /** Choose one: the broth. */
+  base?: string[];
+  prompt?: string;
   /** Saved as this name in My foods. */
   name: string;
   piece: string;
@@ -112,7 +140,38 @@ export const BUILDS: Build[] = [
     size: 1,
     usual: [["oats", 2.5], ["butter", 2], ["sugar", 8], ["syrup", 3], ["raisins", 0], ["choc", 0], ["coconut", 0], ["peanut", 0], ["honey", 0]],
   },
+  {
+    key: "broth",
+    kind: "bowl",
+    title: "Broth bowl",
+    prompt: "Made a broth bowl yourself?",
+    name: "Chicken broth bowl, homemade",
+    piece: "bowl",
+    pieces: "bowls",
+    match: /\b(broth|ramen|pho|noodle soup|chicken stock)\b/,
+    base: ["brothSkimmed", "brothFat", "brothBone", "brothCube"],
+    sizes: [
+      { label: "Mug", hint: "about 250 ml", g: 250 },
+      { label: "Bowl", hint: "about 350 ml", g: 350 },
+      { label: "Large bowl", hint: "about 500 ml", g: 500 },
+    ],
+    size: 1,
+    usual: [["brothSkimmed", 1], ["chicken", 1], ["pakChoi", 1], ["mushrooms", 1], ["springOnion", 1], ["soy", 1], ["eggNoodles", 0], ["riceNoodles", 0], ["egg", 0], ["tofu", 0], ["spinach", 0], ["beansprouts", 0], ["sweetcorn", 0], ["miso", 0], ["sesameOil", 0], ["chilliOil", 0]],
+  },
 ];
+
+/** Broth left in the bowl: half the broth, and three quarters of the oil, are counted. */
+export const LEFT_SOME = { broth: 0.5, oil: 0.75 };
+
+/** The parts of a broth bowl: the chosen broth at the bowl size, and the rest as counted. */
+export function bowlParts(build: Build, amounts: Amounts, ml: number, leftSome: boolean): Part[] {
+  const base = build.base ?? [];
+  const chosen = base.find((k) => (amounts[k] ?? 0) > 0) ?? base[0];
+  const rest = Object.fromEntries(Object.entries(amounts).filter(([k]) => !base.includes(k)));
+  const parts = partsOf(rest).map((p) => (leftSome && INGREDIENTS[p.key!]?.oil ? { ...p, qty: p.qty * LEFT_SOME.oil } : p));
+  const [broth] = partsOf({ [chosen]: ml * (leftSome ? LEFT_SOME.broth : 1) });
+  return broth ? [broth, ...parts] : parts;
+}
 
 /** A build for a search such as 'protein balls' or 'flapjack'. */
 export function buildFor(query: string): Build | undefined {
@@ -126,6 +185,7 @@ export type Amounts = Record<string, number>;
 
 /** Any ingredient with grams per unit and per-100 g nutrients, including ones added from search. */
 export interface Part {
+  key?: string;
   label: string;
   qty: number;
   g: number;
@@ -138,7 +198,7 @@ export function partsOf(amounts: Amounts): Part[] {
     .map(([k, qty]) => {
       const i = INGREDIENTS[k];
       const [kcal, protein, carbs, fat, fibre, satFat, sugars, salt] = i.n;
-      return { label: i.label, qty, g: i.g, n: { kcal, protein, carbs, fat, fibre, satFat, sugars, salt } };
+      return { key: k, label: i.label, qty, g: i.g, n: { kcal, protein, carbs, fat, fibre, satFat, sugars, salt } };
     });
 }
 
@@ -170,6 +230,7 @@ const KEY = "daily15:build:";
 export interface Remembered {
   amounts: Amounts;
   size: number;
+  leftSome?: boolean;
 }
 
 /** Last time's ingredients and size for this build, or the usual recipe. */

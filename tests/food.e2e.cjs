@@ -221,6 +221,24 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const okBall = /Makes about 8 balls/.test(makes) && ball.unit?.name === "ball" && ball.unit?.g === 40 && /1 ball/.test(ball.portion ?? "") && ball.kcal > 140 && ball.kcal < 200;
   console.log(okBall ? "PASS homemade protein balls build and log per ball" : `FAIL homemade protein balls build and log per ball (${makes}, ${JSON.stringify(ball)})`);
   if (!okBall) process.exitCode = 1;
+  // Broth bowl: 'chicken stock' finds broth and offers the build; leaving broth counts less.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("chicken stock");
+  const brothRow = await p.getByRole("button", { name: /^Chicken broth/ }).count();
+  await p.getByRole("button", { name: /Made a broth bowl yourself/ }).click();
+  const readAll = async () => Number((await p.getByText(/This bowl is about \d+ kcal/).textContent()).match(/about (\d+) kcal/)[1]);
+  await p.getByRole("button", { name: /Sesame oil/ }).click();
+  const allKcal = await readAll();
+  await p.getByRole("button", { name: "Left some" }).click();
+  const leftKcal = await readAll();
+  await p.screenshot({ path: OUT + "/f-broth.png", fullPage: true });
+  await p.getByRole("button", { name: "Save and log" }).click();
+  await p.getByRole("button", { name: /^Add$/ }).click();
+  await p.waitForTimeout(300);
+  const broth = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.find((x) => x.name === "Chicken broth bowl, homemade"));
+  const okBroth = brothRow > 0 && leftKcal < allKcal && broth && /1 bowl/.test(broth.portion) && broth.kcal === leftKcal;
+  console.log(okBroth ? "PASS broth bowl from a chicken stock search" : `FAIL broth bowl from a chicken stock search (${brothRow}, ${allKcal}, ${leftKcal}, ${JSON.stringify(broth)})`);
+  if (!okBroth) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

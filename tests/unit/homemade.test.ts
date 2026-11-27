@@ -42,3 +42,20 @@ test("saves per 100 g with a ball unit", () => {
   assert.equal(f.per, 100);
   assert.equal(f.unit, "g");
 });
+
+test("broth bowl: the chosen broth at the bowl size, leftovers count half the broth and most of the oil", async () => {
+  const { bowlParts, LEFT_SOME } = await import("../../src/app/homemade");
+  const bowl = BUILDS.find((b) => b.key === "broth")!;
+  assert.equal(buildFor("chicken broth")?.key, "broth");
+  assert.equal(buildFor("ramen")?.key, "broth");
+  const amounts = { brothFat: 1, brothSkimmed: 0, chicken: 1, sesameOil: 2 };
+  const all = batchOf(bowlParts(bowl, amounts, 350, false));
+  // 350 ml broth + 40 g chicken + 10 g oil.
+  assert.equal(all.grams, 400);
+  const kcal = (b: { grams: number; per100: { kcal: number } }) => Math.round((b.per100.kcal * b.grams) / 100);
+  assert.ok(Math.abs(kcal(all) - Math.round(140 + 61.2 + 89.8)) <= 2, `${kcal(all)}`);
+  const left = batchOf(bowlParts(bowl, amounts, 350, true));
+  assert.ok(Math.abs(kcal(left) - Math.round(140 * LEFT_SOME.broth + 61.2 + 89.8 * LEFT_SOME.oil)) <= 2, `${kcal(left)}`);
+  // With no broth ticked, the first is assumed.
+  assert.equal(bowlParts(bowl, { chicken: 1 }, 250, false)[0].label, "Homemade, fat skimmed");
+});

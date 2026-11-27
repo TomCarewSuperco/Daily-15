@@ -274,6 +274,10 @@ const BASE: FoodItem[] = [
   // The app's estimate from typical UK labels.
   food("Balsamic glaze", "g", 250, 0.5, 55, 0, 0, [u("tablespoon", 15), u("drizzle", 5)]),
   food("Sweet chilli sauce", "g", 220, 0.4, 52, 0.3, 1, [u("tablespoon", 15)]),
+  food("Soy sauce", "ml", 79, 3, 17.9, 0, 0, [u("tablespoon", 15), u("teaspoon", 5), u("dash", 2, "dashes")]),
+  food("Sesame oil", "g", 898, 0.2, 0, 99.7, 0, [u("teaspoon", 5), u("tablespoon", 14)]),
+  // Chilli oil or chilli crisp: an average of label values.
+  food("Chilli oil or chilli crisp", "g", 830, 1, 5, 90, 1, [u("teaspoon", 5), u("tablespoon", 15)]),
   food("Sriracha", "g", 105, 1.9, 22, 0.9, 1.5, [u("teaspoon", 5), u("tablespoon", 15)]),
   food("Tomato ketchup", "g", 100, 1.2, 23, 0.1, 0.9, [u("tablespoon", 15)]),
   food("Sugar", "g", 400, 0, 100, 0, 0, [u("teaspoon", 4)]),
@@ -599,6 +603,9 @@ const EXTRA: Record<string, Extra> = {
   "Chocolate raisins": [9.5, 62, 0.1],
   "Yogurt-coated raisins": [15, 65, 0.15],
   "Sweet chilli sauce": [0.1, 48, 1.9],
+  "Soy sauce": [0, 16.4, 13.75],
+  "Sesame oil": [14.6, 0, 0.01],
+  "Chilli oil or chilli crisp": [12, 1, 1.5],
   "Sriracha": [0.1, 20, 5.3],
   "Udon noodles, cooked": [0.1, 0.4, 0.5],
   "Soba noodles, cooked": [0.1, 0.5, 0.1],
