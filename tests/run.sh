@@ -27,6 +27,7 @@ OUT="$OUT" node tests/activity.e2e.cjs
 OUT="$OUT" node tests/measure.e2e.cjs
 OUT="$OUT" node tests/rest.e2e.cjs
 OUT="$OUT" node tests/usual.e2e.cjs
+OUT="$OUT" node tests/coaching.e2e.cjs
 OUT="$OUT" node tests/session.e2e.cjs
 OUT="$OUT" node tests/join.e2e.cjs
 OUT="$OUT" node tests/update.e2e.cjs

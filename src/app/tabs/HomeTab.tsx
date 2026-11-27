@@ -29,6 +29,8 @@ import { toast } from "../notify";
 import { activeCommitments, toggleTick } from "../commitments";
 import { lifeStageOf } from "../pregnancy";
 import { buildRoutine, estimateMinutes, settingsOf } from "../routine";
+import { yesterdayBrief } from "../yesterday";
+import { milestoneFor } from "../milestones";
 
 export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const { state, update } = useDaily15();
@@ -59,6 +61,25 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
   const restToday = isRestDay(state, today);
   const week = lastNDays(7);
   const remaining = t.calories - food.kcal;
+  const brief = yesterdayBrief(state, today);
+  const milestone = milestoneFor(state, today);
+  const milestoneKey = milestone ? `daily15:milestone:${milestone.day}` : "";
+  const [milestoneSeen, setMilestoneSeen] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("daily15:milestones-seen") ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const closeMilestone = () => {
+    const next = [...milestoneSeen, milestoneKey];
+    setMilestoneSeen(next);
+    try {
+      localStorage.setItem("daily15:milestones-seen", JSON.stringify(next));
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   // Yesterday not logged at all: one question to fill the gap.
   const yesterday = addDays(today, -1);
@@ -234,6 +255,26 @@ export function HomeTab({ onNavigate }: { onNavigate: Navigate }) {
               );
             })}
           </ul>
+        </Card>
+      )}
+
+      {milestone && !stage && !milestoneSeen.includes(milestoneKey) && (
+        <Card className="border-copper/40 text-sm">
+          <CardHeading action={<Button variant="ghost" size="sm" className="h-8 text-xs" onClick={closeMilestone}>Close</Button>}>{milestone.title}</CardHeading>
+          <ul className="space-y-1.5">
+            {milestone.lines.map((l) => <li key={l}>{l}</li>)}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">Habits come first and results follow. Keep going.</p>
+        </Card>
+      )}
+
+      {brief && !stage && (brief.wins.length > 0 || brief.today) && (
+        <Card className="text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Yesterday</p>
+          <ul className="mt-1.5 space-y-1">
+            {brief.wins.map((w) => <li key={w} className="font-medium">{w}</li>)}
+          </ul>
+          {brief.today && <p className="mt-2 text-muted-foreground"><span className="font-medium text-foreground">Today:</span> {brief.today}</p>}
         </Card>
       )}
 

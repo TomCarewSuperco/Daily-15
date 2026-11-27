@@ -294,13 +294,14 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
         <Card>
           <CardHeading action={<span className="text-xs text-muted-foreground">{formatDay(review.start, { day: "numeric", month: "short" })} to {formatDay(review.end, { day: "numeric", month: "short" })}</span>}>Weekly review</CardHeading>
           <p className="text-lg leading-snug">{review.headline}</p>
+          {review.weightNote && <p className="mt-1.5 text-sm text-muted-foreground">{review.weightNote}</p>}
           <p className="mt-1 text-xs text-muted-foreground">
             Food: {review.foodCoverage.logged} {review.foodCoverage.logged === 1 ? "day" : "days"} logged
             {review.foodCoverage.estimated > 0 && `, ${review.foodCoverage.estimated} estimated`}
             {review.foodCoverage.missing > 0 && `, ${review.foodCoverage.missing} missing`}
           </p>
 
-          {review.wins.length > 0 && <ReviewList title="Keep doing" items={review.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
+          {review.wins.length > 0 && <ReviewList title="What went well" items={review.wins.map((w, i) => ({ id: `w${i}`, text: w, priority: 0 }))} />}
           <div className="mt-4">
           <PremiumGate title="Your plan for next week" why="Premium shows what to eat more and less of, and whether to change your calorie target based on your weight trend.">
           {review.adjustment && (
@@ -312,8 +313,15 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
             </div>
           )}
 
-          {review.moreOf.length > 0 && <ReviewList title="Do more of" items={review.moreOf} commit />}
-          {review.lessOf.length > 0 && <ReviewList title="Do less of" items={review.lessOf} commit />}
+          {review.tryThis && <ReviewList title="One thing to try this week" items={[review.tryThis]} commit />}
+          {review.moreIdeas.length > 0 && (
+            <details className="group mt-4">
+              <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                More ideas ({review.moreIdeas.length}) <span className="ml-1 inline-block transition-transform group-open:rotate-90">›</span>
+              </summary>
+              <ReviewList items={review.moreIdeas} commit />
+            </details>
+          )}
           {finishedCommitments(state).length > 0 && (
             <div className="mt-4 rounded-xl bg-muted p-3 text-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Last commitments</p>
@@ -325,7 +333,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
           </PremiumGate>
           </div>
           {review.notes.map((n) => <p key={n} className="mt-3 text-sm text-muted-foreground">{n}</p>)}
-          {!review.moreOf.length && !review.lessOf.length && !review.adjustment && <p className="mt-3 text-sm">Nothing to change this week. Keep doing what you're doing.</p>}
+          {!review.tryThis && !review.adjustment && <p className="mt-3 text-sm">Nothing to change this week. Keep doing what you're doing.</p>}
           <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
             General guidance from your logged data, which may be incomplete. Not medical or dietetic advice. If you're pregnant, breastfeeding, under 18, managing a medical condition or have had an eating disorder, speak to your GP or a registered dietitian before changing your diet.
           </p>
@@ -401,7 +409,7 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                 Waist-to-height: <span className="font-semibold tabular-nums">{whtr.toFixed(2)}</span>.{" "}
                 {whtr < 0.5
                   ? "Under half your height, the healthy range."
-                  : `NHS guidance is to keep your waist under half your height (0.5). That's ${formatLength(halfHeight, lengthUnit)} for you, about ${formatLength(Math.max(0.5, latestWaist! - halfHeight), lengthUnit)} from here.`}
+                  : `A waist under half your height (0.5) is the healthy range. That's ${formatLength(halfHeight, lengthUnit)} for you, about ${formatLength(Math.max(0.5, latestWaist! - halfHeight), lengthUnit)} from here.`}
               </p>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Latest {formatDay(lastM.date)}. Measure every two to four weeks at the same point on the body.</p>
@@ -568,22 +576,23 @@ function PhotosCard() {
   );
 }
 
-function ReviewList({ title, items, commit }: { title: string; items: ReviewPoint[]; commit?: boolean }) {
+function ReviewList({ title, items, commit }: { title?: string; items: ReviewPoint[]; commit?: boolean }) {
   const { state, update } = useDaily15();
   const active = activeCommitments(state);
   return (
     <div className="mt-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+      {title && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>}
       <ul className="mt-1.5 space-y-2.5">
         {items.map((it) => (
           <li key={it.id} className="text-sm">
             <span className="font-medium">{it.text}</span>
             {it.focus && <span className="ml-1.5 rounded bg-copper/15 px-1.5 py-0.5 align-middle text-[10px] uppercase tracking-wide text-copper">Focus</span>}
             {it.detail && <p className="mt-0.5 text-muted-foreground">{it.detail}</p>}
-            {commit && (active.some((c) => c.text === it.text) ? (
+            {commit && it.action && <p className="mt-1 text-sm">Try: {it.action}.</p>}
+            {commit && (active.some((c) => c.text === (it.action ?? it.text)) ? (
               <span className="mt-1 inline-block text-xs font-medium text-[hsl(var(--d15-done))]">Committed for this week</span>
             ) : active.length < MAX_COMMITMENTS ? (
-              <button className="mt-1 text-xs font-medium underline" onClick={() => { update((s) => addCommitment(s, it.text, it.id)); toast.success("Added to this week's commitments on Home"); }}>Commit to this for a week</button>
+              <button className="mt-1 text-xs font-medium underline" onClick={() => { update((s) => addCommitment(s, it.action ?? it.text, it.id)); toast.success("Added to this week's commitments on Home"); }}>Commit to this for a week</button>
             ) : null)}
           </li>
         ))}

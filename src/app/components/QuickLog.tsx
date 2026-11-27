@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { todayKey, uid } from "../calc";
 import { healthName, saveWeightToHealth } from "../native/health";
 import { useDaily15 } from "../store";
+import { weighInMessage } from "../milestones";
 import { Field, NumField } from "./Field";
 
 interface DialogProps {
@@ -29,9 +30,10 @@ export function WeightDialog({ open, onOpenChange }: DialogProps) {
   const save = () => {
     if (typeof kg !== "number" || kg < 30 || kg > 350) return;
     const value = Math.round(kg * 10) / 10;
+    const message = weighInMessage(state, value, date);
     update((s) => ({ ...s, weights: [...s.weights.filter((w) => w.date !== date), { id: uid(), date, kg: value }] }));
     if (state.health?.connected) saveWeightToHealth(value, date).catch(() => {});
-    toast.success("Weigh-in saved");
+    toast.success(message);
     onOpenChange(false);
   };
 

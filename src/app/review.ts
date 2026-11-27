@@ -33,6 +33,8 @@ export interface ReviewPoint {
   focus?: boolean;
   /** Higher shows first. Focus areas get a boost. */
   priority: number;
+  /** What to do, as a daily habit: the wording used when it's committed to. */
+  action?: string;
 }
 
 export interface Adjustment {
@@ -41,14 +43,23 @@ export interface Adjustment {
   change: Partial<Targets>;
 }
 
-export type WeightStatus = "on-track" | "too-fast" | "stalled" | "flat-week" | "over-target" | "gaining" | "not-enough-data" | "not-applicable";
+export type WeightStatus = "settling" | "on-track" | "too-fast" | "stalled" | "flat-week" | "over-target" | "gaining" | "not-enough-data" | "not-applicable";
 
 export interface WeeklyReview {
   start: string;
   end: string;
   headline: string;
   status: WeightStatus;
+  /** What went well, most notable first. Up to five. */
   wins: string[];
+  /** The single most useful change for next week. */
+  tryThis: ReviewPoint | null;
+  /** Other suggestions, shown collapsed. */
+  moreIdeas: ReviewPoint[];
+  /** What the weight did, when the headline leads with a win instead. */
+  weightNote: string | null;
+  /** Days since the first thing was logged, counting the review's last day. */
+  daysIn: number;
   moreOf: ReviewPoint[];
   lessOf: ReviewPoint[];
   adjustment: Adjustment | null;
@@ -61,6 +72,10 @@ const STEP_KCAL = 150;
 const FOCUS_BOOST = 50;
 const MIN_FOOD_DAYS = 4;
 const MIN_WEIGH_INS = 3;
+/** The first three weeks: weight isn't judged while the body adjusts to new training and eating. */
+export const SETTLING_DAYS = 21;
+/** A day with this many units or more is a big session. */
+const BIG_SESSION_UNITS = 8;
 const STRENGTH = new Set(["Weight training", "Circuit training", "HIIT", "Pilates"]);
 
 const round = (n: number, dp = 0) => Math.round(n * 10 ** dp) / 10 ** dp;
@@ -95,6 +110,46 @@ export function waistChange(state: AppState, end: string): { cm: number; weeks: 
 function daysSinceWaist(state: AppState, end: string): number | null {
   const last = state.measurements.filter((m) => m.waistCm && m.date <= end).map((m) => m.date).sort().pop();
   return last ? Math.round((new Date(`${end}T12:00:00`).getTime() - new Date(`${last}T12:00:00`).getTime()) / 86400000) : null;
+}
+
+const daysBetween = (a: string, b: string) => Math.round((new Date(`${b}T12:00:00`).getTime() - new Date(`${a}T12:00:00`).getTime()) / 86400000);
+
+/** The first day anything was logged: food, a weigh-in, a routine or a workout. */
+export function programmeStart(state: AppState): string | null {
+  const dates = [
+    ...state.foods.filter((f) => !f.rough).map((f) => f.date),
+    ...state.weights.map((w) => w.date),
+    ...Object.keys(state.routineLogs),
+    ...state.workouts.map((w) => w.date),
+  ];
+  return dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null;
+}
+
+/** Heaviest weight lifted for each exercise on each date. */
+export function bestLifts(state: AppState): Map<string, { date: string; kg: number }[]> {
+  const out = new Map<string, { date: string; kg: number }[]>();
+  for (const w of [...state.workouts].sort((a, b) => a.date.localeCompare(b.date))) {
+    for (const e of w.exercises) {
+      const top = Math.max(0, ...e.sets.map((x) => (x.reps > 0 ? x.weightKg : 0)));
+      if (top > 0) out.set(e.name, [...(out.get(e.name) ?? []), { date: w.date, kg: top }]);
+    }
+  }
+  return out;
+}
+
+/** The exercise with the biggest rise in weight lifted, from its first session to one in `days`. */
+export function liftProgress(state: AppState, days: string[]): { name: string; from: number; to: number } | null {
+  const set = new Set(days);
+  let best: { name: string; from: number; to: number; rise: number } | null = null;
+  for (const [name, xs] of bestLifts(state)) {
+    const recent = xs.filter((x) => set.has(x.date));
+    if (!recent.length || xs[0].date >= recent[0].date) continue;
+    const from = xs[0].kg;
+    const to = Math.max(...recent.map((x) => x.kg));
+    const rise = (to - from) / from;
+    if (to > from && (!best || rise > best.rise)) best = { name, from, to, rise };
+  }
+  return best && { name: best.name, from: best.from, to: best.to };
 }
 
 /** Reviews the seven days ending `end` (default: yesterday, the last complete day). */
@@ -158,6 +213,11 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   const pct7 = change7 !== null && trendNow ? (change7 / trendNow) * 100 : null;
   const pct14 = change14 !== null && trendNow ? (change14 / trendNow) * 100 : null;
   const recentlyAdjusted = !!p.adjustedAt && p.adjustedAt > addDays(end, -14);
+  const startDate = programmeStart(state);
+  const daysIn = startDate && startDate <= end ? daysBetween(startDate, end) + 1 : 0;
+  const settling = daysIn > 0 && daysIn < SETTLING_DAYS;
+  const firstWeek = startDate ? lastNDays(7, addDays(startDate, 6)) : [];
+  const comparable = daysIn >= 14;
 
   const moreOf: ReviewPoint[] = [];
   const lessOf: ReviewPoint[] = [];
@@ -166,10 +226,13 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   let adjustment: Adjustment | null = null;
   let status: WeightStatus = "not-applicable";
   let headline = "";
+  // Lead with what went well when the weight has nothing useful to say this week.
+  let winLed = false;
+  let weightNote: string | null = null;
 
   const add = (to: ReviewPoint[], pt: Omit<ReviewPoint, "priority" | "focus"> & { priority: number; goals?: FocusGoal[] }) => {
     const isFocus = !!pt.goals?.some((g) => focus.has(g));
-    to.push({ id: pt.id, text: pt.text, detail: pt.detail, focus: isFocus, priority: pt.priority + (isFocus ? FOCUS_BOOST : 0) });
+    to.push({ id: pt.id, text: pt.text, detail: pt.detail, focus: isFocus, priority: pt.priority + (isFocus ? FOCUS_BOOST : 0), ...(pt.action ? { action: pt.action } : {}) });
   };
 
   const enoughFood = foodDays.length >= MIN_FOOD_DAYS && realDays.length >= 2;
@@ -177,10 +240,23 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   if (estimatedDays.length) notes.push(`${estimatedDays.length} of 7 days ${estimatedDays.length === 1 ? "was" : "were"} estimated rather than logged, so treat the food advice as approximate.`);
 
   /* ---------- Weight and the calorie target ---------- */
-  if (losing || p.goal === "build-muscle" || p.goal === "maintain") {
+  if ((losing || p.goal === "build-muscle" || p.goal === "maintain") && settling) {
+    // Wording for review by a dietitian and personal trainer.
+    status = "settling";
+    winLed = true;
+    const first = [...state.weights].sort((a, b) => a.date.localeCompare(b.date))[0];
+    const up = first && trendNow !== null ? trendNow - first.kg : null;
+    weightNote =
+      up !== null && up >= 0.3
+        ? `Weight is up ${kg(up)} since you started. That's common in the first weeks of new training: working muscles hold extra water while they repair and refill their energy stores, and new food and salt habits add to it. It usually settles within two to four weeks. The review starts judging your trend in week four.`
+        : `Week ${Math.ceil(daysIn / 7)} of your first three. Weight moves around while your body adjusts, so the review starts judging your trend in week four. What you do each day is what counts now.`;
+    if (weighIns14 < MIN_WEIGH_INS) notes.push("Weigh in at least three times a week, first thing in the morning, so there's a reliable trend by week four.");
+  } else if (losing || p.goal === "build-muscle" || p.goal === "maintain") {
     if (weighIns14 < MIN_WEIGH_INS || pct7 === null) {
       status = "not-enough-data";
       headline = "Not enough weigh-ins to judge your trend yet.";
+      winLed = true;
+      weightNote = "Not enough weigh-ins to judge your weight trend yet.";
       notes.push("Weigh in at least three times a week, first thing in the morning, for a reliable trend.");
     } else if (losing) {
       if (pct7 <= -1) {
@@ -224,6 +300,8 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
       } else {
         status = "flat-week";
         headline = "Weight was steady this week. One flat week is normal, often water. Keep going.";
+        winLed = true;
+        weightNote = "Weight was steady this week. One flat week is normal, often water.";
       }
     } else if (p.goal === "build-muscle") {
       if (pct7 >= 0.5) {
@@ -264,6 +342,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
     const down = `your waist is down ${formatLength(-waist.cm, unit, true)} in ${waist.weeks} weeks`;
     if (status === "stalled" || status === "flat-week" || status === "not-enough-data") {
       headline = status === "not-enough-data" ? `${down[0].toUpperCase()}${down.slice(1)}. That's progress.` : `Weight steady, but ${down}. That's fat loss: keep going.`;
+      winLed = false;
       if (adjustment && status === "stalled") {
         adjustment = null;
         notes.push("A smaller waist while weight holds usually means fat lost and muscle gained, so your target stays as it is.");
@@ -288,7 +367,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
   }
 
   /* ---------- Do more of ---------- */
-  if (!enoughFood) add(moreOf, { id: "log-food", priority: 70, text: `Log food on at least ${MIN_FOOD_DAYS} days`, detail: `You logged ${foodDays.length} ${foodDays.length === 1 ? "day" : "days"}. More days give a fairer picture and better advice.` });
+  if (!enoughFood) add(moreOf, { id: "log-food", priority: 70, text: `Log food on at least ${MIN_FOOD_DAYS} days`, action: "Log what I eat today, even roughly", detail: `You logged ${foodDays.length} ${foodDays.length === 1 ? "day" : "days"}. More days give a fairer picture and better advice.` });
   if (enoughFood && avgProtein < t.proteinG * 0.9) {
     const short = breakfastProtein !== null && breakfastProtein < 20;
     add(moreOf, {
@@ -296,6 +375,7 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
       goals: ["protein"],
       priority: losing || p.goal === "build-muscle" ? 65 : 45,
       text: `Protein: averaged ${fmt(avgProtein)} g against ${t.proteinG} g`,
+      action: short ? "Have 20 g of protein at breakfast" : "Include a protein source at every meal",
       detail: short
         ? `Breakfast averaged only ${fmt(breakfastProtein!)} g. Greek yoghurt, eggs, cottage cheese or a protein shake would add 15 to 25 g.`
         : "Include a protein source at every meal: lean meat, fish, eggs, dairy, tofu, beans or lentils.",
@@ -307,35 +387,36 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
       goals: ["fibre", "cholesterol"],
       priority: 40,
       text: `Fibre: averaged ${fmt(avgFibre)} g against ${t.fibreG} g`,
+      action: focus.has("cholesterol") ? "Have oats, beans or lentils every day" : "Swap one white carb for wholegrain each day",
       detail: focus.has("cholesterol")
         ? "Oats, barley, beans and lentils contain soluble fibre, which can help lower cholesterol. Porridge for breakfast and a tin of beans or lentils in the week are easy wins."
         : "Swap to wholemeal bread and pasta, add beans or lentils to meals, and keep the skins on potatoes.",
     });
   }
   if (enoughFood && avgFiveADay < 4) {
-    add(moreOf, { id: "fruit-veg", goals: ["fruit-veg", "cholesterol"], priority: 35, text: `Fruit and veg: averaged ${round(avgFiveADay, 1)} portions a day`, detail: "Aim for five 80 g portions. A handful of berries with breakfast and two vegetables with dinner gets you most of the way." });
+    add(moreOf, { id: "fruit-veg", goals: ["fruit-veg", "cholesterol"], priority: 35, text: `Fruit and veg: averaged ${round(avgFiveADay, 1)} portions a day`, action: "Fruit with breakfast and two vegetables with dinner", detail: "Aim for five 80 g portions. A handful of berries with breakfast and two vegetables with dinner gets you most of the way." });
   }
   if (avgSteps !== null && avgSteps < t.steps * 0.9) {
     const gap = Math.min(2000, Math.round((t.steps - avgSteps) / 250) * 250);
-    add(moreOf, { id: "steps", priority: losing ? 50 : 40, text: `Steps: averaged ${fmt(avgSteps)} against ${fmt(t.steps)}`, detail: `Add about ${fmt(gap)} a day. A 15-minute walk is roughly 1,500 steps.` });
+    add(moreOf, { id: "steps", priority: losing ? 50 : 40, text: `Steps: averaged ${fmt(avgSteps)} against ${fmt(t.steps)}`, action: "A 15-minute walk every day", detail: `Add about ${fmt(gap)} a day. A 15-minute walk is roughly 1,500 steps.` });
   }
-  if (activeDays < 5) add(moreOf, { id: "active-days", priority: 55, text: `Active days: ${activeDays} of seven`, detail: "Light or recovery mode counts. Aim for one more day next week." });
+  if (activeDays < 5) add(moreOf, { id: "active-days", priority: 55, text: `Active days: ${activeDays} of seven`, action: "Do my 15, even in light mode", detail: "Light or recovery mode counts. Aim for one more day next week." });
   if ((losing || p.goal === "build-muscle" || p.goal === "strength") && strengthSessions === 0) {
-    add(moreOf, { id: "strength", priority: 40, text: "Strength training: none logged this week", detail: "Two sessions a week of weights or bodyweight exercises help you keep muscle while losing fat. The UK guidelines recommend muscle-strengthening activity on at least two days a week." });
+    add(moreOf, { id: "strength", priority: 40, text: "Strength training: none logged this week", action: "Two strength sessions this week", detail: "Two sessions a week of weights or bodyweight exercises help you keep muscle while losing fat, and keep your metabolism up." });
   }
-  if (avgWater < t.waterMl * 0.7) add(moreOf, { id: "water", priority: 15, text: `Water: averaged ${round(avgWater / 1000, 1)} L a day`, detail: "Keep a glass or bottle within reach and log it as you go." });
+  if (avgWater < t.waterMl * 0.7) add(moreOf, { id: "water", priority: 15, text: `Water: averaged ${round(avgWater / 1000, 1)} L a day`, action: "Keep a glass of water within reach", detail: "Keep a glass or bottle within reach and log it as you go." });
   if (focus.has("cholesterol") && enoughFood) {
-    add(moreOf, { id: "unsaturated", goals: ["cholesterol"], priority: 20, text: "Unsaturated fats in place of saturated", detail: "Cook with olive or rapeseed oil instead of butter, snack on unsalted nuts, and have oily fish such as salmon or mackerel twice a week." });
+    add(moreOf, { id: "unsaturated", goals: ["cholesterol"], priority: 20, text: "Unsaturated fats in place of saturated", action: "Cook with olive or rapeseed oil, not butter", detail: "Cook with olive or rapeseed oil instead of butter, snack on unsalted nuts, and have oily fish such as salmon or mackerel twice a week." });
   }
 
   /* ---------- Do less of ---------- */
   // Only when weight isn't coming off. Over target while losing steadily means the estimate was low, not a problem.
   if (losing && enoughFood && avgKcal > t.calories * 1.05 && status !== "on-track" && status !== "too-fast") {
     const top = topContributors(state, foodDays, "kcal");
-    add(lessOf, { id: "calories", priority: 55, text: `Calories: averaged ${fmt(avgKcal)} against ${fmt(t.calories)}`, detail: top.length ? `Most came from ${list(top)}. Smaller portions of one of these would close most of the gap.` : undefined });
+    add(lessOf, { id: "calories", priority: 55, text: `Calories: averaged ${fmt(avgKcal)} against ${fmt(t.calories)}`, action: "A smaller portion of one big-calorie food each day", detail: top.length ? `Most came from ${list(top)}. Smaller portions of one of these would close most of the gap.` : undefined });
   }
   if (weekend.length >= 1 && weekday.length >= 3 && mean(weekend) > mean(weekday) + 300) {
-    add(lessOf, { id: "weekend", priority: 45, text: `Weekend eating: ${fmt(mean(weekend) - mean(weekday))} kcal a day more than weekdays`, detail: "Plan one weekend meal in advance and keep the rest close to your weekday pattern." });
+    add(lessOf, { id: "weekend", priority: 45, text: `Weekend eating: ${fmt(mean(weekend) - mean(weekday))} kcal a day more than weekdays`, action: "Plan one weekend meal in advance", detail: "Plan one weekend meal in advance and keep the rest close to your weekday pattern." });
   }
   if (avgSat !== null && avgSat > limits.satFatG) {
     const top = topContributors(state, foodDays, "satFat");
@@ -343,44 +424,116 @@ export function weeklyReview(state: AppState, end = addDays(todayKey(), -1)): We
       id: "sat-fat",
       goals: ["cholesterol"],
       priority: 40,
-      text: `Saturated fat: averaged ${fmt(avgSat)} g against a ${limits.satFatG} g limit`,
+      text: `Saturated fat: averaged ${fmt(avgSat)} g against your ${limits.satFatG} g limit`,
+      action: "Swap one high-fat food for a leaner one each day",
       detail: `${top.length ? `Mostly from ${list(top)}. ` : ""}Swap to lean meat, reduced-fat dairy and olive oil, and keep cheese, butter, processed meat and pastries for occasional use.`,
     });
   }
   if (avgSugars !== null && avgSugars > limits.sugarsG) {
     const top = topContributors(state, foodDays, "sugars");
-    add(lessOf, { id: "sugars", goals: ["sugar"], priority: 35, text: `Sugars: averaged ${fmt(avgSugars)} g against a ${limits.sugarsG} g limit`, detail: `${top.length ? `Mostly from ${list(top)}. ` : ""}Sugary drinks, sweets and biscuits are the easiest to cut. Whole fruit is fine.` });
+    add(lessOf, { id: "sugars", goals: ["sugar"], priority: 35, text: `Sugars: averaged ${fmt(avgSugars)} g against your ${limits.sugarsG} g limit`, action: "Swap one sugary drink or snack each day", detail: `${top.length ? `Mostly from ${list(top)}. ` : ""}Sugary drinks, sweets and biscuits are the easiest to cut. Whole fruit is fine.` });
   }
   if (avgSalt !== null && avgSalt > limits.saltG) {
     const top = topContributors(state, foodDays, "salt");
-    add(lessOf, { id: "salt", goals: ["salt"], priority: 30, text: `Salt: averaged ${round(avgSalt, 1)} g against a ${limits.saltG} g limit`, detail: `${top.length ? `Mostly from ${list(top)}. ` : ""}Processed meat, cheese, bread and ready meals add up. Check labels for the red traffic light.` });
+    add(lessOf, { id: "salt", goals: ["salt"], priority: 30, text: `Salt: averaged ${round(avgSalt, 1)} g against your ${limits.saltG} g limit`, action: "Check labels and choose the lower-salt option", detail: `${top.length ? `Mostly from ${list(top)}. ` : ""}Processed meat, cheese, bread and ready meals add up. Check labels for the red traffic light.` });
   }
-  if (units > ALCOHOL_UNITS_PER_WEEK || (focus.has("alcohol") && units > 0 && drinkDays > 3)) {
+  /* ---------- Drinks ---------- */
+  // Framed as calories and their knock-on effects for the person's goal. Health risk is raised only for a
+  // pattern over several weeks, in plain words. Wording for review by a dietitian.
+  const drinkEntries = state.foods.filter((f) => days.includes(f.date) && (f.alcoholUnits ?? 0) > 0);
+  const drinkKcal = drinkEntries.reduce((t2, f) => t2 + f.kcal, 0);
+  const weekKcal = totals.reduce((t2, x) => t2 + x.n.kcal, 0);
+  const share = weekKcal > 0 ? drinkKcal / weekKcal : 0;
+  const unitsByDay = days.map((d) => foodsOn(state, d).reduce((t2, f) => t2 + (f.alcoholUnits ?? 0), 0));
+  const bigSessions = unitsByDay.filter((u) => u >= BIG_SESSION_UNITS).length;
+  const heavyWeeks = [0, 7, 14, 21].filter((back) => alcoholUnits(state, lastNDays(7, addDays(end, -back))) > ALCOHOL_UNITS_PER_WEEK).length;
+  const pattern = heavyWeeks >= 3;
+  if (units > 0 && (share >= 0.07 || units > ALCOHOL_UNITS_PER_WEEK || focus.has("alcohol"))) {
+    const dinners = totals.map((x) => sumNutrients(x.entries.filter((e) => e.meal === "dinner" && !e.alcoholUnits)).kcal).filter((k) => k > 200);
+    const dinner = dinners.length ? dinners.reduce((a, b) => a + b, 0) / dinners.length : 650;
+    const meals = Math.round((drinkKcal / dinner) * 2) / 2;
+    // The day after drinking, compared with other days.
+    const after = totals.filter((x) => unitsByDay[days.indexOf(addDays(x.d, -1))] >= 3);
+    const others = totals.filter((x) => !after.includes(x));
+    const afterExtra = after.length && others.length >= 2 ? mean(after) - mean(others) : 0;
+    const names = drinkEntries.map((f) => f.name.toLowerCase()).join(" ");
+    const tweak = /beer|lager|ale|cider|stout|ipa/.test(names)
+      ? "a lower-strength beer, or swapping every other pint for a soft drink"
+      : /wine|prosecco|champagne/.test(names)
+        ? "a 125 ml glass in place of a large one, or a spritzer"
+        : "a diet mixer, and a glass of water between drinks";
+    const goalLine =
+      p.goal === "build-muscle" || p.goal === "strength"
+        ? "Alcohol slows muscle repair and disturbs sleep, so heavy nights cost more than the calories."
+        : losing
+          ? afterExtra >= 250
+            ? `The day after drinking you averaged ${fmt(afterExtra)} kcal more, which is common: sleep is worse and appetite is bigger.`
+            : "Alcohol also disturbs sleep, which tends to mean a bigger appetite the next day."
+          : "Alcohol disturbs sleep, which affects energy and appetite the next day.";
+    const sessionLine = bigSessions ? ` ${bigSessions === 1 ? "One day" : `${bigSessions} days`} had ${BIG_SESSION_UNITS} units or more: the same drinks spread out are easier on sleep and recovery.` : "";
+    const healthLine = pattern ? ` Drinking above about ${ALCOHOL_UNITS_PER_WEEK} units most weeks raises long-term health risks, whatever the drink, so trimming a little is worth it.` : "";
     add(lessOf, {
       id: "alcohol",
       goals: ["alcohol"],
-      priority: units > ALCOHOL_UNITS_PER_WEEK ? 50 : 30,
-      text: `Alcohol: ${round(units, 1)} units over ${drinkDays} ${drinkDays === 1 ? "day" : "days"}`,
-      detail: `The UK guideline is no more than ${ALCOHOL_UNITS_PER_WEEK} units a week, spread over three or more days, with several drink-free days.${losing ? " Drinks are also easy calories to cut." : ""}`,
+      priority: pattern ? 50 : losing && share >= 0.1 ? 45 : 30,
+      text: `Drinks: about ${fmt(drinkKcal)} kcal this week${meals >= 1 ? `, roughly ${meals === 1 ? "one dinner" : `${meals} dinners`}` : ""}`,
+      action: "One more drink-free day, or a lighter drink",
+      detail: `${round(units, 1)} units over ${drinkDays} ${drinkDays === 1 ? "day" : "days"}. ${goalLine}${sessionLine} Easy tweaks: ${tweak}.${healthLine}`,
     });
   }
 
   /* ---------- Wins ---------- */
-  if (status === "on-track" && losing) wins.push("Weight trending down at a steady rate.");
-  if (activeDays >= 5) wins.push(`Active on ${activeDays} of seven days.`);
-  if (enoughFood && avgProtein >= t.proteinG * 0.9) wins.push("Protein target met on average.");
-  if (avgSteps !== null && avgSteps >= t.steps) wins.push(`Averaged ${fmt(avgSteps)} steps a day.`);
-  if (enoughFood && avgFibre >= t.fibreG * 0.9) wins.push("Good fibre intake.");
-  if (avgSat !== null && avgSat <= limits.satFatG && focus.has("cholesterol")) wins.push("Saturated fat within your limit.");
-  if (foodDays.length >= 6) wins.push("Food logged on almost every day.");
+  // Specific, and against the person's own first week where possible. Most notable first.
+  const ranked: [number, string][] = wins.map((w) => [100, w]);
+  const win = (score: number, text: string) => ranked.push([score, text]);
+  if (status === "on-track" && losing) win(95, "Weight trending down at a steady rate.");
+  if (activeDays === 7) win(80, "Active every day this week.");
+  else if (activeDays >= 5) win(70, `Active on ${activeDays} of seven days.`);
+  if (strengthSessions >= 2) win(60, `${strengthSessions} strength sessions.`);
+  const lift = liftProgress(state, days);
+  if (lift) win(75, `${lift.name}: up from ${round(lift.from, 1)} kg to ${round(lift.to, 1)} kg since you started.`);
+  if (enoughFood && avgProtein >= t.proteinG * 0.9) win(65, `Protein averaged ${fmt(avgProtein)} g, on target.`);
+  if (comparable && enoughFood) {
+    const first = firstWeek.map((d) => foodsOn(state, d)).filter((xs) => xs.some((f) => !f.rough));
+    const firstProtein = first.length >= 3 ? first.reduce((t2, xs) => t2 + sumNutrients(xs).protein, 0) / first.length : null;
+    if (firstProtein !== null && avgProtein - firstProtein >= 10) win(72, `Protein up from ${fmt(firstProtein)} g to ${fmt(avgProtein)} g a day since your first week.`);
+  }
+  if (avgSteps !== null && avgSteps >= t.steps) win(55, `Averaged ${fmt(avgSteps)} steps a day.`);
+  else if (comparable && avgSteps !== null) {
+    const firstSteps = firstWeek.map((d) => state.activity[d]?.steps ?? 0).filter((x) => x > 0);
+    const fs = firstSteps.length >= 3 ? firstSteps.reduce((a, b) => a + b, 0) / firstSteps.length : null;
+    if (fs !== null && avgSteps - fs >= 1000) win(58, `Steps up from ${fmt(fs)} to ${fmt(avgSteps)} a day since your first week.`);
+  }
+  if (foodDays.length === 7) win(50, "Food logged on all seven days.");
+  else if (foodDays.length === 6) win(45, "Food logged on six of seven days.");
+  if (enoughFood && avgFibre >= t.fibreG * 0.9) win(40, "Good fibre intake.");
+  if (enoughFood && avgFiveADay >= 5) win(42, "Five or more fruit and veg portions a day.");
+  if (avgSat !== null && avgSat <= limits.satFatG && focus.has("cholesterol")) win(40, "Saturated fat within your limit.");
+  const lastWeekUnits = alcoholUnits(state, lastNDays(7, addDays(end, -7)));
+  if (lastWeekUnits - units >= 3) win(52, `Fewer drinks: ${round(units, 1)} units, down from ${round(lastWeekUnits, 1)} the week before.`);
+  wins.length = 0;
+  wins.push(...ranked.sort((a, b) => b[0] - a[0]).map(([, w]) => w));
 
-  const order = (xs: ReviewPoint[]) => xs.sort((a, b) => b.priority - a.priority).slice(0, 3);
+  if (winLed) {
+    headline = wins.length
+      ? wins.length > 1 ? `${wins[0].replace(/\.$/, "")}, and ${wins[1][0].toLowerCase()}${wins[1].slice(1)}` : wins[0]
+      : settling ? "A start. Every logged day builds the picture." : headline;
+    if (!wins.length && !settling) winLed = false;
+  }
+  if (!winLed) weightNote = null;
+
+  const order = (xs: ReviewPoint[]) => [...xs].sort((a, b) => b.priority - a.priority).slice(0, 3);
+  const ideas = [...moreOf, ...lessOf].sort((a, b) => b.priority - a.priority);
   return {
     start,
     end,
     headline: headline || `Week of ${formatDay(start, { day: "numeric", month: "short" })}`,
     status,
-    wins: wins.slice(0, 3),
+    wins: wins.slice(0, 5),
+    tryThis: ideas[0] ?? null,
+    moreIdeas: ideas.slice(1, 5),
+    weightNote,
+    daysIn,
     moreOf: order(moreOf),
     lessOf: order(lessOf),
     adjustment,
