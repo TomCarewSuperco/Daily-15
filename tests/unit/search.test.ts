@@ -129,3 +129,22 @@ test("KitKat is built in with its bar sizes, however it's typed", async () => {
   assert.deepEqual(FOOD_DB.find((f) => f.name === "KitKat")!.units.map((u) => u.name).slice(0, 3), ["2-finger bar", "4-finger bar", "Chunky"]);
   assert.equal(searchTerms("Kitkat chunky"), "kit kat chunky");
 });
+
+test("baked potato spellings find the jacket potato; pies are common foods", async () => {
+  const { FOOD_DB } = await import("../../src/app/foods");
+  const { searchFoods } = await import("../../src/app/cofid");
+  for (const q of ["baked potato", "baked potatoe", "baked potatoes"]) assert.equal(searchFoods(FOOD_DB, q, 1)[0]?.name, "Jacket potato", q);
+  assert.equal(searchFoods(FOOD_DB, "chicken pie", 1)[0]?.name, "Chicken pie, individual");
+  assert.equal(searchFoods(FOOD_DB, "steak pie", 1)[0]?.name, "Steak pie, individual");
+  assert.equal(searchFoods(FOOD_DB, "mince pies", 1)[0]?.name, "Mince pie");
+});
+
+test("jacket potato asks what's on it, with amounts per topping", async () => {
+  const { amountsFor, companionFor, switchOption } = await import("../../src/app/companions");
+  const c = companionFor("Jacket potato")!;
+  assert.equal(c.key, "potato");
+  assert.deepEqual(amountsFor(c, "Butter").map((a) => a.amount), [5, 10, 20]);
+  assert.deepEqual(switchOption(c, { name: "Butter", amount: 20 }, "Baked beans"), { name: "Baked beans", amount: 300 });
+  assert.deepEqual(switchOption(c, { name: null, amount: 0 }, "Coleslaw"), { name: "Coleslaw", amount: 80 });
+  assert.equal(companionFor("Sweet potato, baked"), null);
+});

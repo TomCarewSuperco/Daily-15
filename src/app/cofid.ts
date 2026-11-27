@@ -379,6 +379,9 @@ const SYNONYMS: Record<string, string[]> = {
   sarnie: ["sandwich"],
   butty: ["sandwich"],
   spuds: ["potatoes"],
+  potatoe: ["potato"],
+  potatos: ["potatoes"],
+  pies: ["pie"],
   tatties: ["potatoes"],
   chips: ["chips", "fries"],
   fries: ["chips"],
@@ -457,6 +460,7 @@ const hit = (nameWords: string[], w: string) => forms(w).some((x) => nameWords.s
 const FILLER = new Set(["and", "with", "of", "a", "an", "the", "in", "on", "n", "&", "some", "my"]);
 /** Phrases people type that the food names word differently. */
 const PHRASES: [RegExp, string][] = [
+  [/\bbaked potato(es|e|s)?\b/, "jacket potato"],
   [/\bsalad dress(ings?)?\b/, "dressing"],
   [/\bvinaigrette\b/, "french dressing"],
   [/\bhot dogs?\b/, "frankfurter"],

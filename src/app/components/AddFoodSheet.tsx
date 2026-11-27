@@ -18,7 +18,7 @@ import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 import { unitsFromOff } from "../offUnits";
 import { batchOf, bowlParts, BUILDS, buildFor, INGREDIENTS, partsOf, piecesFrom, remember, startingPoint, toCustomFood, type Amounts, type Build, type Part } from "../homemade";
-import { companionFor, companionFood, lastChoice, rememberChoice, type CompanionChoice } from "../companions";
+import { amountsFor, companionFor, companionFood, lastChoice, rememberChoice, switchOption, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, currentUnitsFor, refreshUnits, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
 
 export const MEALS: { value: Meal; label: string }[] = [
@@ -621,7 +621,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
                 key={t.label}
                 role="radio"
                 aria-checked={topping.name === t.name}
-                onClick={() => setTopping({ ...topping, name: t.name })}
+                onClick={() => setTopping(switchOption(companion, topping, t.name))}
                 className={`rounded-full border px-3 py-1.5 text-sm ${topping.name === t.name ? "border-foreground bg-foreground text-background" : "bg-card"}`}
               >
                 {t.label}
@@ -630,7 +630,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
           </div>
           {topping.name && (
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="How much?">
-              {companion.amounts.map((a) => {
+              {amountsFor(companion, topping.name).map((a) => {
                 const e = toppingEntry({ name: topping.name, amount: a.amount });
                 const on = topping.amount === a.amount;
                 const unit = companionFood(topping.name!)?.unit ?? "g";
@@ -649,7 +649,7 @@ function AmountStep({ pending, setPending, onAdd, onBack }: { pending: Pending; 
               })}
             </div>
           )}
-          {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the {companion.key === "salad" ? "salad" : "cereal"}, and {extra.portion} of {extra.name.toLowerCase()}. Total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
+          {extra && <p className="text-xs text-muted-foreground">Logged as two entries: the {companion.noun}, and {extra.portion} of {extra.name.toLowerCase()}. Total {Math.round(entry.kcal + extra.kcal)} kcal.</p>}
         </div>
       )}
       {mixable && (

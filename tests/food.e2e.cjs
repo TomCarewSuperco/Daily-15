@@ -239,6 +239,17 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const okBroth = brothRow > 0 && leftKcal < allKcal && broth && /1 bowl/.test(broth.portion) && broth.kcal === leftKcal;
   console.log(okBroth ? "PASS broth bowl from a chicken stock search" : `FAIL broth bowl from a chicken stock search (${brothRow}, ${allKcal}, ${leftKcal}, ${JSON.stringify(broth)})`);
   if (!okBroth) process.exitCode = 1;
+  // Jacket potato: 'baked potatoe' finds it; toppings logged as a second entry.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("Baked potatoe");
+  await p.getByRole("button", { name: /^Jacket potato/ }).first().click();
+  await p.getByRole("radio", { name: "Beans and cheese" }).click();
+  await p.getByRole("button", { name: /^Add/ }).last().click();
+  await p.waitForTimeout(300);
+  const spud = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.filter((x) => x.name === "Jacket potato" || x.name === "Baked beans and grated cheese").map((x) => `${x.name}: ${x.portion}`));
+  const okSpud = spud.length === 2 && spud.some((x) => /Baked beans and grated cheese: .*240 g/.test(x));
+  console.log(okSpud ? "PASS jacket potato with beans and cheese" : `FAIL jacket potato with beans and cheese (${JSON.stringify(spud)})`);
+  if (!okSpud) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();
