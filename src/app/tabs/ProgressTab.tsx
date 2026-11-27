@@ -35,6 +35,7 @@ import { PremiumGate } from "../premium/Paywall";
 import { activeCommitments, addCommitment, finishedCommitments, MAX_COMMITMENTS } from "../commitments";
 import type { MeasurementEntry } from "../types";
 import { weeklyReview, type ReviewPoint } from "../review";
+import { bodyFat } from "../bodyfat";
 import { lifeStageOf, pregnancyReview } from "../pregnancy";
 import { PreviewBadge } from "../components/PregnancyCard";
 
@@ -111,6 +112,8 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const latestWaist = [...measurements].reverse().find((x) => x.waistCm)?.waistCm;
   const waistReadings = measurements.filter((m) => m.waistCm);
   const waistSpanDays = waistReadings.length > 1 ? Math.round((new Date(`${waistReadings[waistReadings.length - 1].date}T12:00:00`).getTime() - new Date(`${waistReadings[0].date}T12:00:00`).getTime()) / 86400000) : 0;
+  const fatWeight = trendWeight(state.weights, todayKey()) ?? latestWeight(state);
+  const fat = latestWaist && fatWeight && state.profile && !lifeStageOf(state.profile) ? bodyFat(state.profile, latestWaist, fatWeight) : null;
   const halfHeight = Math.round((state.profile?.heightCm ?? 0) / 2);
   const whtr = latestWaist && state.profile && state.profile.heightCm > 0 && state.profile.age >= 18 && !lifeStageOf(state.profile) ? Math.round((latestWaist / state.profile.heightCm) * 100) / 100 : null;
 
@@ -411,6 +414,22 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                   ? "Under half your height, the healthy range."
                   : `A waist under half your height (0.5) is the healthy range. That's ${formatLength(halfHeight, lengthUnit)} for you, about ${formatLength(Math.max(0.5, latestWaist! - halfHeight), lengthUnit)} from here.`}
               </p>
+            )}
+            {fat && (
+              <div className="mt-3 rounded-xl border p-3 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Body fat estimate</p>
+                <p className="mt-1">
+                  About <span className="font-semibold tabular-nums">{fat.pct}%</span>, roughly {fat.fatKg} kg. A healthy range for your age is {fat.range[0]} to {fat.range[1]}%.
+                </p>
+                {fat.toLoseKg >= 1 ? (
+                  <p className="mt-1">
+                    Getting to {fat.targetPct}% means losing about <span className="font-semibold">{fat.toLoseKg} kg of fat</span> while keeping your muscle: around {fat.targetWeightKg} kg, with a waist of about {formatLength(fat.targetWaistCm, lengthUnit)}. At 0.5 kg a week that's about {fat.weeks} weeks.
+                  </p>
+                ) : (
+                  <p className="mt-1">You're within the healthy range.</p>
+                )}
+                <p className="mt-1.5 text-xs text-muted-foreground">Estimated from your waist, height and weight. It can be five points out either way; a DEXA scan measures it properly. Strength training means some change is muscle gained, so your waist may fall faster than the scales.</p>
+              </div>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Latest {formatDay(lastM.date)}. Measure every two to four weeks at the same point on the body.</p>
           </>

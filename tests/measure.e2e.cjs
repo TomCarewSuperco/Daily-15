@@ -52,5 +52,13 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   const okSecond = second.thigh === 1 && second.same >= 1 && second.history === 1 && second.note === 1;
   console.log(okSecond ? "PASS second reading keeps others and shows the change" : `FAIL second reading keeps others and shows the change ${JSON.stringify(second)}`);
   if (!okSecond) process.exitCode = 1;
+  // With a weigh-in, the card estimates body fat and how much to lose.
+  await p.evaluate(() => { const s = JSON.parse(localStorage.getItem("daily15:v1")); s.weights = [{ id: "w", date: new Date().toLocaleDateString("en-CA"), kg: 87.5 }]; localStorage.setItem("daily15:v1", JSON.stringify(s)); });
+  await p.reload();
+  await p.getByRole("navigation").getByRole("button", { name: "Progress", exact: true }).click();
+  const fatText = (await p.getByText("Body fat estimate").locator("xpath=..").textContent()) ?? "";
+  const okFat = /About 27%/.test(fatText) && /about 7 kg of fat/.test(fatText) && /11 to 21%/.test(fatText);
+  console.log(okFat ? "PASS body fat estimate and fat to lose" : `FAIL body fat estimate and fat to lose (${fatText})`);
+  if (!okFat) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.slice(0, 300)); process.exit(1); });
