@@ -60,5 +60,10 @@ const seed = { version: 1, profile: { name: "", age: 40, sex: "male", heightCm: 
   const okFat = /About 27%/.test(fatText) && /about 7 kg of fat/.test(fatText) && /11 to 21%/.test(fatText);
   console.log(okFat ? "PASS body fat estimate and fat to lose" : `FAIL body fat estimate and fat to lose (${fatText})`);
   if (!okFat) process.exitCode = 1;
+  await p.getByRole("button", { name: /^Make \d+ kg my target$/ }).click();
+  await p.waitForTimeout(300);
+  const tgt = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).profile.targetWeightKg);
+  console.log(tgt === 80 ? "PASS target weight set from the estimate" : `FAIL target weight set from the estimate (${tgt})`);
+  if (tgt !== 80) process.exitCode = 1;
   await b.close();
 })().catch((e) => { console.error("FAIL", e.message.slice(0, 300)); process.exit(1); });

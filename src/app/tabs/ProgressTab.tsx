@@ -16,6 +16,7 @@ import {
   todayKey,
   totalActiveDays,
   trendWeight,
+  suggestTargets,
   uid,
   weeklyReport,
   weightSeries,
@@ -114,6 +115,15 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
   const waistSpanDays = waistReadings.length > 1 ? Math.round((new Date(`${waistReadings[waistReadings.length - 1].date}T12:00:00`).getTime() - new Date(`${waistReadings[0].date}T12:00:00`).getTime()) / 86400000) : 0;
   const fatWeight = trendWeight(state.weights, todayKey()) ?? latestWeight(state);
   const fat = latestWaist && fatWeight && state.profile && !lifeStageOf(state.profile) ? bodyFat(state.profile, latestWaist, fatWeight) : null;
+  // Set the target weight from the estimate; calorie and protein targets follow unless set by hand.
+  const applyEstimateTarget = (kg: number) => {
+    update((s) => {
+      const next = { ...s.profile!, targetWeightKg: kg };
+      if (!next.targetsCustomised) next.targets = suggestTargets(next, latestWeight(s) ?? next.startWeightKg);
+      return { ...s, profile: next };
+    });
+    toast.success(`Target weight set to ${kg} kg. It updates here as your measurements change; set it in Profile any time.`);
+  };
   const halfHeight = Math.round((state.profile?.heightCm ?? 0) / 2);
   const whtr = latestWaist && state.profile && state.profile.heightCm > 0 && state.profile.age >= 18 && !lifeStageOf(state.profile) ? Math.round((latestWaist / state.profile.heightCm) * 100) / 100 : null;
 
@@ -427,6 +437,12 @@ export function ProgressTab({ intent, clearIntent }: { intent: Intent; clearInte
                   </p>
                 ) : (
                   <p className="mt-1">You're within the healthy range.</p>
+                )}
+                {fat.toLoseKg >= 1 && state.profile && Math.abs(state.profile.targetWeightKg - fat.targetWeightKg) >= 1 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => applyEstimateTarget(fat.targetWeightKg)}>Make {fat.targetWeightKg} kg my target</Button>
+                    <span className="text-xs text-muted-foreground">Now {state.profile.targetWeightKg} kg</span>
+                  </div>
                 )}
                 <p className="mt-1.5 text-xs text-muted-foreground">Estimated from your waist, height and weight. It can be five points out either way; a DEXA scan measures it properly. Strength training means some change is muscle gained, so your waist may fall faster than the scales.</p>
               </div>

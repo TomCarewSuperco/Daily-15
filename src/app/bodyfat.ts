@@ -38,7 +38,8 @@ export function bodyFat(profile: Profile, waistCm: number, weightKg: number): Bo
   const [, low, high] = RANGES[sex].find(([max]) => profile.age <= max)!;
   const targetPct = high - 1;
   const lean = weightKg * (1 - pct / 100);
-  const targetWeightKg = lean / (1 - targetPct / 100);
+  // Never below a BMI of 20, whatever the formula says.
+  const targetWeightKg = Math.max(lean / (1 - targetPct / 100), 20 * (h / 100) ** 2);
   const toLoseKg = Math.max(0, weightKg - targetWeightKg);
   return {
     pct: Math.round(pct),
