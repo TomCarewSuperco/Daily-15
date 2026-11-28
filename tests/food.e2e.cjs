@@ -250,6 +250,27 @@ const product = (code, name, brand, kcal) => ({ code, product_name: name, brands
   const okSpud = spud.length === 2 && spud.some((x) => /Baked beans and grated cheese: .*240 g/.test(x));
   console.log(okSpud ? "PASS jacket potato with beans and cheese" : `FAIL jacket potato with beans and cheese (${JSON.stringify(spud)})`);
   if (!okSpud) process.exitCode = 1;
+  // Spirits: choose the measure and mixer; cocktails: an extra shot.
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("gin and tonic");
+  await p.getByRole("button", { name: /^Gin and tonic/ }).first().click();
+  await p.getByRole("radio", { name: /^Double/ }).click();
+  await p.getByRole("radio", { name: "Slimline tonic" }).click();
+  await p.screenshot({ path: OUT + "/f-gin.png", fullPage: true });
+  await p.getByRole("button", { name: /^Add/ }).last().click();
+  await p.waitForTimeout(300);
+  await p.getByRole("button", { name: "Add to lunch" }).click();
+  await p.getByPlaceholder(/Search foods/).fill("espresso martini");
+  await p.getByRole("button", { name: /^Espresso martini/ }).first().click();
+  await p.getByRole("radio", { name: /^Extra shot/ }).click();
+  await p.getByRole("button", { name: /^Add/ }).last().click();
+  await p.waitForTimeout(300);
+  const drinks = await p.evaluate(() => JSON.parse(localStorage.getItem("daily15:v1")).foods.filter((x) => /^Gin and slimline|^Espresso martini/.test(x.name)).map((x) => ({ n: x.name, k: x.kcal, u: x.alcoholUnits })));
+  const gin = drinks.find((d) => d.n === "Gin and slimline tonic, double");
+  const em = drinks.find((d) => d.n === "Espresso martini, extra shot");
+  const okDrinks = gin && gin.k === 113 && Math.abs(gin.u - 2) < 0.1 && em && em.u > 3;
+  console.log(okDrinks ? "PASS spirit measure and mixer, cocktail extra shot" : `FAIL spirit measure and mixer, cocktail extra shot (${JSON.stringify(drinks)})`);
+  if (!okDrinks) process.exitCode = 1;
   // Mark the day complete: it locks, then unlocks.
   await p.waitForTimeout(5500);
   await p.getByRole("button", { name: "That's everything for today" }).click();

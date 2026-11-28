@@ -17,6 +17,7 @@ import { cameraAvailable, lookupBarcode, scanWithCamera, searchProducts, type Of
 import { Choice, Field, NumField } from "./Field";
 import { Estimate } from "./Section";
 import { unitsFromOff } from "../offUnits";
+import { COCKTAIL_SPIRIT, MEASURES, MIXER_AMOUNTS, MIXERS, parseSpirit, rememberedSpirit, rememberSpirit, spiritDrink, spiritName, SPIRITS, withShots, type SpiritChoice } from "../drinks";
 import { batchOf, bowlParts, BUILDS, buildFor, INGREDIENTS, partsOf, piecesFrom, remember, startingPoint, toCustomFood, type Amounts, type Build, type Part } from "../homemade";
 import { amountsFor, companionFor, companionFood, lastChoice, rememberChoice, switchOption, type CompanionChoice } from "../companions";
 import { amountOf, collapse, coveredBy, currentUnitsFor, refreshUnits, restyle, STYLE_LABELS, styleable, styledName, switchTo, variantsFor, type Option, type Style } from "../variants";
@@ -46,6 +47,10 @@ export interface Pending {
   caffeine?: number;
   /** Logged lighter or richer than the listed recipe; keeps the listed values to switch back. */
   style?: { level: Style; typical: Nutrients; name: string };
+  /** A spirit and mixer built from the measure and mixer. */
+  drink?: SpiritChoice;
+  /** A cocktail with extra shots; keeps the listed drink to switch back. */
+  shots?: { extra: number; base: Nutrients; per: number; units: FoodUnit[]; abv: number; name: string };
 }
 
 const SERVING: FoodUnit = { name: "serving", plural: "servings", g: 1 };
@@ -424,6 +429,8 @@ export function PortionPicker({ pending, setPending }: { pending: Pending; setPe
 
   return (
     <div className="space-y-4">
+      <SpiritPicker pending={pending} setPending={setPending} />
+      <ShotsPicker pending={pending} setPending={setPending} />
       <VariantPicker pending={pending} setPending={setPending} />
       <StylePicker pending={pending} setPending={setPending} />
       {(pending.units.length > 1 || pending.baseUnit !== "serving") && (
@@ -489,6 +496,87 @@ function withStyle(p: Pending, level: Style): Pending {
   const typical = p.style?.typical ?? p.base;
   const name = p.style?.name ?? p.name;
   return { ...p, base: restyle(typical, level), name: styledName(name, level), style: level === 0 ? undefined : { level, typical, name } };
+}
+
+function Chips<T extends string | number | null>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string; hint?: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm font-medium">{label}</p>
+      <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>
+        {options.map((o) => (
+          <button
+            key={`${o.value}`}
+            type="button"
+            role="radio"
+            aria-checked={value === o.value}
+            onClick={() => onChange(o.value)}
+            className={`rounded-full border px-3 py-1.5 text-sm ${value === o.value ? "border-foreground bg-foreground text-background" : "bg-card"}`}
+          >
+            {o.label}
+            {o.hint && <span className={value === o.value ? "opacity-75" : "text-muted-foreground"}> {o.hint}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Gin, vodka, rum and the rest: the measure, the mixer and how much of it, as one drink. */
+function SpiritPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
+  const parsed = pending.drink ? null : parseSpirit(pending.name);
+  const apply = (c: SpiritChoice, base: Pending = pending) => {
+    const d = spiritDrink(c);
+    const unit = base.unitIdx >= 0 ? base.units[base.unitIdx] : null;
+    const qty = unit && (unit.name === "drink" || base.drink || /single|double|shot/.test(unit.name)) ? base.qty || 1 : 1;
+    rememberSpirit(c);
+    setPending({ ...base, name: spiritName(c), base: d.n, per: d.ml, baseUnit: "ml", units: [{ name: "drink", plural: "drinks", g: d.ml }], unitIdx: 0, qty, abv: d.abv, drink: c, estimated: true });
+  };
+  // A spirit or spirit-and-mixer from search: turn it into a built drink once.
+  useEffect(() => {
+    if (!parsed) return;
+    const r = rememberedSpirit();
+    const unit = pending.unitIdx >= 0 ? pending.units[pending.unitIdx].name : "";
+    const measure = parsed.hasMixer || !unit ? parsed.measure : unit === "double" ? 2 : 0;
+    apply({ spirit: parsed.spirit, measure, mixer: parsed.hasMixer ? parsed.mixer : r.mixer, mixerAmount: r.mixerAmount });
+  }, [pending.name]); // eslint-disable-line react-hooks/exhaustive-deps
+  const c = pending.drink;
+  if (!c) return null;
+  return (
+    <div className="space-y-3">
+      <Chips label="Spirit" value={c.spirit} options={SPIRITS.map((x) => ({ value: x, label: x }))} onChange={(spirit) => apply({ ...c, spirit })} />
+      <Chips label="Measure" value={c.measure} options={MEASURES.map((m, i) => ({ value: i, label: m.label, hint: m.hint }))} onChange={(measure) => apply({ ...c, measure })} />
+      <Chips label="Mixer" value={c.mixer} options={[{ value: null, label: "Neat or on ice" }, ...MIXERS.map((m, i) => ({ value: i as number | null, label: m.label }))]} onChange={(mixer) => apply({ ...c, mixer })} />
+      {c.mixer !== null && (
+        <Chips label="How much mixer?" value={c.mixerAmount} options={MIXER_AMOUNTS.map((m, i) => ({ value: i, label: m.label, hint: `${m.ml} ml` }))} onChange={(mixerAmount) => apply({ ...c, mixerAmount })} />
+      )}
+    </div>
+  );
+}
+
+/** Cocktails: as listed, or with one or two extra shots. */
+function ShotsPicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
+  const original = pending.shots ?? { extra: 0, base: pending.base, per: pending.per, units: pending.units, abv: pending.abv ?? 0, name: pending.name };
+  const spirit = COCKTAIL_SPIRIT[original.name];
+  const drinkUnit = original.units.find((u) => u.name === "drink");
+  if (!spirit || !drinkUnit || pending.baseUnit !== "ml") return null;
+  const set = (extra: number) => {
+    if (extra === 0) return setPending({ ...pending, name: original.name, base: original.base, per: original.per, units: original.units, unitIdx: original.units.indexOf(drinkUnit), abv: original.abv, shots: undefined });
+    const one = scaleNutrients(original.base, drinkUnit.g / original.per);
+    const r = withShots(one, drinkUnit.g, original.abv, extra);
+    setPending({ ...pending, name: `${original.name}, ${extra === 1 ? "extra shot" : "two extra shots"}`, base: r.n, per: r.ml, units: [{ name: "drink", plural: "drinks", g: r.ml }], unitIdx: 0, abv: r.abv, shots: { ...original, extra } });
+  };
+  return (
+    <Chips
+      label="How strong?"
+      value={pending.shots?.extra ?? 0}
+      options={[
+        { value: 0, label: "As made" },
+        { value: 1, label: "Extra shot", hint: `+25 ml ${spirit.toLowerCase()}` },
+        { value: 2, label: "Two extra shots" },
+      ]}
+      onChange={set}
+    />
+  );
 }
 
 function StylePicker({ pending, setPending }: { pending: Pending; setPending: (p: Pending) => void }) {
